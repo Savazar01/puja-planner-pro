@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Menu, X, User, LogOut } from "lucide-react";
 import { useState } from "react";
+import logo from "@/assets/logo.png";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,10 +27,7 @@ const Navbar = () => {
     <nav className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-md">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2">
-          <span className="text-2xl">🙏</span>
-          <span className="font-display text-xl font-bold text-foreground">
-            My<span className="text-primary">Pandits</span>
-          </span>
+          <img src={logo} alt="MyPandits.com" className="h-8" />
         </Link>
 
         {/* Desktop nav */}

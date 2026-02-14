@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const Navbar = () => {
-  const { user, isAuthenticated, login, logout } = useAuth();
+  const { user, isAuthenticated, login, logout, setShowAuthModal } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
 
@@ -62,9 +62,14 @@ const Navbar = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button onClick={login} size="sm">
-              Sign In
-            </Button>
+            <>
+              <Button onClick={() => setShowAuthModal(true)} variant="outline" size="sm">
+                Sign In
+              </Button>
+              <Button onClick={() => setShowAuthModal(true)} size="sm">
+                Sign Up
+              </Button>
+            </>
           )}
         </div>
 
@@ -94,8 +99,8 @@ const Navbar = () => {
                 Logout
               </Button>
             ) : (
-              <Button onClick={login} size="sm" className="w-full">
-                Sign In
+              <Button onClick={() => setShowAuthModal(true)} size="sm" className="w-full">
+                Sign In / Sign Up
               </Button>
             )}
           </div>

@@ -2,10 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, Search, Users, MapPin, CalendarCheck, Star, Phone, MessageCircle, ShoppingBag } from "lucide-react";
-import { pricingTiers } from "@/data/mockData";
+import { Search, Users, MapPin, CalendarCheck, Star, Phone, ShoppingBag } from "lucide-react";
 import { motion } from "framer-motion";
 import logo from "@/assets/logo.png";
 
@@ -45,7 +43,7 @@ const HeroSection = () => {
           transition={{ delay: 0.3, duration: 0.6 }}
           className="mx-auto mt-6 max-w-2xl text-lg opacity-80"
         >
-          Find verified Pandits, book temples, manage guests, and coordinate every detail — all from one platform.
+          Find verified Pandits, Temples, Events, Plan Pujas, Weddings, Collaborate and coordinate every detail — all from one AI platform.
         </motion.p>
         <motion.form
           initial={{ opacity: 0, y: 20 }}
@@ -108,102 +106,41 @@ const ValueProps = () => {
   );
 };
 
-const ServiceGrid = () => {
-  const tabs = [
-    { value: "pandits", label: "Pandits", icon: Users, items: ["Satyanarayan Puja", "Griha Pravesh", "Wedding Ceremonies", "Mundan Ceremony", "Havan & Yagna"] },
-    { value: "temples", label: "Temples", icon: MapPin, items: ["Ganesh Temple", "ISKCON", "Shiva Mandir", "Ram Mandir", "Local Events"] },
-    { value: "catering", label: "Catering", icon: ShoppingBag, items: ["Prasad Preparation", "Wedding Feast", "Satvik Food", "Sweet Boxes", "Banana Leaf Meals"] },
-    { value: "venues", label: "Venues", icon: CalendarCheck, items: ["Marriage Halls", "Community Centers", "Outdoor Lawns", "Banquet Halls", "Temple Halls"] },
-    { value: "supplies", label: "Supplies", icon: Star, items: ["Puja Samagri Kits", "Flowers & Garlands", "Idols & Frames", "Decoration Items", "Return Gifts"] },
-  ];
+const services = [
+  { icon: Users, title: "Pandits", desc: "Verified priests for all ceremonies", items: ["Satyanarayan Puja", "Griha Pravesh", "Wedding Ceremonies", "Mundan Ceremony", "Havan & Yagna"] },
+  { icon: MapPin, title: "Temples", desc: "Discover temples & events nearby", items: ["Ganesh Temple", "ISKCON", "Shiva Mandir", "Ram Mandir", "Local Events"] },
+  { icon: ShoppingBag, title: "Catering", desc: "Traditional & Satvik food services", items: ["Prasad Preparation", "Wedding Feast", "Satvik Food", "Sweet Boxes", "Banana Leaf Meals"] },
+  { icon: CalendarCheck, title: "Venues", desc: "Perfect halls for every occasion", items: ["Marriage Halls", "Community Centers", "Outdoor Lawns", "Banquet Halls", "Temple Halls"] },
+  { icon: Star, title: "Supplies", desc: "Complete puja samagri & décor", items: ["Puja Samagri Kits", "Flowers & Garlands", "Idols & Frames", "Decoration Items", "Return Gifts"] },
+];
 
-  return (
-    <section className="px-4 py-20">
-      <div className="container mx-auto max-w-5xl">
-        <h2 className="text-center font-display text-3xl font-bold text-foreground md:text-4xl">
-          Everything for your ceremony
-        </h2>
-        <Tabs defaultValue="pandits" className="mt-10">
-          <TabsList className="mx-auto flex w-full max-w-lg flex-wrap justify-center gap-1 bg-secondary">
-            {tabs.map((tab) => (
-              <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs sm:text-sm">
-                <tab.icon className="h-4 w-4" />
-                {tab.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          {tabs.map((tab) => (
-            <TabsContent key={tab.value} value={tab.value} className="mt-8">
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
-                {tab.items.map((item) => (
-                  <div
-                    key={item}
-                    className="cursor-pointer rounded-lg border border-border bg-card p-5 text-center transition-all hover:border-primary hover:shadow-soft"
-                  >
-                    <p className="text-sm font-medium text-foreground">{item}</p>
-                  </div>
-                ))}
-              </div>
-            </TabsContent>
-          ))}
-        </Tabs>
-      </div>
-    </section>
-  );
-};
-
-const PricingSection = () => (
-  <section className="bg-gradient-warm px-4 py-20">
+const ServiceGrid = () => (
+  <section className="px-4 py-20">
     <div className="container mx-auto max-w-6xl">
       <h2 className="text-center font-display text-3xl font-bold text-foreground md:text-4xl">
-        Simple, transparent pricing
+        Everything for your ceremony
       </h2>
-      <p className="mx-auto mt-3 max-w-lg text-center text-muted-foreground">
-        Start free, upgrade when you need more. WhatsApp invitations start at Silver.
-      </p>
-      <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {pricingTiers.map((tier, i) => (
+      <div className="mt-12 grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-5">
+        {services.map((service, i) => (
           <motion.div
-            key={tier.name}
+            key={service.title}
             custom={i}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
             variants={fadeUp}
-            className={`relative rounded-xl border p-6 transition-shadow ${
-              tier.highlighted
-                ? "border-primary bg-card shadow-elevated ring-2 ring-primary"
-                : "border-border bg-card shadow-card"
-            }`}
+            className="group cursor-pointer rounded-xl border border-border bg-card p-6 text-center shadow-card transition-all hover:border-primary hover:shadow-elevated"
           >
-            {tier.highlighted && (
-              <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground">
-                Most Popular
-              </Badge>
-            )}
-            <h3 className="font-display text-xl font-semibold text-foreground">{tier.name}</h3>
-            <div className="mt-3">
-              <span className="text-3xl font-bold text-foreground">{tier.price}</span>
-              <span className="text-sm text-muted-foreground">{tier.period}</span>
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 transition-colors group-hover:bg-primary/20">
+              <service.icon className="h-6 w-6 text-primary" />
             </div>
-            <ul className="mt-6 space-y-3">
-              {tier.features.map((f) => (
-                <li key={f.name} className="flex items-start gap-2 text-sm">
-                  {f.included ? (
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  ) : (
-                    <X className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/40" />
-                  )}
-                  <span className={f.included ? "text-foreground" : "text-muted-foreground/60"}>{f.name}</span>
-                </li>
+            <h3 className="mt-4 font-display text-base font-semibold text-foreground">{service.title}</h3>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{service.desc}</p>
+            <div className="mt-4 space-y-1.5">
+              {service.items.map((item) => (
+                <p key={item} className="text-xs text-muted-foreground/80">{item}</p>
               ))}
-            </ul>
-            <Button
-              className="mt-6 w-full"
-              variant={tier.highlighted ? "default" : "outline"}
-            >
-              {tier.name === "Free" ? "Get Started" : "Subscribe"}
-            </Button>
+            </div>
           </motion.div>
         ))}
       </div>
@@ -230,7 +167,6 @@ const Index = () => (
     <HeroSection />
     <ValueProps />
     <ServiceGrid />
-    <PricingSection />
     <Footer />
   </main>
 );

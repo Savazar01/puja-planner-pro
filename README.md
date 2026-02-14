@@ -66,9 +66,9 @@ docker-compose up --build
 
 4. **Access the application**
 
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000
-- API Documentation: http://localhost:8000/docs
+- Frontend: http://localhost:8734
+- Backend API: http://localhost:8735
+- API Documentation: http://localhost:8735/docs
 
 ### Local Development without Docker
 
@@ -172,14 +172,14 @@ FIRECRAWL_API_KEY=your_firecrawl_api_key
 GEMINI_API_KEY=your_gemini_api_key
 ENVIRONMENT=development
 DEBUG=True
-CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+CORS_ORIGINS=http://localhost:5173,http://localhost:8734
 CACHE_EXPIRY_HOURS=24
 ```
 
 ### Frontend (.env)
 
 ```env
-VITE_API_URL=http://localhost:8000
+VITE_API_URL=http://localhost:8735
 ```
 
 ## Scripts

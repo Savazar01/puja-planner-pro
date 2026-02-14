@@ -57,7 +57,7 @@ FIRECRAWL_API_KEY=your_actual_firecrawl_key
 GEMINI_API_KEY=your_actual_gemini_key
 ENVIRONMENT=development
 DEBUG=True
-CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+CORS_ORIGINS=http://localhost:5173,http://localhost:8734
 CACHE_EXPIRY_HOURS=24
 ```
 
@@ -71,7 +71,7 @@ cp .env.example .env
 Add:
 
 ```env
-VITE_API_URL=http://localhost:8000
+VITE_API_URL=http://localhost:8735
 ```
 
 ### 4. Start Services with Docker Compose
@@ -85,9 +85,9 @@ docker-compose up -d --build
 ```
 
 Services will be available at:
-- **Frontend**: http://localhost:3000
-- **Backend API**: http://localhost:8000
-- **API Docs**: http://localhost:8000/docs
+- **Frontend**: http://localhost:8734
+- **Backend API**: http://localhost:8735
+- **API Docs**: http://localhost:8735/docs
 - **PostgreSQL**: localhost:5432 (internal only)
 
 ### 5. Verify Setup
@@ -97,10 +97,10 @@ Services will be available at:
 docker-compose ps
 
 # Check backend health
-curl http://localhost:8000/health
+curl http://localhost:8735/health
 
 # Check frontend
-curl http://localhost:3000
+curl http://localhost:8734
 ```
 
 ### 6. View Logs
@@ -304,7 +304,7 @@ server {
     server_name api.yourdomain.com;
 
     location / {
-        proxy_pass http://localhost:8000;
+        proxy_pass http://localhost:8735;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -318,7 +318,7 @@ server {
     server_name yourdomain.com;
 
     location / {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://localhost:8734;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

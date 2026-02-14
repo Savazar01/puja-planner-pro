@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Check, X, Search, Users, MapPin, CalendarCheck, Star, Phone, MessageCircle, ShoppingBag } from "lucide-react";
 import { pricingTiers } from "@/data/mockData";
 import { motion } from "framer-motion";
+import logo from "@/assets/logo.png";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -214,8 +215,7 @@ const Footer = () => (
   <footer className="border-t border-border bg-card px-4 py-12">
     <div className="container mx-auto flex flex-col items-center gap-4 text-center">
       <div className="flex items-center gap-2">
-        <span className="text-xl">🙏</span>
-        <span className="font-display text-lg font-bold">My<span className="text-primary">Pandits</span></span>
+        <img src={logo} alt="MyPandits.com" className="h-7" />
       </div>
       <p className="max-w-md text-sm text-muted-foreground">
         Your one-stop platform for planning Pujas, Weddings, and religious ceremonies with confidence.

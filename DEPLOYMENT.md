@@ -128,6 +128,17 @@ docker-compose down -v
 
 ## Coolify Deployment on Debian 13 VPS
 
+> [!IMPORTANT]
+> **Reverse Proxy Architecture**
+> - **Coolify uses Traefik** as its reverse proxy (NOT Nginx)
+> - Traefik automatically handles:
+>   - SSL/TLS certificates (Let's Encrypt)
+>   - Domain routing
+>   - Load balancing
+>   - Service discovery
+> - The `nginx.conf` in this project is used **inside the frontend container** to serve static files
+> - You do NOT need to configure external Nginx when using Coolify
+
 ### Step 1: Server Setup
 
 #### 1.1 Update System
@@ -207,28 +218,67 @@ VITE_API_URL=https://api.yourdomain.com
 
 ### Step 3: Deploy with Coolify
 
+> [!NOTE]
+> **How Coolify + Traefik Works**
+> 
+> Coolify automatically:
+> 1. Detects your `docker-compose.yml`
+> 2. Builds and starts containers
+> 3. Configures Traefik labels for routing
+> 4. Provisions SSL certificates
+> 5. Routes traffic: `yourdomain.com` → frontend container, `api.yourdomain.com` → backend container
+
 #### 3.1 Deploy from Git Repository
 
 1. In Coolify, click "New Resource" → "Docker Compose"
 2. Select "Git Repository"
-3. Enter your repository URL
+3. Enter your repository URL: `https://github.com/Savazar01/puja-planner-pro`
 4. Select branch (e.g., `main`)
 5. Coolify will detect `docker-compose.yml` automatically
 
 #### 3.2 Configure Domains
 
-1. **Frontend Domain**: `yourdomain.com`
-2. **Backend Domain**: `api.yourdomain.com`
+In Coolify's domain settings, assign domains to your services:
+
+1. **Frontend Service** (`frontend` container):
+   - Domain: `yourdomain.com` (or `www.yourdomain.com`)
+   - Port: 80 (internal container port)
+   - Traefik will route external traffic to this container
+
+2. **Backend Service** (`backend` container):
+   - Domain: `api.yourdomain.com`
+   - Port: 8000 (internal container port)
+   - Traefik will route external traffic to this container
+
+> [!IMPORTANT]
+> **Port Mapping with Traefik**
+> - The ports in `docker-compose.yml` (8734, 8735) are for **local development only**
+> - Coolify/Traefik ignores these port mappings and routes via domains
+> - Traefik connects to **internal container ports** (80 for frontend, 8000 for backend)
+> - No need to expose ports when deploying with Coolify
 
 Coolify will automatically provision SSL certificates via Let's Encrypt.
 
-#### 3.3 Deploy
+#### 3.3 Update Environment Variables for Production
+
+Make sure to update these environment variables in Coolify:
+
+```env
+# Update CORS to use your actual domains
+CORS_ORIGINS=https://yourdomain.com,https://api.yourdomain.com
+
+# Update frontend API URL
+VITE_API_URL=https://api.yourdomain.com
+```
+
+#### 3.4 Deploy
 
 Click "Deploy" and monitor the build logs. Coolify will:
 1. Clone your repository
 2. Build Docker images
 3. Start all services
-4. Configure reverse proxy with SSL
+4. Configure Traefik reverse proxy with SSL
+5. Route traffic based on domain names
 
 ### Step 4: Verify Deployment
 
@@ -258,6 +308,14 @@ docker exec -it puja-backend bash
 ---
 
 ## Alternative: Manual Deployment (Without Coolify)
+
+> [!WARNING]
+> **This Section Uses Nginx as External Reverse Proxy**
+> 
+> This manual deployment method is an **alternative** to Coolify and does NOT use Traefik.
+> - If you're using Coolify, skip this entire section
+> - This is for users who want to deploy without Coolify
+> - Uses Nginx as the external reverse proxy (NOT Traefik)
 
 ### 1. Clone Repository on Server
 

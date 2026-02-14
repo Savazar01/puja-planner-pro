@@ -1,0 +1,66 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: puja-postgres
+    environment:
+      POSTGRES_USER: puja_user
+      POSTGRES_PASSWORD: puja_password
+      POSTGRES_DB: puja_planner
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - puja-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U puja_user" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: puja-backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://puja_user:puja_password@postgres:5432/puja_planner
+      SERPER_API_KEY: ${SERPER_API_KEY}
+      FIRECRAWL_API_KEY: ${FIRECRAWL_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      ENVIRONMENT: production
+      DEBUG: "False"
+      CORS_ORIGINS: http://localhost:3000,http://localhost:5173
+      CACHE_EXPIRY_HOURS: 24
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - puja-network
+    restart: unless-stopped
+
+  # Vite/React Frontend
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: puja-frontend
+    ports:
+      - "3000:80"
+    environment:
+      VITE_API_URL: http://backend:8000
+    depends_on:
+      - backend
+    networks:
+      - puja-network
+    restart: unless-stopped
+
+networks:
+  puja-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local

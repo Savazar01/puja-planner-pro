@@ -14,6 +14,10 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Accept API URL as build argument (Vite bakes env vars at build time)
+ARG VITE_API_URL=http://localhost:8735
+ENV VITE_API_URL=${VITE_API_URL}
+
 # Build the application
 RUN npm run build
 

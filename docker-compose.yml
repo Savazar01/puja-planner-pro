@@ -26,13 +26,13 @@ services:
     ports:
       - "8735:8000"
     environment:
-      DATABASE_URL: ${DATABASE_URL:-postgresql://puja_user:puja_password@postgres:5432/puja_planner}
+      DATABASE_URL: ${DATABASE_URL}
       SERPER_API_KEY: ${SERPER_API_KEY}
       FIRECRAWL_API_KEY: ${FIRECRAWL_API_KEY}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       ENVIRONMENT: ${ENVIRONMENT:-production}
       DEBUG: ${DEBUG:-False}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8734,http://localhost:5173}
+      CORS_ORIGINS: ${CORS_ORIGINS}
       CACHE_EXPIRY_HOURS: ${CACHE_EXPIRY_HOURS:-24}
     depends_on:
       postgres:

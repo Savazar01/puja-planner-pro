@@ -8,8 +8,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies (legacy-peer-deps to handle version conflicts)
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY . .
@@ -24,14 +24,17 @@ RUN npm run build
 # Production stage - Serve with nginx
 FROM nginx:alpine
 
+# Install curl for health checks
+RUN apk add --no-cache curl
+
 # Copy built assets from builder
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port 80
-EXPOSE 80
+# Expose port 8734
+EXPOSE 8734
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]

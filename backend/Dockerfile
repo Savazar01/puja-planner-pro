@@ -19,9 +19,10 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install PostgreSQL client
+# Install PostgreSQL client and curl for health checks
 RUN apt-get update && apt-get install -y \
     postgresql-client \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy Python dependencies from builder
@@ -33,8 +34,8 @@ COPY . .
 # Update PATH
 ENV PATH=/root/.local/bin:$PATH
 
-# Expose port
-EXPOSE 8000
+# Expose port 8735
+EXPOSE 8735
 
-# Run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the application on port 8735
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8735"]

@@ -1,11 +1,11 @@
 import os
 from urllib.parse import quote_plus
 
-db_pass = os.getenv('DB_PASS', '')
-if os.getenv('DB_USER') and db_pass:
-    user = os.getenv('DB_USER')
+db_pass = os.getenv('POSTGRES_PASSWORD', '')
+if os.getenv('POSTGRES_USER') and db_pass:
+    user = os.getenv('POSTGRES_USER')
     host = os.getenv('DB_HOST', 'postgres')
-    name = os.getenv('DB_NAME')
+    name = os.getenv('POSTGRES_DB')
     
     print(f"CONNECTING TO DB: {host} | USER: {user} | DB: {name}")
     

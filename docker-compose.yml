@@ -4,16 +4,16 @@ services:
     image: postgres:15-alpine
     container_name: puja_db_container
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_DB: postgres
       PGDATA: /var/lib/postgresql/data_v7/pgdata
     volumes:
       - puja_db_v7:/var/lib/postgresql/data_v7
     networks:
       - puja-network
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-puja_user}" ]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -28,9 +28,9 @@ services:
     ports:
       - "8735:8735"
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_DB: postgres
       DB_HOST: ${DB_HOST}
       SERPER_API_KEY: ${SERPER_API_KEY}
       FIRECRAWL_API_KEY: ${FIRECRAWL_API_KEY}

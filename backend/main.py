@@ -7,10 +7,9 @@ if os.getenv('POSTGRES_USER') and db_pass:
     host = os.getenv('DB_HOST', 'postgres')
     name = os.getenv('POSTGRES_DB', 'postgres')
     
-    DATABASE_URL = "postgresql://puja_user:Jun2026pgpw@puja_db_container:5432/postgres"
-    print(f"🚨 BOOTING V7: HARDCODED DATABASE_URL IS {DATABASE_URL} 🚨")
+    DATABASE_URL = "postgresql://postgres:Jun2026pgpw@puja_db_container:5432/postgres"
+    print("� FINAL STANDARDIZED BOOT: USER=postgres DB=postgres 🚀")
     
-    DATABASE_URL = "postgresql://puja_user:Jun2026pgpw@puja_db_container:5432/postgres"
     os.environ['DATABASE_URL'] = DATABASE_URL
 
 from fastapi import FastAPI, Request

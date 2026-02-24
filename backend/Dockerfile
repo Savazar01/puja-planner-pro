@@ -31,8 +31,9 @@ COPY --from=builder /root/.local /root/.local
 # Copy application code
 COPY . .
 
-# Update PATH
+# Update PATH and PYTHONPATH
 ENV PATH=/root/.local/bin:$PATH
+ENV PYTHONPATH=/app
 
 # Expose port 8735
 EXPOSE 8735

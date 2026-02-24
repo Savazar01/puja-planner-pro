@@ -67,12 +67,6 @@ app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
 app.include_router(router)
 
 
-@app.get("/health")
-@app.get("/health/")
-async def health_check():
-    """Simple health check without DB dependency."""
-    return {"status": "ok"}
-
 
 @app.get("/")
 async def root():

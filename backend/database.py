@@ -1,11 +1,15 @@
+import os
+from urllib.parse import quote_plus
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from config import settings
+
+db_pass = os.getenv('DB_PASS', '')
+db_url = f"postgresql://{os.getenv('DB_USER')}:{quote_plus(db_pass)}@{os.getenv('DB_HOST')}:5432/{os.getenv('DB_NAME')}"
 
 # Create database engine
 engine = create_engine(
-    settings.resolved_db_url,
+    db_url,
     pool_pre_ping=True,
     pool_size=10,
     max_overflow=20

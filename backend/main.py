@@ -31,6 +31,7 @@ app = FastAPI(
 
 # Custom Swagger UI route using CDN to enforce HTTPS
 @app.get("/docs", include_in_schema=False)
+@app.get("/docs/", include_in_schema=False)
 async def custom_swagger_ui_html():
     return get_swagger_ui_html(
         openapi_url="/openapi.json",
@@ -47,8 +48,8 @@ async def force_https(request: Request, call_next):
     return await call_next(request)
 
 # Add ProxyHeadersMiddleware for Coolify/Traefik
-app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
 app.add_middleware(HTTPSRedirectMiddleware)
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
 
 # Configure CORS
 app.add_middleware(
@@ -67,6 +68,7 @@ app.include_router(router)
 
 
 @app.get("/health")
+@app.get("/health/")
 async def health_check():
     """Simple health check without DB dependency."""
     return {"status": "ok"}

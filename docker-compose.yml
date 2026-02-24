@@ -61,6 +61,12 @@ services:
       - backend
     networks:
       - puja-network
+      - coolify
+      - wkkkc44k0wkw4g04c0ck8skg
+    labels:
+      - "traefik.docker.network=coolify"
+      - "traefik.http.routers.puja-frontend.rule=Host(`puja.fossone.app`)"
+      - "traefik.http.services.puja-frontend.loadbalancer.server.port=8734"
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8734" ]

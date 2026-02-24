@@ -5,9 +5,7 @@ db_pass = os.getenv('POSTGRES_PASSWORD', '')
 if os.getenv('POSTGRES_USER') and db_pass:
     user = os.getenv('POSTGRES_USER')
     host = os.getenv('DB_HOST', 'postgres')
-    name = os.getenv('POSTGRES_DB')
-    if not name:
-        name = os.getenv('POSTGRES_USER')
+    name = os.getenv('POSTGRES_DB', 'postgres')
     
     print(f"CONNECTING TO: {host} | DB: {name} | USER: {user}")
     

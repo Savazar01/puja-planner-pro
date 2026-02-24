@@ -40,6 +40,10 @@ services:
         condition: service_healthy
     networks:
       - puja-network
+      - coolify
+    labels:
+      - "traefik.docker.network=coolify"
+      - "traefik.http.services.puja-backend.loadbalancer.server.port=8735"
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8735/health" ]
@@ -72,7 +76,10 @@ services:
 
 networks:
   puja-network:
-    driver: bridge
+    external: true
+    name: wkkkc44k0wkw4g04c0ck8skg_puja-network
+  coolify:
+    external: true
 
 volumes:
   postgres_data:

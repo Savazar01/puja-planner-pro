@@ -41,6 +41,7 @@ services:
     networks:
       - puja-network
       - coolify
+      - wkkkc44k0wkw4g04c0ck8skg
     labels:
       - "traefik.docker.network=coolify"
       - "traefik.http.services.puja-backend.loadbalancer.server.port=8735"
@@ -79,6 +80,8 @@ networks:
     external: true
     name: wkkkc44k0wkw4g04c0ck8skg_puja-network
   coolify:
+    external: true
+  wkkkc44k0wkw4g04c0ck8skg:
     external: true
 
 volumes:

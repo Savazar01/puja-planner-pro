@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from config import settings
 from routes import router
 from database import engine, Base
@@ -13,8 +14,13 @@ app = FastAPI(
     description="Backend API with Discovery Agent for finding Pandits, Venues, and Catering services",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
+    root_path="/api" if settings.environment == "production" else ""
 )
+
+# Add ProxyHeadersMiddleware for Coolify/Traefik
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
 
 # Configure CORS
 app.add_middleware(

@@ -8,6 +8,7 @@ from schemas import (
 )
 from models import Pandit, Venue, Catering
 from discovery_agent import discovery_agent
+from config import settings
 
 router = APIRouter()
 
@@ -27,6 +28,12 @@ async def search(
     Universal search endpoint across all categories.
     Uses caching to minimize API calls.
     """
+    if not settings.serper_api_key or not settings.firecrawl_api_key:
+        raise HTTPException(
+            status_code=500,
+            detail="Missing SERPER_API_KEY or FIRECRAWL_API_KEY. Live web search and scraping are unavailable."
+        )
+
     location = request.location or "India"
     category = request.category or "all"
     
@@ -44,58 +51,64 @@ async def search(
             cached=True
         )
     
-    # No cache, perform discovery
-    pandits_list = []
-    venues_list = []
-    catering_list = []
-    
-    if category in ["all", "pandits"]:
-        # Search in database first
-        pandits_db = db.query(Pandit).filter(
-            Pandit.location.ilike(f"%{location}%")
-        ).limit(10).all()
+    try:
+        # No cache, perform discovery
+        pandits_list = []
+        venues_list = []
+        catering_list = []
         
-        if not pandits_db:
-            # Discover new pandits
-            pandits_db = await discovery_agent.discover_pandits(location, db)
+        if category in ["all", "pandits"]:
+            # Search in database first
+            pandits_db = db.query(Pandit).filter(
+                Pandit.location.ilike(f"%{location}%")
+            ).limit(10).all()
+            
+            if not pandits_db:
+                # Discover new pandits
+                pandits_db = await discovery_agent.discover_pandits(location, db)
+            
+            pandits_list = [PanditResponse.from_orm(p) for p in pandits_db]
         
-        pandits_list = [PanditResponse.from_orm(p) for p in pandits_db]
-    
-    if category in ["all", "venues"]:
-        venues_db = db.query(Venue).filter(
-            Venue.location.ilike(f"%{location}%")
-        ).limit(10).all()
+        if category in ["all", "venues"]:
+            venues_db = db.query(Venue).filter(
+                Venue.location.ilike(f"%{location}%")
+            ).limit(10).all()
+            
+            if not venues_db:
+                venues_db = await discovery_agent.discover_venues(location, db)
+            
+            venues_list = [VenueResponse.from_orm(v) for v in venues_db]
         
-        if not venues_db:
-            venues_db = await discovery_agent.discover_venues(location, db)
+        if category in ["all", "catering"]:
+            catering_db = db.query(Catering).filter(
+                Catering.location.ilike(f"%{location}%")
+            ).limit(10).all()
+            
+            if not catering_db:
+                catering_db = await discovery_agent.discover_catering(location, db)
+            
+            catering_list = [CateringResponse.from_orm(c) for c in catering_db]
         
-        venues_list = [VenueResponse.from_orm(v) for v in venues_db]
-    
-    if category in ["all", "catering"]:
-        catering_db = db.query(Catering).filter(
-            Catering.location.ilike(f"%{location}%")
-        ).limit(10).all()
+        # Save to cache
+        cache_data = {
+            "pandits": [p.dict() for p in pandits_list],
+            "venues": [v.dict() for v in venues_list],
+            "catering": [c.dict() for c in catering_list]
+        }
+        discovery_agent.save_to_cache(request.query, location, category, cache_data, db)
         
-        if not catering_db:
-            catering_db = await discovery_agent.discover_catering(location, db)
-        
-        catering_list = [CateringResponse.from_orm(c) for c in catering_db]
-    
-    # Save to cache
-    cache_data = {
-        "pandits": [p.dict() for p in pandits_list],
-        "venues": [v.dict() for v in venues_list],
-        "catering": [c.dict() for c in catering_list]
-    }
-    discovery_agent.save_to_cache(request.query, location, category, cache_data, db)
-    
-    return SearchResponse(
-        pandits=pandits_list,
-        venues=venues_list,
-        catering=catering_list,
-        total_results=len(pandits_list) + len(venues_list) + len(catering_list),
-        cached=False
-    )
+        return SearchResponse(
+            pandits=pandits_list,
+            venues=venues_list,
+            catering=catering_list,
+            total_results=len(pandits_list) + len(venues_list) + len(catering_list),
+            cached=False
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Search APIs failed: {str(e)}"
+        )
 
 
 @router.get("/api/discover/pandits", response_model=List[PanditResponse])

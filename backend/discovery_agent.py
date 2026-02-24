@@ -60,7 +60,7 @@ class DiscoveryAgent:
                 return results
         except Exception as e:
             print(f"Serper API error: {e}")
-            return []
+            raise RuntimeError(f"Serper API search failed: {str(e)}")
     
     async def scrape_with_firecrawl(self, url: str) -> str:
         """Scrape website content using Firecrawl API."""

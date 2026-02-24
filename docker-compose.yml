@@ -46,12 +46,6 @@ services:
       - "traefik.docker.network=coolify"
       - "traefik.http.services.puja-backend.loadbalancer.server.port=8735"
     restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8735/health" ]
-      interval: 15s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
 
   # Vite/React Frontend
   frontend:

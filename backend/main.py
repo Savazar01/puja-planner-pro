@@ -7,7 +7,8 @@ if os.getenv('POSTGRES_USER') and db_pass:
     host = os.getenv('DB_HOST', 'postgres')
     name = os.getenv('POSTGRES_DB', 'postgres')
     
-    print("🚨 ISOLATION TEST: VERSION 6 - UNIQUE HOSTNAME 🚨")
+    DATABASE_URL = "postgresql://puja_user:Jun2026pgpw@puja_db_container:5432/postgres"
+    print(f"🚨 BOOTING V7: HARDCODED DATABASE_URL IS {DATABASE_URL} 🚨")
     
     DATABASE_URL = "postgresql://puja_user:Jun2026pgpw@puja_db_container:5432/postgres"
     os.environ['DATABASE_URL'] = DATABASE_URL

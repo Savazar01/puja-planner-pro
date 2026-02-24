@@ -4,12 +4,11 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-db_pass = os.getenv('DB_PASS', '')
-db_url = f"postgresql://{os.getenv('DB_USER')}:{quote_plus(db_pass)}@{os.getenv('DB_HOST')}:5432/{os.getenv('DB_NAME')}"
+DATABASE_URL = "postgresql://puja_user:Jun2026pgpw@puja_db_container:5432/postgres"
 
 # Create database engine
 engine = create_engine(
-    db_url,
+    DATABASE_URL,
     pool_pre_ping=True,
     pool_size=10,
     max_overflow=20

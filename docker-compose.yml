@@ -1,8 +1,8 @@
 services:
   # PostgreSQL Database
-  postgres:
+  puja_db_service:
     image: postgres:15-alpine
-    container_name: puja-postgres
+    container_name: puja_db_container
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -40,7 +40,7 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS}
       CACHE_EXPIRY_HOURS: ${CACHE_EXPIRY_HOURS:-24}
     depends_on:
-      postgres:
+      puja_db_service:
         condition: service_healthy
     networks:
       - puja-network

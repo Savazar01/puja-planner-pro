@@ -3,7 +3,13 @@ from urllib.parse import quote_plus
 
 db_pass = os.getenv('DB_PASS', '')
 if os.getenv('DB_USER') and db_pass:
-    DATABASE_URL = f"postgresql://{os.getenv('DB_USER')}:{quote_plus(db_pass)}@{os.getenv('DB_HOST', 'postgres')}:5432/{os.getenv('DB_NAME')}"
+    user = os.getenv('DB_USER')
+    host = os.getenv('DB_HOST', 'postgres')
+    name = os.getenv('DB_NAME')
+    
+    print(f"CONNECTING TO DB: {host} | USER: {user} | DB: {name}")
+    
+    DATABASE_URL = f"postgresql://{user}:{quote_plus(db_pass)}@{host}:5432/{name}"
     os.environ['DATABASE_URL'] = DATABASE_URL
 
 from fastapi import FastAPI, Request

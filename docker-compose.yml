@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - puja_db_v2:/var/lib/postgresql/data
     networks:
       - puja-network
     healthcheck:
@@ -88,5 +88,5 @@ networks:
     external: true
 
 volumes:
-  postgres_data:
+  puja_db_v2:
     driver: local

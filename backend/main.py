@@ -1,16 +1,8 @@
 import os
 from urllib.parse import quote_plus
 
-db_pass = os.getenv('POSTGRES_PASSWORD', '')
-if os.getenv('POSTGRES_USER') and db_pass:
-    user = os.getenv('POSTGRES_USER')
-    host = os.getenv('DB_HOST', 'postgres')
-    name = os.getenv('POSTGRES_DB', 'postgres')
-    
-    DATABASE_URL = "postgresql://postgres:Jun2026pgpw@puja_db_container:5432/postgres"
-    print("� FINAL STANDARDIZED BOOT: USER=postgres DB=postgres 🚀")
-    
-    os.environ['DATABASE_URL'] = DATABASE_URL
+DATABASE_URL = os.getenv('DATABASE_URL')
+print(f"DEBUG: Connecting via {DATABASE_URL.split('@')[1] if DATABASE_URL else 'None'}")
 
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse

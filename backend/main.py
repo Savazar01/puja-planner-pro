@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Depends
+from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,9 +7,7 @@ from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from config import settings
 from routes import router
-from database import engine, Base, get_db
-from sqlalchemy.orm import Session
-from sqlalchemy import text
+from database import engine, Base
 
 # Create database tables resiliently
 try:
@@ -75,14 +73,6 @@ async def health_check():
     """Simple health check without DB dependency."""
     return {"status": "ok"}
 
-@app.get("/db-check")
-async def db_check(db: Session = Depends(get_db)):
-    """Explicit database connection check."""
-    try:
-        db.execute(text("SELECT 1"))
-        return {"database": "connected"}
-    except Exception as e:
-        return {"database": "failed", "error": str(e)}
 
 @app.get("/")
 async def root():

@@ -1,3 +1,11 @@
+import os
+from urllib.parse import quote_plus
+
+db_pass = os.getenv('DB_PASS', '')
+if os.getenv('DB_USER') and db_pass:
+    DATABASE_URL = f"postgresql://{os.getenv('DB_USER')}:{quote_plus(db_pass)}@{os.getenv('DB_HOST', 'postgres')}:5432/{os.getenv('DB_NAME')}"
+    os.environ['DATABASE_URL'] = DATABASE_URL
+
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 from fastapi.openapi.docs import get_swagger_ui_html

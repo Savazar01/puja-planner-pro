@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request
+from fastapi.responses import RedirectResponse
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -17,7 +18,7 @@ app = FastAPI(
     description="Backend API with Discovery Agent for finding Pandits, Venues, and Catering services",
     version="1.0.0",
     docs_url=None,  # Disabled to provide custom HTTPS route below
-    redoc_url="/redoc",
+    redoc_url=None, # Disabled default Redoc
     openapi_url="/openapi.json",
     root_path="",
     servers=[{"url": "https://pujaapi.fossone.app", "description": "Production"}]
@@ -27,7 +28,7 @@ app = FastAPI(
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html():
     return get_swagger_ui_html(
-        openapi_url=app.openapi_url,
+        openapi_url="/openapi.json",
         title=app.title + " - Swagger UI",
         oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
         swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
@@ -62,12 +63,8 @@ app.include_router(router)
 
 @app.get("/")
 async def root():
-    """Root endpoint."""
-    return {
-        "message": "Puja Planner Pro API",
-        "version": "1.0.0",
-        "docs": "/docs"
-    }
+    """Root endpoint. Redirects to /docs"""
+    return RedirectResponse(url="/docs")
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from config import settings
 from routes import router
@@ -16,8 +17,14 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
-    root_path="/api" if settings.environment == "production" else ""
+    root_path=""
 )
+
+# Custom middleware to force HTTPS scheme for internal links
+@app.middleware("http")
+async def force_https(request: Request, call_next):
+    request.scope["scheme"] = "https"
+    return await call_next(request)
 
 # Add ProxyHeadersMiddleware for Coolify/Traefik
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
@@ -30,6 +37,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add TrustedHostMiddleware
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
 
 # Include routes
 app.include_router(router)

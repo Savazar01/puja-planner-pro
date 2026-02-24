@@ -7,7 +7,7 @@ if os.getenv('POSTGRES_USER') and db_pass:
     host = os.getenv('DB_HOST', 'postgres')
     name = os.getenv('POSTGRES_DB', 'postgres')
     
-    print(f"CONNECTING TO: {host} | DB: {name} | USER: {user}")
+    print(f"--- ATTEMPTING CONNECTION TO DB: {name} ---")
     
     DATABASE_URL = f"postgresql://{user}:{quote_plus(db_pass)}@{host}:5432/{name}"
     os.environ['DATABASE_URL'] = DATABASE_URL

@@ -39,4 +39,4 @@ ENV PYTHONPATH=/app
 EXPOSE 8735
 
 # Run the application on port 8735 with proxy headers enabled
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8735", "--proxy-headers", "--forwarded-allow-ips=*"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8735", "--proxy-headers", "--forwarded-allow-ips='*'"]

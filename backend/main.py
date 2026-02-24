@@ -9,8 +9,13 @@ from config import settings
 from routes import router
 from database import engine, Base
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+# Create database tables resiliently
+try:
+    Base.metadata.create_all(bind=engine)
+    print("Database connection and tables initialized successfully.")
+except Exception as e:
+    print(f"Warning: Database initialization failed on startup: {e}")
+    print("The application will continue to run, but database features may be unavailable until it recovers.")
 
 # Initialize FastAPI app
 app = FastAPI(

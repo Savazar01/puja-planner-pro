@@ -10,17 +10,12 @@ from sqlalchemy.orm import Session
 from models import Pandit, Venue, Catering, SearchCache
 
 
-# Configure Gemini
-genai.configure(api_key=settings.gemini_api_key)
-
-
 class DiscoveryAgent:
     """Intelligent discovery agent using Serper, Firecrawl, and Gemini."""
     
     def __init__(self):
-        self.serper_api_key = settings.serper_api_key
-        self.firecrawl_api_key = settings.firecrawl_api_key
-        self.gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+        # API Keys and Models are lazy-loaded to prevent startup crashes when env vars are missing
+        pass
     
     async def search_with_serper(self, query: str, location: str = "") -> List[Dict[str, Any]]:
         """Search using Serper.dev API for local businesses."""
@@ -29,7 +24,7 @@ class DiscoveryAgent:
         search_query = f"{query} in {location}" if location else query
         
         headers = {
-            "X-API-KEY": self.serper_api_key,
+            "X-API-KEY": settings.serper_api_key,
             "Content-Type": "application/json"
         }
         
@@ -67,7 +62,7 @@ class DiscoveryAgent:
         api_url = "https://api.firecrawl.dev/v0/scrape"
         
         headers = {
-            "Authorization": f"Bearer {self.firecrawl_api_key}",
+            "Authorization": f"Bearer {settings.firecrawl_api_key}",
             "Content-Type": "application/json"
         }
         
@@ -161,10 +156,17 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
         }
         
         try:
+            if not settings.gemini_api_key:
+                print("Gemini API key is not configured.")
+                return None
+                
+            genai.configure(api_key=settings.gemini_api_key)
+            gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+            
             prompt = prompts.get(entity_type, prompts["pandit"])
             full_prompt = f"{prompt}\n\nContent to parse:\n{content[:4000]}"  # Limit content length
             
-            response = self.gemini_model.generate_content(full_prompt)
+            response = gemini_model.generate_content(full_prompt)
             
             # Extract JSON from response
             text = response.text.strip()

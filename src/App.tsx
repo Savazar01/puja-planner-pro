@@ -9,7 +9,6 @@ import AuthModal from "@/components/AuthModal";
 import Index from "./pages/Index";
 import SearchResults from "./pages/SearchResults";
 import Dashboard from "./pages/Dashboard";
-import AdminPage from "./pages/AdminPage";
 import AdminCenter from "./pages/AdminCenter";
 import ProfileSettings from "./pages/ProfileSettings";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -31,7 +30,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/search" element={<SearchResults />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/admin" element={<AdminPage />} />
+            <Route path="/admin" element={<AdminCenter />} />
             <Route path="/admin-dashboard" element={<AdminCenter />} />
             <Route path="/settings" element={<ProfileSettings />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />

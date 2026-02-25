@@ -1,22 +1,19 @@
 # Puja Planner Pro
 
-A comprehensive platform for planning Pujas, Weddings, and religious ceremonies. Features an intelligent Discovery Agent that finds local Pandits, Venues, and Catering services using AI-powered web scraping and parsing.
+A robust, full-stack application designed for orchestration with container-based platforms like Coolify.
 
 ## 🏗 System Architecture
-The project follows a "Pure Docker" philosophy, decoupled from specific proxy labels to ensure portability across different orchestration engines (Traefik, Caddy, Nginx).
+This project is built with a "Pure Docker" philosophy. It is intentionally decoupled from proxy-specific labels (like Traefik or Caddy labels) to ensure it can be deployed on any infrastructure with a standard load balancer.
 
-- **Frontend:** Nginx-based SPA (React/Vite).
-- **Backend:** Python API (FastAPI/Uvicorn).
-- **Database:** PostgreSQL 15.
-- **Networks:**
-  - `savaz-prod-net`: Dedicated external bridge for DB/Backend security.
-  - `default`: Used for container orchestration and proxy discovery.
+- **Frontend:** React/Vite/Nginx (Internal Port: 8734)
+- **Backend:** FastAPI/Python (Internal Port: 8735)
+- **Database:** PostgreSQL 15 (Alpine)
 
-## 🔌 Dynamic Configuration
-All networking is managed via environment variables.
-- `FRONTEND_PORT`: Internal and external port for the web interface (Default: 8734).
-- `BACKEND_PORT`: Internal and external port for the API (Default: 8735).
-- `CORS_ORIGINS`: Controlled via Coolify environment variables to ensure secure cross-origin requests.
+## 🔌 Networking & Configuration
+Connectivity is managed entirely through environment variables to allow for environment-specific scaling:
+- `FRONTEND_PORT`: Controls the internal Nginx listener and external mapping.
+- `BACKEND_PORT`: Controls the API listener and internal service discovery.
+- `VITE_API_URL`: The public-facing URL of your Backend API.
 
 ## Quick Start
 
@@ -174,9 +171,9 @@ CACHE_EXPIRY_HOURS=24
 ### Frontend (.env)
 
 ```env
-VITE_API_URL=https://api.savaz.fossone.app
-FRONTEND_HOST=savaz.fossone.app
-BACKEND_HOST=api.savaz.fossone.app
+VITE_API_URL=https://{YOUR_API_DOMAIN}
+FRONTEND_HOST={YOUR_DOMAIN}
+BACKEND_HOST={YOUR_API_DOMAIN}
 FRONTEND_PORT=8734
 BACKEND_PORT=8735
 ```

@@ -32,7 +32,6 @@ app = FastAPI(
     redoc_url=None, # Disabled default Redoc
     openapi_url="/openapi.json",
     root_path="",
-    servers=[{"url": "https://pujaapi.fossone.app", "description": "Production"}]
 )
 
 # Custom Swagger UI route using CDN to enforce HTTPS
@@ -60,7 +59,7 @@ app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://puja.fossone.app"] + settings.cors_origins_list,
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

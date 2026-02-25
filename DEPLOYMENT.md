@@ -1,25 +1,28 @@
-# Coolify Deployment Guide
+# Deployment Guide (Coolify / Docker Compose)
 
-This project is optimized for Coolify v4+ using the **Docker Compose Build Pack**.
+This guide outlines how to deploy this stack using a Docker Compose build pack.
 
-## 🚀 Critical Deployment Steps
+## 🚀 Critical Setup Steps
 
 ### 1. Environment Variables
-Ensure the following are set in the Coolify Service UI:
-| Variable | Description |
-| :--- | :--- |
-| `FRONTEND_PORT` | Set to `8734` |
-| `BACKEND_PORT` | Set to `8735` |
-| `VITE_API_URL` | `https://pujaapi.fossone.app` |
-| `POSTGRES_PASSWORD` | Strong generated string |
+You must set the following variables in your deployment dashboard:
 
-### 2. The "Domain-Port" Bridge (Traefik/Caddy)
-To ensure the proxy routes traffic correctly without manual labels in the YAML, you **must** include the port in the domain field in the Coolify UI:
+| Variable | Recommended Value | Description |
+| :--- | :--- | :--- |
+| `FRONTEND_PORT` | `8734` | The port the web container listens on. |
+| `BACKEND_PORT` | `8735` | The port the API container listens on. |
+| `VITE_API_URL` | `https://{YOUR_API_DOMAIN}` | The public URL for your Backend. |
+| `POSTGRES_PASSWORD` | `{GENERATED_SECRET}` | Database credentials. |
 
-- **Frontend Domain:** `https://puja.fossone.app:8734`
-- **Backend Domain:** `https://pujaapi.fossone.app:8735`
+### 2. The Proxy Handshake (Port Mapping)
+If you are using a proxy (like Traefik or Caddy) through a UI like Coolify, you must explicitly bridge the domain to the container port. 
 
-*Note: The proxy will still serve traffic on standard 443; the port suffix tells Coolify's internal load balancer which container port to target.*
+**Configure your domains as follows:**
+- **Web Interface:** `https://{YOUR_DOMAIN}:8734`
+- **API Service:** `https://{YOUR_API_DOMAIN}:8735`
 
-### 3. Healthchecks
-The project uses `curl`-based healthchecks. If the container remains "Unhealthy" in the UI, verify that the `FRONTEND_PORT` inside the container matches the healthcheck URL.
+*Note: The `:PORT` suffix tells the internal load balancer which container port to target. The public will still access your site via standard HTTPS (443).*
+
+### 3. Networking
+The stack expects an external network named `savaz-prod-net` for database isolation. Ensure this network is created on your host before deploying:
+`docker network create savaz-prod-net`

@@ -187,7 +187,14 @@ export async function updateProfile(data: any, token: string) {
         },
         body: JSON.stringify(data),
     });
-    if (!response.ok) throw new Error("Failed to update profile");
+    if (!response.ok) {
+        let errMsg = "Failed to update profile";
+        try {
+            const err = await response.json();
+            errMsg = err.detail ? (typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail)) : errMsg;
+        } catch (e) { }
+        throw new Error(errMsg);
+    }
     return response.json();
 }
 

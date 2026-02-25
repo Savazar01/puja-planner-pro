@@ -322,7 +322,14 @@ async def update_user_profile(
 ):
     profile = current_user.profile
     if not profile:
-        raise HTTPException(status_code=404, detail="Profile not found")
+        # Legacy/Bootstrap Accounts: Auto-create missing profile
+        profile = Profile(
+            id=str(uuid.uuid4()),
+            user_id=current_user.id,
+            whatsapp=update_data.whatsapp or "Pending"
+        )
+        db.add(profile)
+        db.flush()
         
     update_dict = update_data.model_dump(exclude_unset=True)
     for key, value in update_dict.items():

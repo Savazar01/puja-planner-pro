@@ -43,6 +43,10 @@ try:
             conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS profile_picture_url VARCHAR"))
             conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS bio TEXT"))
             print("Successfully migrated profiles schema for EPIC-3")
+            
+            # EPIC-4: Retroactive Token Grant for Legacy Customers
+            conn.execute(text("UPDATE users SET token_balance = 1000 WHERE role = 'HOST' AND token_balance < 1000"))
+            print("Successfully grandfathered existing Customers into the EPIC-4 Token Economy")
         except Exception as e:
             print(f"Migration notice: {e}")
             

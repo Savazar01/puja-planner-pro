@@ -9,7 +9,7 @@ from schemas import (
     VenueResponse, CateringResponse, DiscoveryResponse,
     UserCreate, UserResponse, Token, PasswordChange, UserUpdateStatus,
     EmailTemplateResponse, EmailTemplateUpdate, ProfileUpdate,
-    ForgotPasswordRequest, ResetPasswordRequest
+    ForgotPasswordRequest, ResetPasswordRequest, SubscriptionUpgrade
 )
 from models import Pandit, Venue, Catering, User, Profile, UserStatus, UserRole, EmailTemplate, EmailEventType
 from discovery_agent import discovery_agent

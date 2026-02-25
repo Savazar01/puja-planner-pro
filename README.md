@@ -179,8 +179,15 @@ CACHE_EXPIRY_HOURS=24
 ### Frontend (.env)
 
 ```env
-VITE_API_URL=http://localhost:8735
+VITE_API_URL=https://api.savaz.fossone.app
+FRONTEND_HOST=savaz.fossone.app
+BACKEND_HOST=api.savaz.fossone.app
+FRONTEND_PORT=8734
+BACKEND_PORT=8735
 ```
+
+### Dynamic Port Forwarding
+The infrastructure is strictly template-driven via Docker Compose. Ensure `FRONTEND_PORT` and `BACKEND_PORT` match any downstream proxy rules (Coolify / Traefik) and internal mappings will automatically decouple to the target without the need for static configurations.
 
 ## Scripts
 

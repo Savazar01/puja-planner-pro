@@ -24,14 +24,14 @@ RUN npm run build
 # Production stage - Serve with nginx
 FROM nginx:alpine
 
-# Install curl for health checks
-RUN apk add --no-cache curl
+# Install curl and gettext for envsubst
+RUN apk add --no-cache curl gettext
 
 # Copy built assets from builder
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx configuration template
+COPY nginx.conf /etc/nginx/templates/default.conf.template
 
 # Expose dynamic port
 ARG FRONTEND_PORT=8734
@@ -39,4 +39,5 @@ ENV FRONTEND_PORT=${FRONTEND_PORT}
 EXPOSE ${FRONTEND_PORT}
 
 # Start nginx with dynamic port injection
-CMD ["/bin/sh", "-c", "sed -i \"s/listen 8734;/listen ${FRONTEND_PORT:-8734};/g\" /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+# Start nginx by substituting port and running daemon
+CMD ["/bin/sh", "-c", "envsubst '${FRONTEND_PORT}' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]

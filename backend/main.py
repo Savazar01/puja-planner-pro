@@ -24,6 +24,18 @@ from models import User, UserRole
 try:
     Base.metadata.create_all(bind=engine)
     print("Database connection and tables initialized successfully.")
+    
+    # Run inline table alterations for v1.2.3 (schema patching since create_all doesn't alter)
+    from sqlalchemy import text
+    with engine.begin() as conn:
+        try:
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_tier VARCHAR(50) DEFAULT 'FREE'"))
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS token_balance INTEGER DEFAULT 100"))
+            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS deletion_requested_at TIMESTAMP WITH TIME ZONE"))
+            print("Successfully migrated users schema for v1.2.3")
+        except Exception as e:
+            print(f"Migration notice: {e}")
+            
     from initial_data import init_db
     init_db()
 except Exception as e:

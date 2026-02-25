@@ -172,8 +172,8 @@ ENVIRONMENT=development
 DEBUG=True
 CORS_ORIGINS=http://localhost:5173,http://localhost:8734
 CACHE_EXPIRY_HOURS=24
-ADMIN_USER=savazar01@gmail.com
-ADMIN_PASSWORD=Changeme
+ADMIN_USER=your_admin_email@example.com
+ADMIN_PASSWORD=your_admin_password_here
 SECRET_KEY=your_secret_key
 ```
 

@@ -6,6 +6,7 @@
 - **Network Topology**:
   - **External**: `savaz-prod-net` for database isolation.
   - **Internal**: `default` bridge for service discovery and proxy attachment.
+- **Environment Parity & Hygiene**: Any time an environment variable is created, updated, or removed, the change MUST be instantly mirrored across `.env.example` and `.env.production.example`. Furthermore, `README.md` and `DEPLOYMENT.md` must be updated to reflect the new requirements. All template files and documentation MUST be sanitized—never commit real secrets, API keys, or administrative credentials to version control. Use placeholders (e.g., `your_api_key_here`).
 
 ## II. Backend & API Architecture (FastAPI)
 - **Statelessness**: The API must remain stateless. All persistent data must reside in PostgreSQL.

@@ -14,6 +14,9 @@ You must set the following variables in your deployment dashboard:
 | `VITE_API_URL` | `https://{YOUR_API_DOMAIN}` | The public URL for your Backend. |
 | `POSTGRES_PASSWORD` | `{GENERATED_SECRET}` | Database credentials. |
 | `RESEND_API_KEY` | `re_123456789...` | API Key for transactional email dispatch. |
+| `ADMIN_USER` | `admin@example.com` | Automated master account creation email (First Boot). |
+| `ADMIN_PASSWORD` | `{GENERATED_SECRET}` | Automated master account password (First Boot). |
+| `SECRET_KEY` | `{GENERATED_SECRET}` | Encryption key for securing JWT tokens. |
 
 ### 2. The Proxy Handshake (Port Mapping)
 If you are using a proxy (like Traefik or Caddy) through a UI like Coolify, you must explicitly bridge the domain to the container port. 

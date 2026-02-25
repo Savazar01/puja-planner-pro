@@ -245,6 +245,12 @@ function UserCard({ user: u, onUpdateStatus }: { user: any, onUpdateStatus: (id:
                     <p>Target Location: {u.profile?.location || "N/A"}</p>
                     {u.role === "PANDIT" && <p>Experience: {u.profile?.role_metadata?.experience}, Specialty: {u.profile?.role_metadata?.specialty}</p>}
                     {u.role === "TEMPLE_ADMIN" && <p>Temple: {u.profile?.role_metadata?.temple_name}, Loc: {u.profile?.role_metadata?.location}</p>}
+                    {u.role === "HOST" && (
+                        <p>
+                            Tier: <span className="font-medium capitalize text-amber-600">{u.subscription_tier || "Free"}</span> |
+                            Tokens: <span className="font-medium">{u.token_balance?.toLocaleString() || 0}</span>
+                        </p>
+                    )}
                 </div>
             </div>
             <div className="flex flex-wrap gap-2 shrink-0">

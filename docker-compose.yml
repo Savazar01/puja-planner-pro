@@ -10,7 +10,7 @@ services:
     volumes:
       - savaz_db_data:/var/lib/postgresql/data
     networks:
-      - savaz_internal_net
+      - savaz-prod-net
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 10s
@@ -43,7 +43,7 @@ services:
       savaz_db:
         condition: service_healthy
     networks:
-      - savaz_internal_net
+      - savaz-prod-net
     labels:
       - "traefik.docker.network=coolify"
       - "traefik.http.services.puja-backend.loadbalancer.server.port=8735"
@@ -56,13 +56,13 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:8735}
-    container_name: puja-frontend
+    container_name: savaz_frontend_container
     ports:
       - "8734:8734"
     depends_on:
       - backend
     networks:
-      - savaz_internal_net
+      - savaz-prod-net
     labels:
       - "traefik.docker.network=coolify"
       - "traefik.http.routers.puja-frontend.rule=Host(`puja.fossone.app`)"
@@ -76,8 +76,8 @@ services:
       start_period: 60s
 
 networks:
-  savaz_internal_net:
-    driver: bridge
+  savaz-prod-net:
+    external: true
 
 volumes:
   savaz_db_data:

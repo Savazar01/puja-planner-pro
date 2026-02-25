@@ -37,17 +37,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchUser = useCallback(async (authToken: string) => {
     try {
       const data = await getMe(authToken);
-      setUser({
+      const fetchedUser = {
         id: data.id,
         name: data.profile?.full_name || data.email,
         email: data.email,
-        tier: "free",
+        tier: "free" as any,
         isAdmin: data.role === "ADMIN",
-        userType: data.role.toLowerCase() as UserType,
-      });
+        userType: data.role as UserType,
+      };
+      setUser(fetchedUser);
+      return fetchedUser;
     } catch (e) {
       console.error("Failed to fetch user via token:", e);
       logout();
+      return null;
     }
   }, []);
 
@@ -61,8 +64,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const res = await apiLogin(email, pass);
     localStorage.setItem("token", res.access_token);
     setToken(res.access_token);
-    await fetchUser(res.access_token);
+    const u = await fetchUser(res.access_token);
     setShowAuthModal(false);
+    if (u && u.userType === "ADMIN") {
+      window.location.href = "/admin-dashboard";
+    }
   }, [fetchUser]);
 
   const register = useCallback(async (data: any) => {

@@ -255,12 +255,12 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
 
 # --- Admin Gateway Routes ---
 
-@router.get("/api/admin/users/pending", response_model=List[UserResponse])
-async def get_pending_users(
+@router.get("/api/admin/users", response_model=List[UserResponse])
+async def get_all_users(
     db: Session = Depends(get_db), 
     admin: User = Depends(get_current_admin)
 ):
-    users = db.query(User).filter(User.status == UserStatus.PENDING).all()
+    users = db.query(User).all()
     return users
 
 

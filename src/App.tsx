@@ -29,7 +29,7 @@ const App = () => (
             <Route path="/search" element={<SearchResults />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/admin" element={<AdminPage />} />
-            <Route path="/admin-center" element={<AdminCenter />} />
+            <Route path="/admin-dashboard" element={<AdminCenter />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

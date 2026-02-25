@@ -136,11 +136,11 @@ export async function healthCheck(): Promise<{ status: string; service: string }
     return response.json();
 }
 
-export async function getPendingUsers(token: string) {
-    const response = await fetch(`${API_URL}/api/admin/users/pending`, {
+export async function getAllUsers(token: string) {
+    const response = await fetch(`${API_URL}/api/admin/users`, {
         headers: { Authorization: `Bearer ${token}` }
     });
-    if (!response.ok) throw new Error("Failed to fetch pending users");
+    if (!response.ok) throw new Error("Failed to fetch users");
     return response.json();
 }
 

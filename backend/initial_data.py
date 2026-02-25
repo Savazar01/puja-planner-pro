@@ -11,7 +11,7 @@ def init_db():
         user = db.query(User).filter(User.role == UserRole.ADMIN).first()
         if not user:
             print("No admin user found. Creating initial superuser...")
-            admin_email = settings.admin_email
+            admin_email = settings.admin_user
             admin_password = settings.admin_password
             
             new_admin = User(

@@ -82,4 +82,5 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8735, reload=settings.debug)
+    port = int(os.environ.get("BACKEND_PORT", 8735))
+    uvicorn.run(app, host="0.0.0.0", port=port, reload=settings.debug)

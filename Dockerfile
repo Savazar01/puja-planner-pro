@@ -33,8 +33,10 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port 8734
-EXPOSE 8734
+# Expose dynamic port
+ARG FRONTEND_PORT=8734
+ENV FRONTEND_PORT=${FRONTEND_PORT}
+EXPOSE ${FRONTEND_PORT}
 
-# Start nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Start nginx with dynamic port injection
+CMD ["/bin/sh", "-c", "sed -i \"s/listen 8734;/listen ${FRONTEND_PORT:-8734};/g\" /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]

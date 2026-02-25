@@ -26,7 +26,7 @@ services:
       dockerfile: Dockerfile
     container_name: savaz_backend_container
     ports:
-      - "8735:8735"
+      - "${BACKEND_PORT:-8735}:${BACKEND_PORT:-8735}"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -46,9 +46,6 @@ services:
     networks:
       - default
       - savaz-prod-net
-    labels:
-      - "traefik.docker.network=coolify"
-      - "traefik.http.services.puja-backend.loadbalancer.server.port=8735"
     restart: unless-stopped
 
   # Vite/React Frontend
@@ -60,18 +57,16 @@ services:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:8735}
     container_name: savaz_frontend_container
     ports:
-      - "8734:8734"
+      - "${FRONTEND_PORT:-8734}:${FRONTEND_PORT:-8734}"
+    environment:
+      - FRONTEND_PORT=${FRONTEND_PORT:-8734}
     depends_on:
       - backend
     networks:
       - savaz-prod-net
-    labels:
-      - "traefik.docker.network=coolify"
-      - "traefik.http.routers.puja-frontend.rule=Host(`puja.fossone.app`)"
-      - "traefik.http.services.puja-frontend.loadbalancer.server.port=8734"
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:8734" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:${FRONTEND_PORT:-8734}" ]
       interval: 15s
       timeout: 10s
       retries: 5

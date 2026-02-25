@@ -199,3 +199,17 @@ export async function requestAccountDeletion(token: string) {
     if (!response.ok) throw new Error("Failed to request deletion");
     return response.json();
 }
+
+export async function changePassword(data: any, token: string) {
+    const response = await fetch(`${API_URL}/api/auth/change-password`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.detail || "Failed to change password");
+    return result;
+}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { updateProfile, requestAccountDeletion } from "@/lib/api";
+import { updateProfile, requestAccountDeletion, changePassword } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,11 @@ export default function ProfileSettings() {
     const [loading, setLoading] = useState(false);
     const [deleting, setDeleting] = useState(false);
 
+    const [oldPassword, setOldPassword] = useState("");
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [passwordLoading, setPasswordLoading] = useState(false);
+
     const handleSave = async () => {
         try {
             setLoading(true);
@@ -24,6 +29,29 @@ export default function ProfileSettings() {
             toast({ variant: "destructive", title: "Update Failed", description: e.message });
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handlePasswordChange = async () => {
+        if (newPassword !== confirmPassword) {
+            toast({ variant: "destructive", title: "Passwords do not match" });
+            return;
+        }
+        if (!oldPassword || !newPassword) {
+            toast({ variant: "destructive", title: "Fields cannot be empty" });
+            return;
+        }
+        try {
+            setPasswordLoading(true);
+            await changePassword({ old_password: oldPassword, new_password: newPassword }, token!);
+            toast({ title: "Password changed successfully" });
+            setOldPassword("");
+            setNewPassword("");
+            setConfirmPassword("");
+        } catch (e: any) {
+            toast({ variant: "destructive", title: "Change Failed", description: e.message });
+        } finally {
+            setPasswordLoading(false);
         }
     };
 
@@ -58,6 +86,27 @@ export default function ProfileSettings() {
                         <Input value={location} onChange={e => setLocation(e.target.value)} placeholder="City, State" />
                     </div>
                     <Button onClick={handleSave} disabled={loading}>{loading ? "Saving..." : "Save Changes"}</Button>
+                </div>
+            </div>
+
+            <div className="bg-card border rounded-xl p-6 shadow-sm mb-8">
+                <h2 className="text-xl font-medium mb-4">Change Password</h2>
+                <div className="space-y-4">
+                    <div>
+                        <Label>Current Password</Label>
+                        <Input type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} />
+                    </div>
+                    <div>
+                        <Label>New Password</Label>
+                        <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                    </div>
+                    <div>
+                        <Label>Confirm New Password</Label>
+                        <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+                    </div>
+                    <Button onClick={handlePasswordChange} disabled={passwordLoading} variant="secondary">
+                        {passwordLoading ? "Updating..." : "Update Password"}
+                    </Button>
                 </div>
             </div>
 

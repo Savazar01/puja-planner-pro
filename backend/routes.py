@@ -206,7 +206,8 @@ async def register(user_in: UserCreate, db: Session = Depends(get_db)):
         email=user_in.email,
         hashed_password=get_password_hash(user_in.password),
         role=user_in.role,
-        status=UserStatus.PENDING if user_in.role != UserRole.HOST else UserStatus.APPROVED
+        status=UserStatus.PENDING if user_in.role != UserRole.HOST else UserStatus.APPROVED,
+        token_balance=1000 if user_in.role == UserRole.HOST else 0
     )
     
     new_profile = Profile(
@@ -335,6 +336,36 @@ async def update_user_profile(
     for key, value in update_dict.items():
         setattr(profile, key, value)
         
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
+@router.patch("/api/users/me/upgrade", response_model=UserResponse)
+async def upgrade_subscription(
+    upgrade_req: SubscriptionUpgrade,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    valid_upgrades = {
+        "SILVER": 100,
+        "GOLD": 500,
+        "PLATINUM": 1000
+    }
+    target = upgrade_req.target_tier.upper()
+    
+    if target not in valid_upgrades:
+        raise HTTPException(status_code=400, detail="Invalid subscription tier requested.")
+        
+    cost = valid_upgrades[target]
+    
+    if current_user.token_balance < cost:
+        raise HTTPException(status_code=400, detail=f"Insufficient tokens. {target} requires {cost} tokens.")
+        
+    # Deduct tokens and upgrade tier
+    current_user.token_balance -= cost
+    current_user.subscription_tier = target # Enum mapping natively matches the string
+    
     db.commit()
     db.refresh(current_user)
     return current_user

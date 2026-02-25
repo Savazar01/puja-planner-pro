@@ -62,6 +62,8 @@ class UserResponse(UserBase):
     id: str
     status: UserStatus
     created_at: datetime
+    subscription_tier: Optional[str] = None
+    token_balance: Optional[int] = None
     profile: Optional[ProfileResponse] = None
     
     class Config:
@@ -95,6 +97,8 @@ class ResetPasswordRequest(BaseModel):
     token: str
     new_password: str
 
+class SubscriptionUpgrade(BaseModel):
+    target_tier: str
 
 class SearchRequest(BaseModel):
     """Request schema for search endpoint."""

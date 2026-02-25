@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle, User, MapPin, Globe, Shield, Activity } from "lucide-react";
+import { AlertCircle, User, MapPin, Globe, Shield, Activity, Star } from "lucide-react";
 
 export default function ProfileSettings() {
     const { user, token, logout } = useAuth();
@@ -126,6 +126,25 @@ export default function ProfileSettings() {
         }
     };
 
+    const handleUpgrade = async (targetTier: string, cost: number) => {
+        if (!user || user.token_balance === undefined || user.token_balance < cost) {
+            toast({ variant: "destructive", title: "Insufficient Tokens", description: `You need ${cost} tokens to upgrade to ${targetTier}.` });
+            return;
+        }
+        try {
+            setLoading(true);
+            const { upgradeSubscription } = await import("@/lib/api");
+            await upgradeSubscription(targetTier, token!);
+            toast({ title: "Upgrade Successful", description: `You are now a ${targetTier} member!` });
+            // Force reload to refresh context
+            window.location.reload();
+        } catch (e: any) {
+            toast({ variant: "destructive", title: "Upgrade Failed", description: e.message });
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const updateSocial = (key: string, value: string) => {
         setSocials((prev: any) => ({ ...prev, [key]: value }));
     };
@@ -146,6 +165,13 @@ export default function ProfileSettings() {
             <Tabs defaultValue="basic" className="flex flex-col md:flex-row gap-8">
                 <TabsList className="flex md:flex-col justify-start items-start h-auto bg-transparent space-y-2 md:w-64">
                     <TabsTrigger value="basic" className="w-full justify-start gap-3"><User size={18} /> Basic Info</TabsTrigger>
+
+                    {user.userType === "customer" && (
+                        <TabsTrigger value="subscription" className="w-full justify-start gap-3 text-amber-600 data-[state=active]:text-amber-700 data-[state=active]:bg-amber-50">
+                            <Star size={18} /> Subscription
+                        </TabsTrigger>
+                    )}
+
                     <TabsTrigger value="address" className="w-full justify-start gap-3"><MapPin size={18} /> Address</TabsTrigger>
                     <TabsTrigger value="socials" className="w-full justify-start gap-3"><Globe size={18} /> Social Media</TabsTrigger>
                     {needsRoleTab && <TabsTrigger value="role" className="w-full justify-start gap-3"><Activity size={18} /> Service Details</TabsTrigger>}
@@ -200,6 +226,93 @@ export default function ProfileSettings() {
                             </div>
                             <Button onClick={handleSaveProfile} disabled={loading} className="mt-6 w-full sm:w-auto">{loading ? "Saving..." : "Save basic info"}</Button>
                         </TabsContent>
+
+                        {user.userType === "customer" && (
+                            <TabsContent value="subscription" className="space-y-6 m-0">
+                                <div>
+                                    <h2 className="text-2xl font-medium mb-1 flex items-center gap-2">
+                                        <Star className="text-amber-500 fill-amber-500" /> Subscription & Tokens
+                                    </h2>
+                                    <p className="text-sm text-muted-foreground mb-6">Upgrade your account tier to unlock premium astrology and event planning features.</p>
+                                </div>
+
+                                <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl mb-8 flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium text-amber-800">Current Balance</p>
+                                        <p className="text-2xl font-bold text-amber-600">{user.token_balance?.toLocaleString() || 0} Tokens</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-sm font-medium text-muted-foreground">Current Tier</p>
+                                        <p className="text-lg font-bold capitalize">{user.tier}</p>
+                                    </div>
+                                </div>
+
+                                <div className="grid md:grid-cols-3 gap-4">
+                                    {/* Silver Tier */}
+                                    <div className="border rounded-xl p-5 relative overflow-hidden flex flex-col">
+                                        <div className="mb-4">
+                                            <h3 className="text-lg font-bold text-slate-400">SILVER</h3>
+                                            <p className="text-2xl font-bold mt-2">100 <span className="text-sm font-normal text-muted-foreground">Tokens</span></p>
+                                        </div>
+                                        <ul className="text-sm text-muted-foreground space-y-2 mb-6 flex-1">
+                                            <li>• Priority Support</li>
+                                            <li>• Verified Badge</li>
+                                            <li>• Ad-Free Browsing</li>
+                                        </ul>
+                                        <Button
+                                            variant={user.tier === 'silver' ? "secondary" : "outline"}
+                                            className="w-full"
+                                            disabled={loading || user.tier === 'silver' || user.tier === 'gold' || user.tier === 'platinum'}
+                                            onClick={() => handleUpgrade("SILVER", 100)}
+                                        >
+                                            {user.tier === 'silver' ? "Current Tier" : "Upgrade to Silver"}
+                                        </Button>
+                                    </div>
+
+                                    {/* Gold Tier */}
+                                    <div className="border rounded-xl p-5 relative overflow-hidden flex flex-col border-amber-500 shadow-sm bg-amber-50/30">
+                                        <div className="absolute top-0 right-0 bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg">POPULAR</div>
+                                        <div className="mb-4">
+                                            <h3 className="text-lg font-bold text-amber-500">GOLD</h3>
+                                            <p className="text-2xl font-bold mt-2">500 <span className="text-sm font-normal text-muted-foreground">Tokens</span></p>
+                                        </div>
+                                        <ul className="text-sm text-muted-foreground space-y-2 mb-6 flex-1 text-amber-900/70">
+                                            <li>• Everything in Silver</li>
+                                            <li>• 1 Free Puja Video Call</li>
+                                            <li>• Vendor Discounts</li>
+                                        </ul>
+                                        <Button
+                                            className="w-full bg-amber-500 hover:bg-amber-600 text-white"
+                                            disabled={loading || user.tier === 'gold' || user.tier === 'platinum'}
+                                            onClick={() => handleUpgrade("GOLD", 500)}
+                                        >
+                                            {user.tier === 'gold' ? "Current Tier" : "Upgrade to Gold"}
+                                        </Button>
+                                    </div>
+
+                                    {/* Platinum Tier */}
+                                    <div className="border rounded-xl p-5 relative overflow-hidden flex flex-col bg-slate-900 text-white">
+                                        <div className="mb-4">
+                                            <h3 className="text-lg font-bold text-blue-300">PLATINUM</h3>
+                                            <p className="text-2xl font-bold mt-2">1000 <span className="text-sm font-normal text-slate-400">Tokens</span></p>
+                                        </div>
+                                        <ul className="text-sm text-slate-300 space-y-2 mb-6 flex-1">
+                                            <li>• Everything in Gold</li>
+                                            <li>• Unlimited Virtual Pujas</li>
+                                            <li>• Dedicated VIP Manager</li>
+                                        </ul>
+                                        <Button
+                                            variant="secondary"
+                                            className="w-full text-slate-900 bg-white hover:bg-slate-200"
+                                            disabled={loading || user.tier === 'platinum'}
+                                            onClick={() => handleUpgrade("PLATINUM", 1000)}
+                                        >
+                                            {user.tier === 'platinum' ? "Current Tier" : "Upgrade to VIP"}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </TabsContent>
+                        )}
 
                         <TabsContent value="address" className="space-y-6 m-0">
                             <div>

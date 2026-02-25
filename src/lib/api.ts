@@ -198,6 +198,30 @@ export async function updateProfile(data: any, token: string) {
     return response.json();
 }
 
+/**
+ * Upgrade User Subscription Tier
+ */
+export async function upgradeSubscription(target_tier: string, token: string) {
+    const response = await fetch(`${API_URL}/api/users/me/upgrade`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ target_tier }),
+    });
+
+    if (!response.ok) {
+        let errMsg = "Failed to upgrade subscription";
+        try {
+            const err = await response.json();
+            errMsg = err.detail || errMsg;
+        } catch (e) { }
+        throw new Error(errMsg);
+    }
+    return response.json();
+}
+
 export async function requestAccountDeletion(token: string) {
     const response = await fetch(`${API_URL}/api/users/me/request-deletion`, {
         method: "POST",

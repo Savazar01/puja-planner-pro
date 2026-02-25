@@ -48,14 +48,14 @@ const Navbar = () => {
           {isAuthenticated ? (
             <div className="flex items-center gap-4">
               {user?.token_balance !== undefined && (
-                <div className="flex items-center gap-1.5 font-medium text-amber-500 bg-amber-500/10 px-3 py-1.5 rounded-full text-sm">
-                  <Coins className="h-4 w-4" />
+                <div className="flex items-center gap-1.5 font-bold text-amber-500 bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-500/20 px-4 py-1.5 rounded-full shadow-inner text-sm tracking-wide">
+                  <Coins className="h-4 w-4 drop-shadow-sm" />
                   {user.token_balance.toLocaleString()}
                 </div>
               )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="gap-2">
+                  <Button variant="ghost" size="sm" className="gap-2 focus-visible:ring-0">
                     <User className="h-4 w-4" />
                     {user?.name}
                   </Button>

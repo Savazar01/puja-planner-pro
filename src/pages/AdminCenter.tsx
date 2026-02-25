@@ -90,39 +90,32 @@ export default function AdminCenter() {
                     ) : users.length === 0 ? (
                         <p className="text-muted-foreground">No users found.</p>
                     ) : (
-                        <div className="space-y-4">
-                            {users.map(u => (
-                                <div key={u.id} className="border p-4 rounded-xl shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <p className="font-semibold text-lg">{u.profile?.full_name || u.email}</p>
-                                            <Badge variant={
-                                                u.status === "APPROVED" ? "default" :
-                                                    u.status === "PENDING_DELETION" ? "destructive" :
-                                                        "secondary"
-                                            }>{u.status}</Badge>
-                                        </div>
-                                        <p className="text-sm text-muted-foreground">{u.email} | Role: <span className="font-semibold text-primary">{u.role}</span></p>
-                                        <div className="text-sm mt-2 text-muted-foreground">
-                                            <p>WhatsApp: {u.profile?.whatsapp || "N/A"}</p>
-                                            <p>Target Location: {u.profile?.location || "N/A"}</p>
-                                            {u.role === "PANDIT" && <p>Experience: {u.profile?.role_metadata?.experience}, Specialty: {u.profile?.role_metadata?.specialty}</p>}
-                                            {u.role === "TEMPLE_ADMIN" && <p>Temple: {u.profile?.role_metadata?.temple_name}, Loc: {u.profile?.role_metadata?.location}</p>}
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        {(u.role === "PANDIT" || u.role === "SUPPLIER" || u.role === "TEMPLE_ADMIN" || u.role === "OTHER") && (
-                                            <Button
-                                                variant={u.status === "APPROVED" ? "outline" : "default"}
-                                                onClick={() => handleStatusToggle(u.id, u.status)}
-                                            >
-                                                {u.status === "APPROVED" ? "Revoke Approval" : "Approve"}
-                                            </Button>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                        <Tabs defaultValue="pending" className="w-full">
+                            <TabsList className="mb-4">
+                                <TabsTrigger value="pending">Pending Approvals</TabsTrigger>
+                                <TabsTrigger value="active">Active Users</TabsTrigger>
+                            </TabsList>
+
+                            <TabsContent value="pending" className="space-y-4">
+                                {users.filter(u => u.status === "PENDING" || u.status === "PENDING_DELETION").length === 0 ? (
+                                    <p className="text-muted-foreground text-sm">No pending requests.</p>
+                                ) : (
+                                    users.filter(u => u.status === "PENDING" || u.status === "PENDING_DELETION").map(u => (
+                                        <UserCard key={u.id} user={u} onToggleStatus={handleStatusToggle} />
+                                    ))
+                                )}
+                            </TabsContent>
+
+                            <TabsContent value="active" className="space-y-4">
+                                {users.filter(u => u.status === "APPROVED").length === 0 ? (
+                                    <p className="text-muted-foreground text-sm">No active users found.</p>
+                                ) : (
+                                    users.filter(u => u.status === "APPROVED").map(u => (
+                                        <UserCard key={u.id} user={u} onToggleStatus={handleStatusToggle} />
+                                    ))
+                                )}
+                            </TabsContent>
+                        </Tabs>
                     )}
                 </TabsContent>
 
@@ -189,6 +182,41 @@ function EditableEmailTemplate({ email, onSave }: { email: any, onSave: (subject
                         setIsEditing(false);
                     }}>Save Changes</Button>
                 </div>
+            </div>
+        </div>
+    );
+}
+
+function UserCard({ user: u, onToggleStatus }: { user: any, onToggleStatus: (id: string, status: string) => void }) {
+    return (
+        <div className="border p-4 rounded-xl shadow-sm flex flex-col sm:flex-row sm:items-start justify-between gap-4 bg-card">
+            <div>
+                <div className="flex items-center gap-2 mb-1">
+                    <p className="font-semibold text-lg">{u.profile?.full_name || u.email}</p>
+                    <Badge variant={
+                        u.status === "APPROVED" ? "default" :
+                            u.status === "PENDING_DELETION" ? "destructive" :
+                                "secondary"
+                    }>{u.status}</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">{u.email} | Role: <span className="font-semibold text-primary">{u.role}</span></p>
+                <div className="text-sm mt-3 text-muted-foreground space-y-1">
+                    <p>WhatsApp: {u.profile?.whatsapp || "N/A"}</p>
+                    <p>Target Location: {u.profile?.location || "N/A"}</p>
+                    {u.role === "PANDIT" && <p>Experience: {u.profile?.role_metadata?.experience}, Specialty: {u.profile?.role_metadata?.specialty}</p>}
+                    {u.role === "TEMPLE_ADMIN" && <p>Temple: {u.profile?.role_metadata?.temple_name}, Loc: {u.profile?.role_metadata?.location}</p>}
+                </div>
+            </div>
+            <div className="flex gap-2 shrink-0">
+                {(u.role === "PANDIT" || u.role === "SUPPLIER" || u.role === "TEMPLE_ADMIN" || u.role === "OTHER") && (
+                    <Button
+                        variant={u.status === "APPROVED" ? "outline" : "default"}
+                        onClick={() => onToggleStatus(u.id, u.status)}
+                        size="sm"
+                    >
+                        {u.status === "APPROVED" ? "Revoke Approval" : "Approve"}
+                    </Button>
+                )}
             </div>
         </div>
     );

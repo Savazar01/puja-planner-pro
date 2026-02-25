@@ -3,10 +3,6 @@ from sqlalchemy.orm import Session
 from models import EmailTemplate, EmailEventType
 from config import settings
 
-# Initialize resend with API key
-if settings.resend_api_key:
-    resend.api_key = settings.resend_api_key
-
 def send_dynamic_email(db: Session, to_email: str, event_type: EmailEventType, context: dict = None):
     """
     Fetches the dynamic email template from the database and sends it via Resend.
@@ -15,6 +11,8 @@ def send_dynamic_email(db: Session, to_email: str, event_type: EmailEventType, c
     if not settings.resend_api_key:
         print(f"Mock Email Dispatch -> To: {to_email}, Event: {event_type.name}")
         return False
+        
+    resend.api_key = settings.resend_api_key
 
     template = db.query(EmailTemplate).filter(EmailTemplate.event_type == event_type).first()
     if not template:

@@ -20,7 +20,7 @@ const Navbar = () => {
     { to: "/", label: "Home" },
     { to: "/search", label: "Find Pandits" },
     ...(isAuthenticated ? [{ to: "/dashboard", label: "Dashboard" }] : []),
-    ...(user?.isAdmin ? [{ to: "/admin", label: "Admin" }] : []),
+    ...(user?.isAdmin ? [{ to: "/admin-dashboard", label: "Admin" }] : []),
   ];
 
   return (

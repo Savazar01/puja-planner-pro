@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { login as apiLogin, registerUser as apiRegister, getMe } from "@/lib/api";
 
-type UserType = "customer" | "pandit" | "temple_admin" | "supplier" | "event_manager" | "other" | "ADMIN";
+type UserType = "customer" | "HOST" | "pandit" | "temple_admin" | "supplier" | "event_manager" | "other" | "ADMIN";
 
 interface User {
   id: string;

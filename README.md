@@ -2,26 +2,21 @@
 
 A comprehensive platform for planning Pujas, Weddings, and religious ceremonies. Features an intelligent Discovery Agent that finds local Pandits, Venues, and Catering services using AI-powered web scraping and parsing.
 
-## Architecture
+## 🏗 System Architecture
+The project follows a "Pure Docker" philosophy, decoupled from specific proxy labels to ensure portability across different orchestration engines (Traefik, Caddy, Nginx).
 
-### Frontend
-- **Framework**: Vite + React + TypeScript
-- **UI Library**: shadcn/ui with Tailwind CSS
-- **State Management**: React Query (TanStack Query)
-- **Routing**: React Router v6
+- **Frontend:** Nginx-based SPA (React/Vite).
+- **Backend:** Python API (FastAPI/Uvicorn).
+- **Database:** PostgreSQL 15.
+- **Networks:**
+  - `savaz-prod-net`: Dedicated external bridge for DB/Backend security.
+  - `default`: Used for container orchestration and proxy discovery.
 
-### Backend
-- **Framework**: FastAPI (Python 3.11)
-- **Database**: PostgreSQL 15
-- **AI Services**:
-  - **Serper.dev**: Local business search
-  - **Firecrawl**: Web scraping
-  - **Google Gemini 1.5 Flash**: Data parsing and structuring
-
-### Infrastructure
-- **Containerization**: Docker + Docker Compose
-- **Deployment**: Coolify on Debian 13 VPS
-- **Web Server**: Nginx (for production frontend)
+## 🔌 Dynamic Configuration
+All networking is managed via environment variables.
+- `FRONTEND_PORT`: Internal and external port for the web interface (Default: 8734).
+- `BACKEND_PORT`: Internal and external port for the API (Default: 8735).
+- `CORS_ORIGINS`: Controlled via Coolify environment variables to ensure secure cross-origin requests.
 
 ## Quick Start
 

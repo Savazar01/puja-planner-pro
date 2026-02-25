@@ -144,7 +144,7 @@ export async function getAllUsers(token: string) {
     return response.json();
 }
 
-export async function approveUser(id: string, status: "APPROVED" | "REJECTED", token: string) {
+export async function approveUser(id: string, status: string, token: string) {
     const response = await fetch(`${API_URL}/api/admin/approve/${id}`, {
         method: "PATCH",
         headers: {

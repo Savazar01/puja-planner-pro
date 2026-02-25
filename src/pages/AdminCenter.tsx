@@ -50,8 +50,7 @@ export default function AdminCenter() {
         }
     };
 
-    const handleStatusToggle = async (id: string, currentStatus: string) => {
-        const newStatus = currentStatus === "APPROVED" ? "REJECTED" : "APPROVED";
+    const handleStatusUpdate = async (id: string, newStatus: string) => {
         try {
             await approveUser(id, newStatus, token!);
             toast({ title: `User ${newStatus.toLowerCase()}` });
@@ -101,7 +100,7 @@ export default function AdminCenter() {
                                     <p className="text-muted-foreground text-sm">No pending requests.</p>
                                 ) : (
                                     users.filter(u => u.status === "PENDING" || u.status === "PENDING_DELETION").map(u => (
-                                        <UserCard key={u.id} user={u} onToggleStatus={handleStatusToggle} />
+                                        <UserCard key={u.id} user={u} onUpdateStatus={handleStatusUpdate} />
                                     ))
                                 )}
                             </TabsContent>
@@ -111,7 +110,7 @@ export default function AdminCenter() {
                                     <p className="text-muted-foreground text-sm">No active users found.</p>
                                 ) : (
                                     users.filter(u => u.status === "APPROVED").map(u => (
-                                        <UserCard key={u.id} user={u} onToggleStatus={handleStatusToggle} />
+                                        <UserCard key={u.id} user={u} onUpdateStatus={handleStatusUpdate} />
                                     ))
                                 )}
                             </TabsContent>
@@ -187,7 +186,7 @@ function EditableEmailTemplate({ email, onSave }: { email: any, onSave: (subject
     );
 }
 
-function UserCard({ user: u, onToggleStatus }: { user: any, onToggleStatus: (id: string, status: string) => void }) {
+function UserCard({ user: u, onUpdateStatus }: { user: any, onUpdateStatus: (id: string, status: string) => void }) {
     return (
         <div className="border p-4 rounded-xl shadow-sm flex flex-col sm:flex-row sm:items-start justify-between gap-4 bg-card">
             <div>
@@ -195,7 +194,7 @@ function UserCard({ user: u, onToggleStatus }: { user: any, onToggleStatus: (id:
                     <p className="font-semibold text-lg">{u.profile?.full_name || u.email}</p>
                     <Badge variant={
                         u.status === "APPROVED" ? "default" :
-                            u.status === "PENDING_DELETION" ? "destructive" :
+                            (u.status === "PENDING_DELETION" || u.status === "REJECTED") ? "destructive" :
                                 "secondary"
                     }>{u.status}</Badge>
                 </div>
@@ -207,15 +206,25 @@ function UserCard({ user: u, onToggleStatus }: { user: any, onToggleStatus: (id:
                     {u.role === "TEMPLE_ADMIN" && <p>Temple: {u.profile?.role_metadata?.temple_name}, Loc: {u.profile?.role_metadata?.location}</p>}
                 </div>
             </div>
-            <div className="flex gap-2 shrink-0">
-                {(u.role === "PANDIT" || u.role === "SUPPLIER" || u.role === "TEMPLE_ADMIN" || u.role === "OTHER") && (
-                    <Button
-                        variant={u.status === "APPROVED" ? "outline" : "default"}
-                        onClick={() => onToggleStatus(u.id, u.status)}
-                        size="sm"
-                    >
-                        {u.status === "APPROVED" ? "Revoke Approval" : "Approve"}
-                    </Button>
+            <div className="flex flex-wrap gap-2 shrink-0">
+                {(u.role !== "HOST" && u.role !== "ADMIN") && (
+                    <>
+                        {(u.status === "PENDING" || u.status === "REJECTED") && (
+                            <>
+                                <Button variant="default" size="sm" onClick={() => onUpdateStatus(u.id, "APPROVED")}>Approve</Button>
+                                {u.status !== "REJECTED" && (
+                                    <Button variant="outline" size="sm" onClick={() => onUpdateStatus(u.id, "REJECTED")}>Reject</Button>
+                                )}
+                                <Button variant="destructive" size="sm" onClick={() => onUpdateStatus(u.id, "PENDING_DELETION")}>Mark as Spam</Button>
+                            </>
+                        )}
+                        {u.status === "APPROVED" && (
+                            <Button variant="outline" size="sm" onClick={() => onUpdateStatus(u.id, "REJECTED")}>Revoke Approval</Button>
+                        )}
+                        {u.status === "PENDING_DELETION" && (
+                            <Button variant="secondary" size="sm" onClick={() => onUpdateStatus(u.id, "PENDING")}>Restore (Undo Spam)</Button>
+                        )}
+                    </>
                 )}
             </div>
         </div>

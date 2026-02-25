@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional, Any, Dict
 from datetime import datetime
 from enum import Enum
-from models import UserRole, UserStatus, EmailEventType
+from models import UserRole, UserStatus, SubscriptionRequestStatus, EmailEventType
 
 class EmailTemplateUpdate(BaseModel):
     subject: Optional[str] = None
@@ -99,6 +99,18 @@ class ResetPasswordRequest(BaseModel):
 
 class SubscriptionUpgrade(BaseModel):
     target_tier: str
+
+class SubscriptionRequestResponse(BaseModel):
+    id: str
+    user_id: str
+    target_tier: str
+    status: SubscriptionRequestStatus
+    created_at: datetime
+    user_email: Optional[str] = None
+    user_name: Optional[str] = None
+    
+    class Config:
+        from_attributes = True
 
 class SearchRequest(BaseModel):
     """Request schema for search endpoint."""

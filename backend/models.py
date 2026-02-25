@@ -25,6 +25,11 @@ class SubscriptionTier(str, enum.Enum):
     GOLD = "GOLD"
     PLATINUM = "PLATINUM"
 
+class SubscriptionRequestStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+
 class EmailEventType(str, enum.Enum):
     WELCOME_USER = "WELCOME_USER"
     VENDOR_WAITING = "VENDOR_WAITING"
@@ -91,6 +96,19 @@ class EmailTemplate(Base):
     body_html = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class SubscriptionRequest(Base):
+    """Tracker for user fiat subscription upgrade requests."""
+    __tablename__ = "subscription_requests"
+    
+    id = Column(String, primary_key=True, index=True)
+    user_id = Column(String, ForeignKey("users.id"), index=True)
+    target_tier = Column(Enum(SubscriptionTier), nullable=False)
+    status = Column(Enum(SubscriptionRequestStatus), default=SubscriptionRequestStatus.PENDING)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    user = relationship("User")
 
 
 class Pandit(Base):

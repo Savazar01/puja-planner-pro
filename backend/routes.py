@@ -341,34 +341,39 @@ async def update_user_profile(
     return current_user
 
 
-@router.patch("/api/users/me/upgrade", response_model=UserResponse)
+@router.patch("/api/users/me/upgrade", response_model=Dict[str, str])
 async def upgrade_subscription(
     upgrade_req: SubscriptionUpgrade,
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    valid_upgrades = {
-        "SILVER": 10000,
-        "GOLD": 25000,
-        "PLATINUM": 60000
-    }
+    valid_upgrades = ["SILVER", "GOLD", "PLATINUM"]
     target = upgrade_req.target_tier.upper()
     
     if target not in valid_upgrades:
         raise HTTPException(status_code=400, detail="Invalid subscription tier requested.")
         
-    cost = valid_upgrades[target]
+    # Check if a pending request already exists
+    from models import SubscriptionRequest, SubscriptionRequestStatus
+    existing = db.query(SubscriptionRequest).filter(
+        SubscriptionRequest.user_id == current_user.id,
+        SubscriptionRequest.status == SubscriptionRequestStatus.PENDING
+    ).first()
     
-    if current_user.token_balance < cost:
-        raise HTTPException(status_code=400, detail=f"Insufficient tokens. {target} requires {cost} tokens.")
+    if existing:
+        raise HTTPException(status_code=400, detail="You already have a pending subscription upgrade request.")
         
-    # Deduct tokens and upgrade tier
-    current_user.token_balance -= cost
-    current_user.subscription_tier = target # Enum mapping natively matches the string
-    
+    # Create request
+    new_request = SubscriptionRequest(
+        id=str(uuid.uuid4()),
+        user_id=current_user.id,
+        target_tier=target,
+        status=SubscriptionRequestStatus.PENDING
+    )
+    db.add(new_request)
     db.commit()
-    db.refresh(current_user)
-    return current_user
+    
+    return {"message": f"Upgrade request to {target} submitted successfully."}
 
 
 @router.post("/api/users/me/request-deletion")
@@ -392,6 +397,71 @@ async def get_all_users(
 ):
     users = db.query(User).all()
     return users
+
+
+from schemas import SubscriptionRequestResponse
+
+@router.get("/api/admin/subscriptions", response_model=List[SubscriptionRequestResponse])
+async def get_all_subscription_requests(
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin)
+):
+    from models import SubscriptionRequest
+    requests = db.query(SubscriptionRequest).order_by(SubscriptionRequest.created_at.desc()).all()
+    
+    # Manually stitch in user details for the UI.
+    response_list = []
+    for req in requests:
+        user_details = db.query(User).filter(User.id == req.user_id).first()
+        name = user_details.profile.full_name if (user_details and user_details.profile and user_details.profile.full_name) else None
+        
+        response_list.append(SubscriptionRequestResponse(
+            id=req.id,
+            user_id=req.user_id,
+            target_tier=req.target_tier.value,
+            status=req.status,
+            created_at=req.created_at,
+            user_email=user_details.email if user_details else None,
+            user_name=name
+        ))
+    return response_list
+
+@router.patch("/api/admin/subscriptions/{request_id}", response_model=Dict[str, str])
+async def update_subscription_request(
+    request_id: str,
+    status_update: UserUpdateStatus, # We can reuse the simple {"status": "APPROVED"} payload
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin)
+):
+    from models import SubscriptionRequest, SubscriptionRequestStatus
+    req = db.query(SubscriptionRequest).filter(SubscriptionRequest.id == request_id).first()
+    
+    if not req:
+        raise HTTPException(status_code=404, detail="Request not found.")
+        
+    if req.status != SubscriptionRequestStatus.PENDING:
+        raise HTTPException(status_code=400, detail="This request has already been processed.")
+        
+    new_status = status_update.status.upper()
+    if new_status not in ["APPROVED", "REJECTED"]:
+        raise HTTPException(status_code=400, detail="Status must be APPROVED or REJECTED.")
+        
+    req.status = new_status
+    
+    if new_status == "APPROVED":
+        target_user = db.query(User).filter(User.id == req.user_id).first()
+        if target_user:
+            target_user.subscription_tier = req.target_tier
+            # Grant token bundle
+            token_bundles = {
+                "SILVER": 10000,
+                "GOLD": 25000,
+                "PLATINUM": 60000
+            }
+            target_user.token_balance = target_user.token_balance + token_bundles.get(req.target_tier.value, 0)
+            
+    db.commit()
+    return {"message": f"Subscription request {new_status.lower()} successfully."}
 
 
 @router.patch("/api/admin/approve/{user_id}", response_model=UserResponse)

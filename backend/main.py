@@ -47,6 +47,19 @@ try:
             # EPIC-4: Retroactive Token Grant for Legacy Customers
             conn.execute(text("UPDATE users SET token_balance = 1000 WHERE role = 'HOST' AND token_balance < 1000"))
             print("Successfully grandfathered existing Customers into the EPIC-4 Token Economy")
+            
+            # EPIC-5: Subscription Requests
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS subscription_requests (
+                    id VARCHAR PRIMARY KEY,
+                    user_id VARCHAR REFERENCES users(id),
+                    target_tier VARCHAR NOT NULL,
+                    status VARCHAR DEFAULT 'PENDING',
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                    updated_at TIMESTAMP WITH TIME ZONE
+                )
+            """))
+            print("Successfully migrated subscription_requests schema for EPIC-5")
         except Exception as e:
             print(f"Migration notice: {e}")
             

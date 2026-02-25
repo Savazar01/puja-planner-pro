@@ -1,16 +1,20 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getAllUsers, approveUser } from "@/lib/api";
+import { getAllUsers, approveUser, getEmails, updateEmail } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function AdminCenter() {
     const { user, token } = useAuth();
     const navigate = useNavigate();
     const { toast } = useToast();
     const [users, setUsers] = useState<any[]>([]);
+    const [emails, setEmails] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -21,6 +25,7 @@ export default function AdminCenter() {
 
         if (token) {
             loadUsers();
+            loadEmails();
         }
     }, [user, navigate, token]);
 
@@ -36,6 +41,15 @@ export default function AdminCenter() {
         }
     };
 
+    const loadEmails = async () => {
+        try {
+            const data = await getEmails(token!);
+            setEmails(data);
+        } catch (e: any) {
+            console.error(e);
+        }
+    };
+
     const handleStatusToggle = async (id: string, currentStatus: string) => {
         const newStatus = currentStatus === "APPROVED" ? "REJECTED" : "APPROVED";
         try {
@@ -47,48 +61,135 @@ export default function AdminCenter() {
         }
     };
 
+    const handleEmailSave = async (emailId: number, subject: string, body_html: string) => {
+        try {
+            await updateEmail(emailId, { subject, body_html }, token!);
+            toast({ title: "Template Saved" });
+        } catch (e: any) {
+            toast({ variant: "destructive", title: "Save Failed", description: e.message });
+        }
+    };
+
     if (!user || user.userType !== "ADMIN") return null;
 
     return (
         <div className="container mx-auto py-10 px-4">
             <h1 className="text-3xl font-display mb-6">Admin Dashboard</h1>
-            <h2 className="text-xl font-medium mb-4">User Management</h2>
 
-            {loading ? (
-                <p>Loading...</p>
-            ) : users.length === 0 ? (
-                <p className="text-muted-foreground">No users found.</p>
-            ) : (
-                <div className="space-y-4">
-                    {users.map(u => (
-                        <div key={u.id} className="border p-4 rounded-xl shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <p className="font-semibold text-lg">{u.profile?.full_name || u.email}</p>
-                                    <Badge variant={u.status === "APPROVED" ? "default" : "secondary"}>{u.status}</Badge>
+            <Tabs defaultValue="requests" className="w-full">
+                <TabsList className="mb-6 h-auto p-1 py-1 px-1 bg-muted/50 rounded-xl">
+                    <TabsTrigger value="requests" className="rounded-lg px-6 py-2.5">User Management</TabsTrigger>
+                    <TabsTrigger value="emails" className="rounded-lg px-6 py-2.5">Email Templates</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="requests">
+                    <h2 className="text-xl font-medium mb-4">User Management</h2>
+
+                    {loading ? (
+                        <p>Loading...</p>
+                    ) : users.length === 0 ? (
+                        <p className="text-muted-foreground">No users found.</p>
+                    ) : (
+                        <div className="space-y-4">
+                            {users.map(u => (
+                                <div key={u.id} className="border p-4 rounded-xl shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <p className="font-semibold text-lg">{u.profile?.full_name || u.email}</p>
+                                            <Badge variant={
+                                                u.status === "APPROVED" ? "default" :
+                                                    u.status === "PENDING_DELETION" ? "destructive" :
+                                                        "secondary"
+                                            }>{u.status}</Badge>
+                                        </div>
+                                        <p className="text-sm text-muted-foreground">{u.email} | Role: <span className="font-semibold text-primary">{u.role}</span></p>
+                                        <div className="text-sm mt-2 text-muted-foreground">
+                                            <p>WhatsApp: {u.profile?.whatsapp || "N/A"}</p>
+                                            <p>Target Location: {u.profile?.location || "N/A"}</p>
+                                            {u.role === "PANDIT" && <p>Experience: {u.profile?.role_metadata?.experience}, Specialty: {u.profile?.role_metadata?.specialty}</p>}
+                                            {u.role === "TEMPLE_ADMIN" && <p>Temple: {u.profile?.role_metadata?.temple_name}, Loc: {u.profile?.role_metadata?.location}</p>}
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        {(u.role === "PANDIT" || u.role === "SUPPLIER" || u.role === "TEMPLE_ADMIN" || u.role === "OTHER") && (
+                                            <Button
+                                                variant={u.status === "APPROVED" ? "outline" : "default"}
+                                                onClick={() => handleStatusToggle(u.id, u.status)}
+                                            >
+                                                {u.status === "APPROVED" ? "Revoke Approval" : "Approve"}
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
-                                <p className="text-sm text-muted-foreground">{u.email} | Role: <span className="font-semibold text-primary">{u.role}</span></p>
-                                <div className="text-sm mt-2 text-muted-foreground">
-                                    <p>WhatsApp: {u.profile?.whatsapp || "N/A"}</p>
-                                    <p>Target Location: {u.profile?.location || "N/A"}</p>
-                                    {u.role === "PANDIT" && <p>Experience: {u.profile?.role_metadata?.experience}, Specialty: {u.profile?.role_metadata?.specialty}</p>}
-                                    {u.role === "TEMPLE_ADMIN" && <p>Temple: {u.profile?.role_metadata?.temple_name}, Loc: {u.profile?.role_metadata?.location}</p>}
-                                </div>
-                            </div>
-                            <div className="flex gap-2">
-                                {(u.role === "PANDIT" || u.role === "SUPPLIER" || u.role === "TEMPLE_ADMIN" || u.role === "OTHER") && (
-                                    <Button
-                                        variant={u.status === "APPROVED" ? "outline" : "default"}
-                                        onClick={() => handleStatusToggle(u.id, u.status)}
-                                    >
-                                        {u.status === "APPROVED" ? "Revoke Approval" : "Approve"}
-                                    </Button>
-                                )}
-                            </div>
+                            ))}
                         </div>
-                    ))}
+                    )}
+                </TabsContent>
+
+                <TabsContent value="emails">
+                    <h2 className="text-xl font-medium mb-4">Email Templates</h2>
+                    <div className="space-y-6">
+                        {emails.map((email: any) => (
+                            <EditableEmailTemplate
+                                key={email.id}
+                                email={email}
+                                onSave={(subject, body) => handleEmailSave(email.id, subject, body)}
+                            />
+                        ))}
+                    </div>
+                </TabsContent>
+            </Tabs>
+        </div>
+    );
+}
+
+function EditableEmailTemplate({ email, onSave }: { email: any, onSave: (subject: string, body: string) => void }) {
+    const [subject, setSubject] = useState(email.subject);
+    const [bodyHtml, setBodyHtml] = useState(email.body_html);
+    const [isEditing, setIsEditing] = useState(false);
+
+    if (!isEditing) {
+        return (
+            <div className="border p-4 rounded-xl shadow-sm">
+                <div className="flex justify-between items-center mb-2">
+                    <Badge variant="outline">{email.event_type}</Badge>
+                    <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>Edit</Button>
                 </div>
-            )}
+                <h3 className="font-semibold text-lg mb-2">Subj: {email.subject}</h3>
+                <div className="bg-muted p-3 rounded-lg text-sm text-foreground overflow-x-auto whitespace-pre-wrap">
+                    {email.body_html}
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="border border-primary/50 p-4 rounded-xl shadow-sm bg-muted/20">
+            <div className="flex justify-between items-center mb-4">
+                <Badge variant="outline">{email.event_type}</Badge>
+            </div>
+            <div className="space-y-4">
+                <div>
+                    <p className="text-sm font-medium mb-1">Subject</p>
+                    <Input value={subject} onChange={e => setSubject(e.target.value)} />
+                </div>
+                <div>
+                    <p className="text-sm font-medium mb-1">HTML Body</p>
+                    <Textarea
+                        value={bodyHtml}
+                        onChange={e => setBodyHtml(e.target.value)}
+                        rows={8}
+                        className="font-mono text-sm"
+                    />
+                </div>
+                <div className="flex gap-2 justify-end mt-4">
+                    <Button variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
+                    <Button onClick={() => {
+                        onSave(subject, bodyHtml);
+                        setIsEditing(false);
+                    }}>Save Changes</Button>
+                </div>
+            </div>
         </div>
     );
 }

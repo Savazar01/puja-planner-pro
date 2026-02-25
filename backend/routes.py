@@ -7,9 +7,10 @@ from database import get_db
 from schemas import (
     SearchRequest, SearchResponse, PanditResponse, 
     VenueResponse, CateringResponse, DiscoveryResponse,
-    UserCreate, UserResponse, Token, PasswordChange, UserUpdateStatus
+    UserCreate, UserResponse, Token, PasswordChange, UserUpdateStatus,
+    EmailTemplateResponse, EmailTemplateUpdate, ProfileUpdate
 )
-from models import Pandit, Venue, Catering, User, Profile, UserStatus, UserRole
+from models import Pandit, Venue, Catering, User, Profile, UserStatus, UserRole, EmailTemplate
 from discovery_agent import discovery_agent
 from config import settings
 from auth import (
@@ -253,6 +254,38 @@ async def read_users_me(current_user: User = Depends(get_current_active_user)):
     return current_user
 
 
+@router.patch("/api/users/me/profile", response_model=UserResponse)
+async def update_user_profile(
+    update_data: ProfileUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    profile = current_user.profile
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+        
+    if update_data.whatsapp is not None:
+        profile.whatsapp = update_data.whatsapp
+    if update_data.location is not None:
+        profile.location = update_data.location
+        
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
+@router.post("/api/users/me/request-deletion")
+async def request_account_deletion(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    from datetime import datetime
+    current_user.status = UserStatus.PENDING_DELETION
+    current_user.deletion_requested_at = datetime.utcnow()
+    db.commit()
+    return {"message": "Account deletion requested. It will be processed in 15 days."}
+
+
 # --- Admin Gateway Routes ---
 
 @router.get("/api/admin/users", response_model=List[UserResponse])
@@ -284,4 +317,34 @@ async def approve_user(
         print(f"MOCK WHATSAPP MESSAGE: Sending approval notification to {user.profile.whatsapp}")
         
     return user
+
+
+@router.get("/api/admin/emails", response_model=List[EmailTemplateResponse])
+async def get_email_templates(
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin)
+):
+    templates = db.query(EmailTemplate).all()
+    return templates
+
+
+@router.patch("/api/admin/emails/{template_id}", response_model=EmailTemplateResponse)
+async def update_email_template(
+    template_id: int,
+    update_data: EmailTemplateUpdate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin)
+):
+    template = db.query(EmailTemplate).filter(EmailTemplate.id == template_id).first()
+    if not template:
+        raise HTTPException(status_code=404, detail="Email template not found")
+        
+    if update_data.subject is not None:
+        template.subject = update_data.subject
+    if update_data.body_html is not None:
+        template.body_html = update_data.body_html
+        
+    db.commit()
+    db.refresh(template)
+    return template
 

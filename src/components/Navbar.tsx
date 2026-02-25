@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Menu, X, User, LogOut } from "lucide-react";
+import { Menu, X, User, LogOut, Coins } from "lucide-react";
 import { useState } from "react";
 import logo from "@/assets/logo.png";
 import {
@@ -36,9 +36,8 @@ const Navbar = () => {
             <Link
               key={link.to}
               to={link.to}
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                location.pathname === link.to ? "text-primary" : "text-muted-foreground"
-              }`}
+              className={`text-sm font-medium transition-colors hover:text-primary ${location.pathname === link.to ? "text-primary" : "text-muted-foreground"
+                }`}
             >
               {link.label}
             </Link>
@@ -47,20 +46,34 @@ const Navbar = () => {
 
         <div className="hidden items-center gap-3 md:flex">
           {isAuthenticated ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <User className="h-4 w-4" />
-                  {user?.name}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={logout}>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-center gap-4">
+              {user?.token_balance !== undefined && (
+                <div className="flex items-center gap-1.5 font-medium text-amber-500 bg-amber-500/10 px-3 py-1.5 rounded-full text-sm">
+                  <Coins className="h-4 w-4" />
+                  {user.token_balance.toLocaleString()}
+                </div>
+              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="gap-2">
+                    <User className="h-4 w-4" />
+                    {user?.name}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <Link to="/settings" className="w-full cursor-pointer flex items-center">
+                      <User className="mr-2 h-4 w-4" />
+                      Account Settings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={logout} className="text-destructive cursor-pointer">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           ) : (
             <>
               <Button onClick={() => setShowAuthModal(true)} variant="outline" size="sm">
@@ -94,10 +107,18 @@ const Navbar = () => {
           ))}
           <div className="mt-3 border-t border-border pt-3">
             {isAuthenticated ? (
-              <Button variant="ghost" size="sm" onClick={logout} className="w-full justify-start gap-2">
-                <LogOut className="h-4 w-4" />
-                Logout
-              </Button>
+              <>
+                <Link to="/settings" onClick={() => setMobileOpen(false)}>
+                  <Button variant="ghost" size="sm" className="w-full justify-start gap-2 mb-2">
+                    <User className="h-4 w-4" />
+                    Account Settings
+                  </Button>
+                </Link>
+                <Button variant="ghost" size="sm" onClick={logout} className="w-full justify-start gap-2 text-destructive">
+                  <LogOut className="h-4 w-4" />
+                  Logout
+                </Button>
+              </>
             ) : (
               <Button onClick={() => setShowAuthModal(true)} size="sm" className="w-full">
                 Sign In / Sign Up

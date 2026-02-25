@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     serper_api_key: str = ""
     firecrawl_api_key: str = ""
     gemini_api_key: str = ""
+    resend_api_key: str = ""
     
     # Application
     environment: str = "development"

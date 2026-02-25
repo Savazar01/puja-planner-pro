@@ -156,3 +156,44 @@ export async function approveUser(id: string, status: "APPROVED" | "REJECTED", t
     if (!response.ok) throw new Error("Failed to update user status");
     return response.json();
 }
+
+export async function getEmails(token: string) {
+    const response = await fetch(`${API_URL}/api/admin/emails`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!response.ok) throw new Error("Failed to fetch emails");
+    return response.json();
+}
+
+export async function updateEmail(id: number, data: { subject?: string; body_html?: string }, token: string) {
+    const response = await fetch(`${API_URL}/api/admin/emails/${id}`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error("Failed to update email template");
+    return response.json();
+    export async function updateProfile(data: { whatsapp?: string; location?: string }, token: string) {
+        const response = await fetch(`${API_URL}/api/users/me/profile`, {
+            method: "PATCH",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) throw new Error("Failed to update profile");
+        return response.json();
+    }
+
+    export async function requestAccountDeletion(token: string) {
+        const response = await fetch(`${API_URL}/api/users/me/request-deletion`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error("Failed to request deletion");
+        return response.json();
+    }

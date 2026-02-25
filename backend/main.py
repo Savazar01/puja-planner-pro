@@ -4,7 +4,7 @@ from urllib.parse import quote_plus
 DATABASE_URL = os.getenv("DATABASE_URL")
 print(f"DEBUG: Connecting to host: {DATABASE_URL.split('@')[1] if DATABASE_URL else 'None'}")
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends, HTTPException, status, Query
 from fastapi.responses import RedirectResponse
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,7 +13,10 @@ from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 from config import settings
 from routes import router
-from database import engine, Base
+from database import engine, Base, get_db
+from sqlalchemy.orm import Session
+from auth import decode_access_token
+from models import User, UserRole
 
 # Create database tables resiliently
 try:
@@ -36,10 +39,29 @@ app = FastAPI(
     root_path="",
 )
 
-# Custom Swagger UI route using CDN to enforce HTTPS
+# Custom Swagger UI route requiring Admin Token via query parameter
 @app.get("/docs", include_in_schema=False)
 @app.get("/docs/", include_in_schema=False)
-async def custom_swagger_ui_html():
+async def custom_swagger_ui_html(token: str = Query(None), db: Session = Depends(get_db)):
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Admin authentication required. Please provide ?token=YOUR_JWT",
+        )
+    
+    payload = decode_access_token(token)
+    if not payload:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        
+    user_email = payload.get("sub")
+    user = db.query(User).filter(User.email == user_email).first()
+    
+    if not user or user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Only Admins can view the API Documentation"
+        )
+
     return get_swagger_ui_html(
         openapi_url="/openapi.json",
         title=app.title + " - Swagger UI",

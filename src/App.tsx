@@ -11,6 +11,7 @@ import SearchResults from "./pages/SearchResults";
 import Dashboard from "./pages/Dashboard";
 import AdminPage from "./pages/AdminPage";
 import AdminCenter from "./pages/AdminCenter";
+import ProfileSettings from "./pages/ProfileSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/admin-dashboard" element={<AdminCenter />} />
+            <Route path="/settings" element={<ProfileSettings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

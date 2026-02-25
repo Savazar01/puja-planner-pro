@@ -2,7 +2,20 @@ from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional, Any, Dict
 from datetime import datetime
 from enum import Enum
-from models import UserRole, UserStatus
+from models import UserRole, UserStatus, EmailEventType
+
+class EmailTemplateUpdate(BaseModel):
+    subject: Optional[str] = None
+    body_html: Optional[str] = None
+
+class EmailTemplateResponse(BaseModel):
+    id: int
+    event_type: EmailEventType
+    subject: str
+    body_html: str
+    
+    class Config:
+        from_attributes = True
 
 class Token(BaseModel):
     access_token: str
@@ -44,6 +57,10 @@ class UserResponse(UserBase):
     
     class Config:
         from_attributes = True
+
+class ProfileUpdate(BaseModel):
+    whatsapp: Optional[str] = None
+    location: Optional[str] = None
 
 class UserUpdateStatus(BaseModel):
     status: UserStatus

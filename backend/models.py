@@ -17,6 +17,18 @@ class UserStatus(str, enum.Enum):
     PENDING = "PENDING"
     APPROVED = "APPROVED"
     REJECTED = "REJECTED"
+    PENDING_DELETION = "PENDING_DELETION"
+
+class SubscriptionTier(str, enum.Enum):
+    FREE = "FREE"
+    SILVER = "SILVER"
+    GOLD = "GOLD"
+    PLATINUM = "PLATINUM"
+
+class EmailEventType(str, enum.Enum):
+    WELCOME_USER = "WELCOME_USER"
+    VENDOR_WAITING = "VENDOR_WAITING"
+    VENDOR_APPROVED = "VENDOR_APPROVED"
 
 class User(Base):
     """ORM model for Users."""
@@ -27,6 +39,9 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     role = Column(Enum(UserRole), default=UserRole.HOST)
     status = Column(Enum(UserStatus), default=UserStatus.PENDING)
+    subscription_tier = Column(Enum(SubscriptionTier), default=SubscriptionTier.FREE)
+    token_balance = Column(Integer, default=100)
+    deletion_requested_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
@@ -54,6 +69,18 @@ class SearchUsage(Base):
     identifier = Column(String, unique=True, index=True)
     count = Column(Integer, default=0)
     last_reset_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class EmailTemplate(Base):
+    """ORM model for dynamic email templates."""
+    __tablename__ = "email_templates"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    event_type = Column(Enum(EmailEventType), unique=True, index=True, nullable=False)
+    subject = Column(String, nullable=False)
+    body_html = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 
 class Pandit(Base):

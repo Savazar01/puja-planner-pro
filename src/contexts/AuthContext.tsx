@@ -11,6 +11,7 @@ interface User {
   tier: "free" | "silver" | "gold" | "platinum";
   isAdmin: boolean;
   userType: UserType;
+  token_balance?: number;
 }
 
 interface AuthContextType {
@@ -41,9 +42,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: data.id,
         name: data.profile?.full_name || data.email,
         email: data.email,
-        tier: "free" as any,
+        tier: data.subscription_tier?.toLowerCase() || "free",
         isAdmin: data.role === "ADMIN",
         userType: data.role as UserType,
+        token_balance: data.token_balance
       };
       setUser(fetchedUser);
       return fetchedUser;

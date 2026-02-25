@@ -1,7 +1,10 @@
 import os
 import uuid
 from database import SessionLocal
-from models import User, UserRole, UserStatus
+from models import (
+    User, UserRole, UserStatus, SubscriptionTier, 
+    EmailTemplate, EmailEventType
+)
 from auth import get_password_hash
 from config import settings
 
@@ -19,7 +22,9 @@ def init_db():
                 email=admin_email,
                 hashed_password=get_password_hash(admin_password),
                 role=UserRole.ADMIN,
-                status=UserStatus.APPROVED
+                status=UserStatus.APPROVED,
+                subscription_tier=SubscriptionTier.PLATINUM,
+                token_balance=999999
             )
             db.add(new_admin)
             db.commit()
@@ -28,6 +33,25 @@ def init_db():
             print("Admin user already exists.")
     except Exception as e:
         print(f"Error initializing DB data: {e}")
+        
+    try:
+        # Seed email templates if missing
+        default_templates = [
+            (EmailEventType.WELCOME_USER, "Welcome to MyPandits!", "<h1>Welcome!</h1><p>We are thrilled to have you here.</p>"),
+            (EmailEventType.VENDOR_WAITING, "New Vendor Approval Request", "<h1>Admin Alert</h1><p>A new vendor has registered and is awaiting your approval.</p>"),
+            (EmailEventType.VENDOR_APPROVED, "Your Vendor Profile is Live!", "<h1>Congratulations!</h1><p>Your profile is now live on our platform.</p>")
+        ]
+        
+        for evt, subj, body in default_templates:
+            existing = db.query(EmailTemplate).filter(EmailTemplate.event_type == evt).first()
+            if not existing:
+                print(f"Seeding EmailTemplate: {evt.name}")
+                new_tpl = EmailTemplate(event_type=evt, subject=subj, body_html=body)
+                db.add(new_tpl)
+        db.commit()
+    except Exception as e:
+        print(f"Error seeding email templates: {e}")
+        
     finally:
         db.close()
 

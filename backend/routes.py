@@ -10,13 +10,14 @@ from schemas import (
     UserCreate, UserResponse, Token, PasswordChange, UserUpdateStatus,
     EmailTemplateResponse, EmailTemplateUpdate, ProfileUpdate
 )
-from models import Pandit, Venue, Catering, User, Profile, UserStatus, UserRole, EmailTemplate
+from models import Pandit, Venue, Catering, User, Profile, UserStatus, UserRole, EmailTemplate, EmailEventType
 from discovery_agent import discovery_agent
 from config import settings
 from auth import (
     get_password_hash, verify_password, create_access_token,
     get_current_user, get_current_active_user, get_current_admin, search_bouncer
 )
+from email_service import send_dynamic_email
 
 router = APIRouter()
 
@@ -220,6 +221,29 @@ async def register(user_in: UserCreate, db: Session = Depends(get_db)):
     db.add(new_profile)
     db.commit()
     db.refresh(new_user)
+    
+    # ----------------------------------------------------
+    # Active Email Dispatching (EPIC-2)
+    # ----------------------------------------------------
+    if new_user.role == UserRole.HOST:
+        send_dynamic_email(
+            db=db,
+            to_email=new_user.email,
+            event_type=EmailEventType.WELCOME_USER,
+            context={"name": new_profile.full_name}
+        )
+    else:
+        # It's a Vendor (Pandit, Supplier, Temple Admin) -> waiting for approval
+        send_dynamic_email(
+            db=db,
+            to_email=settings.admin_user, # Alert the admin
+            event_type=EmailEventType.VENDOR_WAITING,
+            context={
+                "vendor_name": new_profile.full_name,
+                "vendor_role": new_user.role.name,
+                "vendor_email": new_user.email
+            }
+        )
     return new_user
 
 
@@ -308,9 +332,22 @@ async def approve_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
         
+    old_status = user.status
     user.status = status_update.status
     db.commit()
     db.refresh(user)
+    
+    # ----------------------------------------------------
+    # Active Email Dispatching (EPIC-2)
+    # ----------------------------------------------------
+    if old_status != UserStatus.APPROVED and user.status == UserStatus.APPROVED:
+        profile_name = user.profile.full_name if user.profile else "User"
+        send_dynamic_email(
+            db=db,
+            to_email=user.email,
+            event_type=EmailEventType.VENDOR_APPROVED,
+            context={"name": profile_name}
+        )
     
     # Mock WhatsApp trigger if approved
     if user.status == UserStatus.APPROVED and user.profile and user.profile.whatsapp:

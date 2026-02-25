@@ -31,6 +31,13 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm="HS256")
     return encoded_jwt
 
+def decode_access_token(token: str):
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=["HS256"])
+        return payload
+    except JWTError:
+        return None
+
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     if not token:
         return None

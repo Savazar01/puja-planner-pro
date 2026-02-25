@@ -132,6 +132,8 @@ The backend includes an intelligent Discovery Agent that:
 - `GET /api/discover/pandits` - Discover Pandits by location
 - `GET /api/discover/venues` - Discover Venues by location
 - `GET /api/discover/catering` - Discover Catering services
+- `POST /api/auth/forgot-password` - Request a password reset email
+- `POST /api/auth/reset-password` - Reset password using JWT token
 - `GET /health` - Health check
 
 ### Frontend Features
@@ -141,6 +143,8 @@ The backend includes an intelligent Discovery Agent that:
 - Guest list management
 - Event checklist tracking
 - Authentication with tiered access
+- Password management & recovery
+- Administrative Dashboard (Pending Requests & Active Users)
 - Responsive design with premium UI
 
 ## Deployment
@@ -163,6 +167,7 @@ DATABASE_URL=postgresql://user:password@postgres:5432/puja_planner
 SERPER_API_KEY=your_serper_api_key
 FIRECRAWL_API_KEY=your_firecrawl_api_key
 GEMINI_API_KEY=your_gemini_api_key
+RESEND_API_KEY=your_resend_api_key
 ENVIRONMENT=development
 DEBUG=True
 CORS_ORIGINS=http://localhost:5173,http://localhost:8734

@@ -1,6 +1,59 @@
-from sqlalchemy import Column, String, Float, Boolean, DateTime, Integer, Text, ARRAY, JSON
+from sqlalchemy import Column, String, Float, Boolean, DateTime, Integer, Text, ARRAY, JSON, Enum, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+import enum
 from database import Base
+
+class UserRole(str, enum.Enum):
+    ADMIN = "ADMIN"
+    HOST = "HOST"
+    PANDIT = "PANDIT"
+    EVENT_MANAGER = "EVENT_MANAGER"
+    TEMPLE_ADMIN = "TEMPLE_ADMIN"
+    SUPPLIER = "SUPPLIER"
+    OTHER = "OTHER"
+
+class UserStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+
+class User(Base):
+    """ORM model for Users."""
+    __tablename__ = "users"
+    
+    id = Column(String, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    role = Column(Enum(UserRole), default=UserRole.HOST)
+    status = Column(Enum(UserStatus), default=UserStatus.PENDING)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    profile = relationship("Profile", back_populates="user", uselist=False)
+
+class Profile(Base):
+    """ORM model for User Profiles."""
+    __tablename__ = "profiles"
+    
+    id = Column(String, primary_key=True, index=True)
+    user_id = Column(String, ForeignKey("users.id"))
+    full_name = Column(String)
+    phone = Column(String)
+    whatsapp = Column(String, nullable=False)
+    location = Column(String)
+    role_metadata = Column(JSON, default={})
+    
+    user = relationship("User", back_populates="profile")
+
+class SearchUsage(Base):
+    """ORM model for tracking guest searches."""
+    __tablename__ = "search_usage"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    identifier = Column(String, unique=True, index=True)
+    count = Column(Integer, default=0)
+    last_reset_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class Pandit(Base):

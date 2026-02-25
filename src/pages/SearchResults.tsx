@@ -13,14 +13,14 @@ const SearchResults = () => {
   const [searchParams] = useSearchParams();
   const initialQuery = searchParams.get("q") || "";
   const [query, setQuery] = useState(initialQuery);
-  const { isAuthenticated, searchCount, incrementSearch, login, showAuthModal, setShowAuthModal } = useAuth();
+  const { isAuthenticated, searchCount, incrementSearch, login, showAuthModal, setShowAuthModal, token } = useAuth();
 
   const needsAuth = !isAuthenticated && searchCount >= 1;
 
   // Fetch data from backend API
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["search", initialQuery],
-    queryFn: () => searchAll(initialQuery),
+    queryKey: ["search", initialQuery, token],
+    queryFn: () => searchAll(initialQuery, undefined, token || undefined),
     enabled: !!initialQuery,
   });
 
@@ -70,12 +70,25 @@ const SearchResults = () => {
         {/* Error State */}
         {error && (
           <div className="mt-8 rounded-xl border border-destructive/50 bg-destructive/10 p-6 text-center">
-            <AlertCircle className="mx-auto h-8 w-8 text-destructive" />
-            <h3 className="mt-3 font-semibold text-foreground">Unable to fetch results</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {error instanceof Error ? error.message : "Please try again later"}
-            </p>
-            <Button onClick={() => refetch()} className="mt-4">Retry</Button>
+            {error.message === "limit_reached" ? (
+              <>
+                <AlertCircle className="mx-auto h-8 w-8 text-primary" />
+                <h3 className="mt-3 font-semibold text-foreground">Search Limit Reached</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Guests are limited to 3 searches per day. Please create a free account to continue searching.
+                </p>
+                <Button onClick={() => setShowAuthModal(true)} className="mt-4">Register Now</Button>
+              </>
+            ) : (
+              <>
+                <AlertCircle className="mx-auto h-8 w-8 text-destructive" />
+                <h3 className="mt-3 font-semibold text-foreground">Unable to fetch results</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {error instanceof Error ? error.message : "Please try again later"}
+                </p>
+                <Button onClick={() => refetch()} className="mt-4">Retry</Button>
+              </>
+            )}
           </div>
         )}
 
@@ -120,9 +133,9 @@ const SearchResults = () => {
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-2">
-                        <span className="text-sm font-semibold text-foreground">{pandit.price_range || pandit.priceRange}</span>
+                        <span className="text-sm font-semibold text-foreground">{(pandit as any).price_range || pandit.priceRange}</span>
                         <div className="flex gap-2">
-                          {pandit.phone && (
+                          {(pandit as any).phone && (
                             <Button size="sm" variant="outline" className="gap-1.5" style={{ borderColor: 'hsl(var(--phone-blue))', color: 'hsl(var(--phone-blue))' }}>
                               <Phone className="h-3.5 w-3.5" /> Call
                             </Button>

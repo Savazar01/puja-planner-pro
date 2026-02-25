@@ -18,6 +18,12 @@ class Settings(BaseSettings):
     debug: bool = True
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
     
+    # Auth
+    admin_email: str = "savazar01@gmail.com"
+    admin_password: str = "Changeme"
+    secret_key: str = "fallback_secret_key_changeme_in_prod"
+    access_token_expire_minutes: int = 1440 # 24 hours
+    
     # Cache
     cache_expiry_hours: int = 24
     

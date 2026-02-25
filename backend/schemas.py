@@ -1,6 +1,56 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional, Any
+from pydantic import BaseModel, Field, EmailStr
+from typing import List, Optional, Any, Dict
 from datetime import datetime
+from enum import Enum
+from models import UserRole, UserStatus
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    email: Optional[str] = None
+
+class ProfileBase(BaseModel):
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    whatsapp: str
+    location: Optional[str] = None
+    role_metadata: Optional[Dict[str, Any]] = {}
+
+class ProfileCreate(ProfileBase):
+    pass
+
+class ProfileResponse(ProfileBase):
+    id: str
+    user_id: str
+    
+    class Config:
+        from_attributes = True
+
+class UserBase(BaseModel):
+    email: EmailStr
+    role: UserRole
+
+class UserCreate(UserBase):
+    password: str
+    profile: ProfileCreate
+
+class UserResponse(UserBase):
+    id: str
+    status: UserStatus
+    created_at: datetime
+    profile: Optional[ProfileResponse] = None
+    
+    class Config:
+        from_attributes = True
+
+class UserUpdateStatus(BaseModel):
+    status: UserStatus
+
+class PasswordChange(BaseModel):
+    old_password: str
+    new_password: str
 
 
 class SearchRequest(BaseModel):

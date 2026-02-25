@@ -19,6 +19,8 @@ from database import engine, Base
 try:
     Base.metadata.create_all(bind=engine)
     print("Database connection and tables initialized successfully.")
+    from initial_data import init_db
+    init_db()
 except Exception as e:
     print(f"Warning: Database initialization failed on startup: {e}")
     print("The application will continue to run, but database features may be unavailable until it recovers.")

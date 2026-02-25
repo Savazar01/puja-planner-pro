@@ -167,6 +167,9 @@ ENVIRONMENT=development
 DEBUG=True
 CORS_ORIGINS=http://localhost:5173,http://localhost:8734
 CACHE_EXPIRY_HOURS=24
+ADMIN_EMAIL=savazar01@gmail.com
+ADMIN_PASSWORD=Changeme
+SECRET_KEY=your_secret_key
 ```
 
 ### Frontend (.env)

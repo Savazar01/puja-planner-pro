@@ -1,6 +1,6 @@
 import { Pandit, Temple } from "@/data/mockData";
 
-const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? "http://localhost:8735" : "");
+const API_URL = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/$/, '') : (window.location.hostname === 'localhost' ? "http://localhost:8735" : "");
 
 export interface SearchResponse {
     pandits: Pandit[];

@@ -12,6 +12,7 @@
 - **Strict Typing**: Use Pydantic models for all Request/Response schemas. No "raw JSON" returns.
 - **Error Handling**: Implement global exception handlers. Every API error must return a consistent JSON structure: `{ "error": "Type", "message": "Detailed info", "code": 400 }`.
 - **CORS**: Origins must be pulled from the `CORS_ORIGINS` environment variable. Never hardcode allowed domains.
+- **Service Discovery**: Internal connections to the Database must always use the service name `savaz_db` as defined in the infrastructure layer.
 
 ## III. AI Agent & Search Logic
 - **Provider Agnostic**: AI logic must use environment variables for model selection (e.g., `GEMINI_API_KEY`).

@@ -14,6 +14,7 @@ Connectivity is managed entirely through environment variables to allow for envi
 - `FRONTEND_PORT`: Controls the internal Nginx listener and external mapping.
 - `BACKEND_PORT`: Controls the API listener and internal service discovery.
 - `VITE_API_URL`: The public-facing URL of your Backend API.
+- **Service Discovery**: The Backend and Database communicate seamlessly over the internal `savaz-prod-net` bridging network using strict service-name resolution (e.g., `DB_HOST=savaz_db`).
 
 ## Quick Start
 

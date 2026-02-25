@@ -46,6 +46,14 @@ try:
         except Exception as e:
             print(f"Migration notice: {e}")
             
+    # Postgres ENUM types must be upgraded outside of a transaction block
+    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
+        try:
+            conn.execute(text("ALTER TYPE emaileventtype ADD VALUE IF NOT EXISTS 'RESET_PASSWORD'"))
+        except Exception:
+            pass
+            
+            
     from initial_data import init_db
     init_db()
 except Exception as e:

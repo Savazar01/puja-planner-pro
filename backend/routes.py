@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Dict
 import uuid
 from database import get_db
 from schemas import (
@@ -311,7 +311,17 @@ async def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db
 
 
 @router.get("/api/auth/me", response_model=UserResponse)
-async def read_users_me(current_user: User = Depends(get_current_active_user)):
+async def read_users_me(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    from models import SubscriptionRequest, SubscriptionRequestStatus
+    existing = db.query(SubscriptionRequest).filter(
+        SubscriptionRequest.user_id == current_user.id,
+        SubscriptionRequest.status == SubscriptionRequestStatus.PENDING
+    ).first()
+    
+    current_user.has_pending_subscription = bool(existing)
     return current_user
 
 

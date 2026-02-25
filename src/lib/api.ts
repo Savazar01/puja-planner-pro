@@ -256,6 +256,26 @@ export async function forgotPassword(email: string) {
     return result;
 }
 
+export async function getSubscriptionRequests(token: string) {
+    const response = await fetch(`${API_URL}/api/admin/subscriptions`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!response.ok) throw new Error("Failed to fetch subscription requests");
+    return response.json();
+}
+
+export async function approveSubscriptionRequest(requestId: string, status: "APPROVED" | "REJECTED", token: string) {
+    const response = await fetch(`${API_URL}/api/admin/subscriptions/${requestId}`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status })
+    });
+    return response.json();
+}
+
 export async function resetPassword(token: string, new_password: string) {
     const response = await fetch(`${API_URL}/api/auth/reset-password`, {
         method: "POST",

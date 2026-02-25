@@ -127,17 +127,16 @@ export default function ProfileSettings() {
     };
 
     const handleUpgrade = async (targetTier: string, cost: number) => {
-        if (!user || user.token_balance === undefined || user.token_balance < cost) {
-            toast({ variant: "destructive", title: "Insufficient Tokens", description: `You need ${cost} tokens to upgrade to ${targetTier}.` });
+        if (!user || user.has_pending_subscription) {
+            toast({ variant: "destructive", title: "Action Blocked", description: `You already have a pending subscription upgrade.` });
             return;
         }
         try {
             setLoading(true);
             const { upgradeSubscription } = await import("@/lib/api");
             await upgradeSubscription(targetTier, token!);
-            toast({ title: "Upgrade Successful", description: `You are now a ${targetTier} member!` });
-            // Force reload to refresh context
-            window.location.reload();
+            toast({ title: "Request Submitted", description: `An Admin will review your upgrade to ${targetTier}.` });
+            setTimeout(() => window.location.reload(), 1500);
         } catch (e: any) {
             toast({ variant: "destructive", title: "Upgrade Failed", description: e.message });
         } finally {
@@ -252,20 +251,21 @@ export default function ProfileSettings() {
                                     <div className="border rounded-xl p-5 relative overflow-hidden flex flex-col">
                                         <div className="mb-4">
                                             <h3 className="text-lg font-bold text-slate-400">SILVER</h3>
-                                            <p className="text-2xl font-bold mt-2">10,000 <span className="text-sm font-normal text-muted-foreground">Tokens</span></p>
+                                            <p className="text-2xl font-bold mt-2">$10 <span className="text-sm font-normal text-muted-foreground"></span></p>
                                         </div>
                                         <ul className="text-sm text-muted-foreground space-y-2 mb-6 flex-1">
                                             <li>• Priority Support</li>
                                             <li>• Verified Badge</li>
                                             <li>• Ad-Free Browsing</li>
+                                            <li>• +10,000 Tokens</li>
                                         </ul>
                                         <Button
                                             variant={user.tier === 'silver' ? "secondary" : "outline"}
                                             className="w-full"
-                                            disabled={loading || user.tier === 'silver' || user.tier === 'gold' || user.tier === 'platinum'}
-                                            onClick={() => handleUpgrade("SILVER", 10000)}
+                                            disabled={loading || user.has_pending_subscription || user.tier === 'silver' || user.tier === 'gold' || user.tier === 'platinum'}
+                                            onClick={() => handleUpgrade("SILVER", 10)}
                                         >
-                                            {user.tier === 'silver' ? "Current Tier" : "Upgrade to Silver"}
+                                            {user.has_pending_subscription ? "Pending Review" : (user.tier === 'silver' ? "Current Tier" : "Upgrade")}
                                         </Button>
                                     </div>
 
@@ -274,19 +274,20 @@ export default function ProfileSettings() {
                                         <div className="absolute top-0 right-0 bg-amber-500 text-white text-[10px] font-bold px-2 py-1 rounded-bl-lg">POPULAR</div>
                                         <div className="mb-4">
                                             <h3 className="text-lg font-bold text-amber-500">GOLD</h3>
-                                            <p className="text-2xl font-bold mt-2">25,000 <span className="text-sm font-normal text-muted-foreground">Tokens</span></p>
+                                            <p className="text-2xl font-bold mt-2">$30 <span className="text-sm font-normal text-muted-foreground"></span></p>
                                         </div>
                                         <ul className="text-sm text-muted-foreground space-y-2 mb-6 flex-1 text-amber-900/70">
                                             <li>• Everything in Silver</li>
                                             <li>• 1 Free Puja Video Call</li>
                                             <li>• Vendor Discounts</li>
+                                            <li>• +25,000 Tokens</li>
                                         </ul>
                                         <Button
                                             className="w-full bg-amber-500 hover:bg-amber-600 text-white"
-                                            disabled={loading || user.tier === 'gold' || user.tier === 'platinum'}
-                                            onClick={() => handleUpgrade("GOLD", 25000)}
+                                            disabled={loading || user.has_pending_subscription || user.tier === 'gold' || user.tier === 'platinum'}
+                                            onClick={() => handleUpgrade("GOLD", 30)}
                                         >
-                                            {user.tier === 'gold' ? "Current Tier" : "Upgrade to Gold"}
+                                            {user.has_pending_subscription ? "Pending Review" : (user.tier === 'gold' ? "Current Tier" : "Upgrade")}
                                         </Button>
                                     </div>
 
@@ -294,20 +295,21 @@ export default function ProfileSettings() {
                                     <div className="border rounded-xl p-5 relative overflow-hidden flex flex-col bg-slate-900 text-white">
                                         <div className="mb-4">
                                             <h3 className="text-lg font-bold text-blue-300">PLATINUM</h3>
-                                            <p className="text-2xl font-bold mt-2">60,000 <span className="text-sm font-normal text-slate-400">Tokens</span></p>
+                                            <p className="text-2xl font-bold mt-2">$50 <span className="text-sm font-normal text-slate-400"></span></p>
                                         </div>
                                         <ul className="text-sm text-slate-300 space-y-2 mb-6 flex-1">
                                             <li>• Everything in Gold</li>
                                             <li>• Unlimited Virtual Pujas</li>
                                             <li>• Dedicated VIP Manager</li>
+                                            <li>• +60,000 Tokens</li>
                                         </ul>
                                         <Button
                                             variant="secondary"
                                             className="w-full text-slate-900 bg-white hover:bg-slate-200"
-                                            disabled={loading || user.tier === 'platinum'}
-                                            onClick={() => handleUpgrade("PLATINUM", 60000)}
+                                            disabled={loading || user.has_pending_subscription || user.tier === 'platinum'}
+                                            onClick={() => handleUpgrade("PLATINUM", 50)}
                                         >
-                                            {user.tier === 'platinum' ? "Current Tier" : "Upgrade to VIP"}
+                                            {user.has_pending_subscription ? "Pending Review" : (user.tier === 'platinum' ? "Current Tier" : "Upgrade")}
                                         </Button>
                                     </div>
                                 </div>

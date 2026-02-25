@@ -64,6 +64,7 @@ class UserResponse(UserBase):
     created_at: datetime
     subscription_tier: Optional[str] = None
     token_balance: Optional[int] = None
+    has_pending_subscription: Optional[bool] = False
     profile: Optional[ProfileResponse] = None
     
     class Config:

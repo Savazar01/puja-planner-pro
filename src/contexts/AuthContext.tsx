@@ -12,6 +12,7 @@ interface User {
   isAdmin: boolean;
   userType: UserType;
   token_balance?: number;
+  has_pending_subscription?: boolean;
 }
 
 interface AuthContextType {
@@ -45,7 +46,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         tier: data.subscription_tier?.toLowerCase() || "free",
         isAdmin: data.role === "ADMIN",
         userType: data.role as UserType,
-        token_balance: data.token_balance
+        token_balance: data.token_balance,
+        has_pending_subscription: data.has_pending_subscription
       };
       setUser(fetchedUser);
       return fetchedUser;

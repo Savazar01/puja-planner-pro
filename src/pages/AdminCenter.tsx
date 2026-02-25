@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getAllUsers, approveUser, getEmails, updateEmail } from "@/lib/api";
+import { getAllUsers, approveUser, getEmails, updateEmail, getSubscriptionRequests, approveSubscriptionRequest } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -17,6 +17,8 @@ export default function AdminCenter() {
     const [emails, setEmails] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
+    const [subscriptions, setSubscriptions] = useState<any[]>([]);
+
     useEffect(() => {
         if (!user || user.userType !== "ADMIN") {
             navigate("/");
@@ -26,8 +28,29 @@ export default function AdminCenter() {
         if (token) {
             loadUsers();
             loadEmails();
+            loadSubscriptions();
         }
     }, [user, navigate, token]);
+
+    const loadSubscriptions = async () => {
+        try {
+            const data = await getSubscriptionRequests(token!);
+            setSubscriptions(data);
+        } catch (e: any) {
+            console.error(e);
+        }
+    };
+
+    const handleSubscriptionStatus = async (id: string, newStatus: "APPROVED" | "REJECTED") => {
+        try {
+            await approveSubscriptionRequest(id, newStatus, token!);
+            toast({ title: `Subscription ${newStatus.toLowerCase()}` });
+            setSubscriptions(subscriptions.filter(s => s.id !== id));
+            loadUsers();
+        } catch (e: any) {
+            toast({ variant: "destructive", title: "Update Failed", description: e.message });
+        }
+    };
 
     const loadUsers = async () => {
         try {
@@ -78,6 +101,7 @@ export default function AdminCenter() {
             <Tabs defaultValue="requests" className="w-full">
                 <TabsList className="mb-6 h-auto p-1 py-1 px-1 bg-muted/50 rounded-xl">
                     <TabsTrigger value="requests" className="rounded-lg px-6 py-2.5">User Management</TabsTrigger>
+                    <TabsTrigger value="subscriptions" className="rounded-lg px-6 py-2.5">Subscriptions</TabsTrigger>
                     <TabsTrigger value="emails" className="rounded-lg px-6 py-2.5">Email Templates</TabsTrigger>
                 </TabsList>
 
@@ -116,6 +140,23 @@ export default function AdminCenter() {
                             </TabsContent>
                         </Tabs>
                     )}
+                </TabsContent>
+
+                <TabsContent value="subscriptions">
+                    <h2 className="text-xl font-medium mb-4">Subscription Approvals</h2>
+                    <div className="space-y-4">
+                        {subscriptions.filter(s => s.status === "PENDING").length === 0 ? (
+                            <p className="text-muted-foreground">No pending subscription requests.</p>
+                        ) : (
+                            subscriptions.filter(s => s.status === "PENDING").map(sub => (
+                                <SubscriptionCard
+                                    key={sub.id}
+                                    subscription={sub}
+                                    onUpdate={handleSubscriptionStatus}
+                                />
+                            ))
+                        )}
+                    </div>
                 </TabsContent>
 
                 <TabsContent value="emails">
@@ -226,6 +267,39 @@ function UserCard({ user: u, onUpdateStatus }: { user: any, onUpdateStatus: (id:
                         )}
                     </>
                 )}
+            </div>
+        </div>
+    );
+}
+
+export function SubscriptionCard({ subscription: s, onUpdate }: { subscription: any, onUpdate: (id: string, status: "APPROVED" | "REJECTED") => void }) {
+    return (
+        <div className="border border-amber-500/30 bg-amber-50/10 p-4 rounded-xl shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <div className="flex items-center gap-2 mb-1">
+                    <p className="font-semibold text-lg">{s.user_name || s.user_email}</p>
+                    <Badge variant="outline" className="border-amber-500 text-amber-600 bg-amber-50">REQUEST: {s.target_tier}</Badge>
+                </div>
+                <div className="text-sm text-muted-foreground flex items-center gap-3">
+                    <p>Date: {new Date(s.created_at).toLocaleDateString()}</p>
+                    <p>Status: <span className="text-amber-600 font-medium">Pending Review</span></p>
+                </div>
+            </div>
+
+            <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                <Button
+                    variant="outline"
+                    className="flex-1 sm:flex-none border-red-200 hover:bg-red-50 hover:text-red-600"
+                    onClick={() => onUpdate(s.id, "REJECTED")}
+                >
+                    Reject
+                </Button>
+                <Button
+                    className="flex-1 sm:flex-none bg-green-600 hover:bg-green-700"
+                    onClick={() => onUpdate(s.id, "APPROVED")}
+                >
+                    Approve
+                </Button>
             </div>
         </div>
     );

@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { ArrowUpDown, Download } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export default function AdminCenter() {
     const { user, token } = useAuth();
@@ -119,23 +121,25 @@ export default function AdminCenter() {
                                 <TabsTrigger value="active">Active Users</TabsTrigger>
                             </TabsList>
 
-                            <TabsContent value="pending" className="space-y-4">
+                            <TabsContent value="pending" className="space-y-4 pt-4">
                                 {users.filter(u => u.status === "PENDING" || u.status === "PENDING_DELETION").length === 0 ? (
                                     <p className="text-muted-foreground text-sm">No pending requests.</p>
                                 ) : (
-                                    users.filter(u => u.status === "PENDING" || u.status === "PENDING_DELETION").map(u => (
-                                        <UserCard key={u.id} user={u} onUpdateStatus={handleStatusUpdate} />
-                                    ))
+                                    <UsersTable
+                                        users={users.filter(u => u.status === "PENDING" || u.status === "PENDING_DELETION")}
+                                        onUpdateStatus={handleStatusUpdate}
+                                    />
                                 )}
                             </TabsContent>
 
-                            <TabsContent value="active" className="space-y-4">
+                            <TabsContent value="active" className="space-y-4 pt-4">
                                 {users.filter(u => u.status === "APPROVED").length === 0 ? (
                                     <p className="text-muted-foreground text-sm">No active users found.</p>
                                 ) : (
-                                    users.filter(u => u.status === "APPROVED").map(u => (
-                                        <UserCard key={u.id} user={u} onUpdateStatus={handleStatusUpdate} />
-                                    ))
+                                    <UsersTable
+                                        users={users.filter(u => u.status === "APPROVED")}
+                                        onUpdateStatus={handleStatusUpdate}
+                                    />
                                 )}
                             </TabsContent>
                         </Tabs>
@@ -227,52 +231,185 @@ function EditableEmailTemplate({ email, onSave }: { email: any, onSave: (subject
     );
 }
 
-function UserCard({ user: u, onUpdateStatus }: { user: any, onUpdateStatus: (id: string, status: string) => void }) {
+function UsersTable({ users, onUpdateStatus }: { users: any[], onUpdateStatus: (id: string, status: string) => void }) {
+    const [sortKey, setSortKey] = useState<string>("name");
+    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+    const [filter, setFilter] = useState("");
+
+    const handleSort = (key: string) => {
+        if (sortKey === key) {
+            setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+        } else {
+            setSortKey(key);
+            setSortOrder("asc");
+        }
+    };
+
+    const sortedUsers = [...users].sort((a, b) => {
+        let valA = a[sortKey] || "";
+        let valB = b[sortKey] || "";
+
+        if (sortKey === "name") {
+            valA = a.profile?.full_name || a.email;
+            valB = b.profile?.full_name || b.email;
+        } else if (sortKey === "tier") {
+            valA = a.subscription_tier || "Free";
+            valB = b.subscription_tier || "Free";
+        } else if (sortKey === "tokens") {
+            valA = a.token_balance || 0;
+            valB = b.token_balance || 0;
+        } else if (sortKey === "location") {
+            valA = a.profile?.location || "";
+            valB = b.profile?.location || "";
+        }
+
+        if (valA < valB) return sortOrder === "asc" ? -1 : 1;
+        if (valA > valB) return sortOrder === "asc" ? 1 : -1;
+        return 0;
+    });
+
+    const filteredUsers = sortedUsers.filter(u => {
+        const query = filter.toLowerCase();
+        const name = (u.profile?.full_name || u.email).toLowerCase();
+        const email = (u.email || "").toLowerCase();
+        const role = (u.role || "").toLowerCase();
+        const tier = (u.subscription_tier || "Free").toLowerCase();
+        return name.includes(query) || email.includes(query) || role.includes(query) || tier.includes(query);
+    });
+
+    const downloadCSV = () => {
+        const headers = ["Name", "Email", "Role", "Status", "Tier", "Tokens", "WhatsApp", "Location", "Created"];
+        const rows = filteredUsers.map(u => [
+            `"${u.profile?.full_name || ""}"`,
+            `"${u.email}"`,
+            `"${u.role}"`,
+            `"${u.status}"`,
+            `"${u.subscription_tier || "Free"}"`,
+            `"${u.token_balance || 0}"`,
+            `"${u.profile?.whatsapp || ""}"`,
+            `"${u.profile?.location || ""}"`,
+            `"${new Date(u.created_at).toLocaleDateString()}"`
+        ]);
+
+        const csvContent = "data:text/csv;charset=utf-8,"
+            + headers.join(",") + "\n"
+            + rows.map(e => e.join(",")).join("\n");
+
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `users_export_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     return (
-        <div className="border p-4 rounded-xl shadow-sm flex flex-col sm:flex-row sm:items-start justify-between gap-4 bg-card">
-            <div>
-                <div className="flex items-center gap-2 mb-1">
-                    <p className="font-semibold text-lg">{u.profile?.full_name || u.email}</p>
-                    <Badge variant={
-                        u.status === "APPROVED" ? "default" :
-                            (u.status === "PENDING_DELETION" || u.status === "REJECTED") ? "destructive" :
-                                "secondary"
-                    }>{u.status}</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">{u.email} | Role: <span className="font-semibold text-primary">{u.role}</span></p>
-                <div className="text-sm mt-3 text-muted-foreground space-y-1">
-                    <p>WhatsApp: {u.profile?.whatsapp || "N/A"}</p>
-                    <p>Target Location: {u.profile?.location || "N/A"}</p>
-                    {u.role === "PANDIT" && <p>Experience: {u.profile?.role_metadata?.experience}, Specialty: {u.profile?.role_metadata?.specialty}</p>}
-                    {u.role === "TEMPLE_ADMIN" && <p>Temple: {u.profile?.role_metadata?.temple_name}, Loc: {u.profile?.role_metadata?.location}</p>}
-                    {u.role === "HOST" && (
-                        <p>
-                            Tier: <span className="font-medium capitalize text-amber-600">{u.subscription_tier || "Free"}</span> |
-                            Tokens: <span className="font-medium">{u.token_balance?.toLocaleString() || 0}</span>
-                        </p>
-                    )}
-                </div>
+        <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-muted/20 p-4 rounded-xl border">
+                <Input
+                    placeholder="Search by name, email, role, or tier..."
+                    value={filter}
+                    onChange={e => setFilter(e.target.value)}
+                    className="max-w-md bg-background"
+                />
+                <Button onClick={downloadCSV} variant="outline" className="gap-2">
+                    <Download className="w-4 h-4" /> Export CSV
+                </Button>
             </div>
-            <div className="flex flex-wrap gap-2 shrink-0">
-                {(u.role !== "HOST" && u.role !== "ADMIN") && (
-                    <>
-                        {(u.status === "PENDING" || u.status === "REJECTED") && (
-                            <>
-                                <Button variant="default" size="sm" onClick={() => onUpdateStatus(u.id, "APPROVED")}>Approve</Button>
-                                {u.status !== "REJECTED" && (
-                                    <Button variant="outline" size="sm" onClick={() => onUpdateStatus(u.id, "REJECTED")}>Reject</Button>
-                                )}
-                                <Button variant="destructive" size="sm" onClick={() => onUpdateStatus(u.id, "PENDING_DELETION")}>Mark as Spam</Button>
-                            </>
-                        )}
-                        {u.status === "APPROVED" && (
-                            <Button variant="outline" size="sm" onClick={() => onUpdateStatus(u.id, "REJECTED")}>Revoke Approval</Button>
-                        )}
-                        {u.status === "PENDING_DELETION" && (
-                            <Button variant="secondary" size="sm" onClick={() => onUpdateStatus(u.id, "PENDING")}>Restore (Undo Spam)</Button>
-                        )}
-                    </>
-                )}
+
+            <div className="border rounded-xl shadow-sm bg-card overflow-hidden overflow-x-auto">
+                <Table>
+                    <TableHeader>
+                        <TableRow className="bg-muted/50">
+                            <TableHead className="w-[200px]">
+                                <Button variant="ghost" onClick={() => handleSort("name")} className="-ml-4 font-semibold">
+                                    User <ArrowUpDown className="ml-2 h-4 w-4" />
+                                </Button>
+                            </TableHead>
+                            <TableHead>
+                                <Button variant="ghost" onClick={() => handleSort("role")} className="-ml-4 font-semibold">
+                                    Role <ArrowUpDown className="ml-2 h-4 w-4" />
+                                </Button>
+                            </TableHead>
+                            <TableHead>
+                                <Button variant="ghost" onClick={() => handleSort("location")} className="-ml-4 font-semibold">
+                                    Location <ArrowUpDown className="ml-2 h-4 w-4" />
+                                </Button>
+                            </TableHead>
+                            <TableHead>
+                                <Button variant="ghost" onClick={() => handleSort("tier")} className="-ml-4 font-semibold">
+                                    Plan & Tokens <ArrowUpDown className="ml-2 h-4 w-4" />
+                                </Button>
+                            </TableHead>
+                            <TableHead className="text-right font-semibold">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {filteredUsers.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                                    No results matched your search.
+                                </TableCell>
+                            </TableRow>
+                        ) : filteredUsers.map(u => (
+                            <TableRow key={u.id}>
+                                <TableCell>
+                                    <div className="font-medium text-base">{u.profile?.full_name || u.email}</div>
+                                    <div className="text-sm text-muted-foreground">{u.email}</div>
+                                    <div className="text-xs text-muted-foreground mt-1">WhatsApp: {u.profile?.whatsapp || "N/A"}</div>
+                                </TableCell>
+                                <TableCell>
+                                    <Badge variant="outline" className="mb-2">{u.role}</Badge>
+                                    <div className="text-xs text-muted-foreground">
+                                        {u.status === "PENDING_DELETION" ? (
+                                            <span className="text-red-500 font-medium whitespace-nowrap">Spam/Deleted</span>
+                                        ) : (
+                                            u.status
+                                        )}
+                                    </div>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="text-sm">{u.profile?.location || "N/A"}</div>
+                                </TableCell>
+                                <TableCell>
+                                    <div className="flex flex-col gap-1 items-start">
+                                        <Badge variant="secondary" className="capitalize border-amber-500/30 text-amber-700 bg-amber-50">
+                                            {u.subscription_tier || "Free"}
+                                        </Badge>
+                                        <span className="text-xs font-mono font-medium border px-1.5 py-0.5 rounded-md bg-muted/50">
+                                            {u.token_balance?.toLocaleString() || 0} T
+                                        </span>
+                                    </div>
+                                </TableCell>
+                                <TableCell className="text-right space-x-2 space-y-2">
+                                    {(u.role !== "HOST" && u.role !== "ADMIN") && (
+                                        <div className="flex flex-wrap gap-2 justify-end">
+                                            {(u.status === "PENDING" || u.status === "REJECTED") && (
+                                                <>
+                                                    <Button variant="default" size="sm" onClick={() => onUpdateStatus(u.id, "APPROVED")}>Approve</Button>
+                                                    {u.status !== "REJECTED" && (
+                                                        <Button variant="outline" size="sm" onClick={() => onUpdateStatus(u.id, "REJECTED")}>Reject</Button>
+                                                    )}
+                                                    <Button variant="destructive" size="sm" onClick={() => onUpdateStatus(u.id, "PENDING_DELETION")}>Mark Spam</Button>
+                                                </>
+                                            )}
+                                            {u.status === "APPROVED" && (
+                                                <Button variant="outline" size="sm" onClick={() => onUpdateStatus(u.id, "REJECTED")}>Revoke</Button>
+                                            )}
+                                            {u.status === "PENDING_DELETION" && (
+                                                <Button variant="secondary" size="sm" onClick={() => onUpdateStatus(u.id, "PENDING")}>Restore</Button>
+                                            )}
+                                        </div>
+                                    )}
+                                    {u.role === "HOST" && (
+                                        <div className="text-xs text-muted-foreground italic px-2 py-1">Auto-Approved</div>
+                                    )}
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
             </div>
         </div>
     );

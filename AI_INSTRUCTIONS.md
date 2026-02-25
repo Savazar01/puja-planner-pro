@@ -1,0 +1,29 @@
+# AI_INSTRUCTIONS.md (The Global Standard)
+
+## I. Infrastructure & Orchestration (The "Coolify" Laws)
+- **Pure Compose Policy**: `docker-compose.yml` must contain zero proxy labels (Traefik/Caddy). All routing is handled via the Orchestrator UI using the `https://{DOMAIN}:{PORT}` handshake.
+- **Port Governance**: Use `${VARIABLE:-default}` for all port mappings.
+- **Network Topology**:
+  - **External**: `savaz-prod-net` for database isolation.
+  - **Internal**: `default` bridge for service discovery and proxy attachment.
+
+## II. Backend & API Architecture (FastAPI)
+- **Statelessness**: The API must remain stateless. All persistent data must reside in PostgreSQL.
+- **Strict Typing**: Use Pydantic models for all Request/Response schemas. No "raw JSON" returns.
+- **Error Handling**: Implement global exception handlers. Every API error must return a consistent JSON structure: `{ "error": "Type", "message": "Detailed info", "code": 400 }`.
+- **CORS**: Origins must be pulled from the `CORS_ORIGINS` environment variable. Never hardcode allowed domains.
+
+## III. AI Agent & Search Logic
+- **Provider Agnostic**: AI logic must use environment variables for model selection (e.g., `GEMINI_API_KEY`).
+- **Tool-Use Integrity**: Agents must follow a "Plan-Act-Observe" loop.
+- **Rate Limiting & Cost Safety**: Always implement timeouts and maximum token limits for agentic loops to prevent runaway API costs.
+- **Search Decoupling**: Use variables for search providers (e.g., `SERPER_API_KEY`). Ensure search results are cleaned/sanitized before being fed to the LLM context.
+
+## IV. UI/UX & Frontend Philosophy (React/Vite/Tailwind)
+- **Atomic Design**: Keep components small and reusable. Logic should be extracted into custom hooks (e.g., `useApi`).
+- **Responsive-First**: Use Tailwind CSS utility classes. Every feature must be tested for mobile-friendliness.
+- **State Management**: Use lightweight state (Zustand or React Context) over prop-drilling.
+- **UX Consistency**:
+  - **Loading States**: Every async action must have a visual loader/skeleton.
+  - **Feedback**: Use "Toast" notifications for success/error feedback on form submissions.
+- **Environment Sync**: Frontend must only talk to the Backend via `VITE_API_URL`.

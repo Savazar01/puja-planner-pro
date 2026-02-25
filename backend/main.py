@@ -7,15 +7,17 @@ print(f"DEBUG: Connecting to host: {DATABASE_URL.split('@')[1] if DATABASE_URL e
 from fastapi import FastAPI, Request, Depends, HTTPException, status, Query
 from fastapi.responses import RedirectResponse
 from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+import secrets
 from config import settings
 from routes import router
 from database import engine, Base, get_db
 from sqlalchemy.orm import Session
-from auth import decode_access_token
+from auth import verify_password
 from models import User, UserRole
 
 # Create database tables resiliently
@@ -39,24 +41,23 @@ app = FastAPI(
     root_path="",
 )
 
-# Custom Swagger UI route requiring Admin Token via query parameter
+security = HTTPBasic()
+
+# Custom Swagger UI route requiring Admin via Basic Auth popup
 @app.get("/docs", include_in_schema=False)
 @app.get("/docs/", include_in_schema=False)
-async def custom_swagger_ui_html(token: str = Query(None), db: Session = Depends(get_db)):
-    if not token:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Admin authentication required. Please provide ?token=YOUR_JWT",
-        )
+async def custom_swagger_ui_html(credentials: HTTPBasicCredentials = Depends(security), db: Session = Depends(get_db)):
+    unauthorized_exc = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Incorrect email or password",
+        headers={"WWW-Authenticate": "Basic"},
+    )
     
-    payload = decode_access_token(token)
-    if not payload:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    user = db.query(User).filter(User.email == credentials.username).first()
+    if not user or not verify_password(credentials.password, user.hashed_password):
+        raise unauthorized_exc
         
-    user_email = payload.get("sub")
-    user = db.query(User).filter(User.email == user_email).first()
-    
-    if not user or user.role != UserRole.ADMIN:
+    if user.role != UserRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, 
             detail="Only Admins can view the API Documentation"

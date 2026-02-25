@@ -1,17 +1,16 @@
 services:
   # PostgreSQL Database
-  puja_db_service:
+  savaz_db:
     image: postgres:15-alpine
-    container_name: puja_db_container
+    container_name: savaz_db_container
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: postgres
-      PGDATA: /var/lib/postgresql/data_v8/pgdata
     volumes:
-      - puja_db_v8:/var/lib/postgresql/data_v8
+      - savaz_db_data:/var/lib/postgresql/data
     networks:
-      - puja-network
+      - savaz_internal_net
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 10s
@@ -24,7 +23,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: puja-backend
+    container_name: savaz_backend_container
     ports:
       - "8735:8735"
     environment:
@@ -32,7 +31,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: postgres
       DB_HOST: ${DB_HOST}
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@puja_db_container:5432/postgres
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@savaz_db_container:5432/postgres
       SERPER_API_KEY: ${SERPER_API_KEY}
       FIRECRAWL_API_KEY: ${FIRECRAWL_API_KEY}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
@@ -41,12 +40,10 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS}
       CACHE_EXPIRY_HOURS: ${CACHE_EXPIRY_HOURS:-24}
     depends_on:
-      puja_db_service:
+      savaz_db:
         condition: service_healthy
     networks:
-      - puja-network
-      - coolify
-      - wkkkc44k0wkw4g04c0ck8skg
+      - savaz_internal_net
     labels:
       - "traefik.docker.network=coolify"
       - "traefik.http.services.puja-backend.loadbalancer.server.port=8735"
@@ -65,9 +62,7 @@ services:
     depends_on:
       - backend
     networks:
-      - puja-network
-      - coolify
-      - wkkkc44k0wkw4g04c0ck8skg
+      - savaz_internal_net
     labels:
       - "traefik.docker.network=coolify"
       - "traefik.http.routers.puja-frontend.rule=Host(`puja.fossone.app`)"
@@ -81,14 +76,9 @@ services:
       start_period: 60s
 
 networks:
-  puja-network:
-    external: true
-    name: wkkkc44k0wkw4g04c0ck8skg_puja-network
-  coolify:
-    external: true
-  wkkkc44k0wkw4g04c0ck8skg:
-    external: true
+  savaz_internal_net:
+    driver: bridge
 
 volumes:
-  puja_db_v8:
+  savaz_db_data:
     driver: local

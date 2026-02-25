@@ -1,8 +1,8 @@
 import os
 from urllib.parse import quote_plus
 
-DATABASE_URL = os.getenv('DATABASE_URL')
-print(f"DEBUG: Connecting via {DATABASE_URL.split('@')[1] if DATABASE_URL else 'None'}")
+DATABASE_URL = os.getenv("DATABASE_URL")
+print(f"DEBUG: Connecting to host: {DATABASE_URL.split('@')[1] if DATABASE_URL else 'None'}")
 
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse

@@ -5,6 +5,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+print(f"DEBUG: Connecting to host: {DATABASE_URL.split('@')[1] if DATABASE_URL else 'None'}")
 
 # Create database engine
 engine = create_engine(

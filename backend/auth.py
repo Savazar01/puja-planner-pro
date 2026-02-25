@@ -38,6 +38,21 @@ def decode_access_token(token: str):
     except JWTError:
         return None
 
+def create_reset_token(email: str):
+    expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+    to_encode = {"sub": email, "type": "reset", "exp": expire}
+    encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm="HS256")
+    return encoded_jwt
+
+def verify_reset_token(token: str):
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=["HS256"])
+        if payload.get("type") != "reset":
+            return None
+        return payload.get("sub")
+    except JWTError:
+        return None
+
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     if not token:
         return None

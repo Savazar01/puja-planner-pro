@@ -8,14 +8,16 @@ from schemas import (
     SearchRequest, SearchResponse, PanditResponse, 
     VenueResponse, CateringResponse, DiscoveryResponse,
     UserCreate, UserResponse, Token, PasswordChange, UserUpdateStatus,
-    EmailTemplateResponse, EmailTemplateUpdate, ProfileUpdate
+    EmailTemplateResponse, EmailTemplateUpdate, ProfileUpdate,
+    ForgotPasswordRequest, ResetPasswordRequest
 )
 from models import Pandit, Venue, Catering, User, Profile, UserStatus, UserRole, EmailTemplate, EmailEventType
 from discovery_agent import discovery_agent
 from config import settings
 from auth import (
     get_password_hash, verify_password, create_access_token,
-    get_current_user, get_current_active_user, get_current_admin, search_bouncer
+    get_current_user, get_current_active_user, get_current_admin, search_bouncer,
+    create_reset_token, verify_reset_token
 )
 from email_service import send_dynamic_email
 
@@ -271,6 +273,40 @@ async def change_password(
     current_user.hashed_password = get_password_hash(pwd_in.new_password)
     db.commit()
     return {"status": "success"}
+
+
+@router.post("/api/auth/forgot-password")
+async def forgot_password(req: ForgotPasswordRequest, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == req.email).first()
+    if user and user.status == UserStatus.APPROVED:
+        # Generate token
+        reset_token = create_reset_token(user.email)
+        # Assuming frontend runs on specific URL
+        reset_url = f"{settings.cors_origins.split(',')[0]}/reset-password?token={reset_token}"
+        # Send email
+        send_dynamic_email(
+            db=db,
+            to_email=user.email,
+            event_type=EmailEventType.RESET_PASSWORD,
+            context={"reset_url": reset_url}
+        )
+    # Always return success to prevent email enumeration
+    return {"message": "If that email exists in our system, you will receive a reset link shortly."}
+
+
+@router.post("/api/auth/reset-password")
+async def reset_password(req: ResetPasswordRequest, db: Session = Depends(get_db)):
+    email = verify_reset_token(req.token)
+    if not email:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+        
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        raise HTTPException(status_code=400, detail="User not found")
+        
+    user.hashed_password = get_password_hash(req.new_password)
+    db.commit()
+    return {"message": "Password has been reset successfully. You can now log in."}
 
 
 @router.get("/api/auth/me", response_model=UserResponse)

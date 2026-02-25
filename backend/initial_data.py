@@ -39,7 +39,8 @@ def init_db():
         default_templates = [
             (EmailEventType.WELCOME_USER, "Welcome to MyPandits!", "<h1>Welcome!</h1><p>We are thrilled to have you here.</p>"),
             (EmailEventType.VENDOR_WAITING, "New Vendor Approval Request", "<h1>Admin Alert</h1><p>A new vendor has registered and is awaiting your approval.</p>"),
-            (EmailEventType.VENDOR_APPROVED, "Your Vendor Profile is Live!", "<h1>Congratulations!</h1><p>Your profile is now live on our platform.</p>")
+            (EmailEventType.VENDOR_APPROVED, "Your Vendor Profile is Live!", "<h1>Congratulations!</h1><p>Your profile is now live on our platform.</p>"),
+            (EmailEventType.RESET_PASSWORD, "Password Reset Request", "<h1>Password Reset</h1><p>You requested a password reset. Please click this <a href='{{reset_url}}'>link</a> to reset your password. It expires in 15 minutes.</p>")
         ]
         
         for evt, subj, body in default_templates:

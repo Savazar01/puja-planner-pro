@@ -29,6 +29,7 @@ class EmailEventType(str, enum.Enum):
     WELCOME_USER = "WELCOME_USER"
     VENDOR_WAITING = "VENDOR_WAITING"
     VENDOR_APPROVED = "VENDOR_APPROVED"
+    RESET_PASSWORD = "RESET_PASSWORD"
 
 class User(Base):
     """ORM model for Users."""

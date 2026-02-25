@@ -213,3 +213,25 @@ export async function changePassword(data: any, token: string) {
     if (!response.ok) throw new Error(result.detail || "Failed to change password");
     return result;
 }
+
+export async function forgotPassword(email: string) {
+    const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.detail || "Failed to process request");
+    return result;
+}
+
+export async function resetPassword(token: string, new_password: string) {
+    const response = await fetch(`${API_URL}/api/auth/reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, new_password }),
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.detail || "Failed to reset password");
+    return result;
+}

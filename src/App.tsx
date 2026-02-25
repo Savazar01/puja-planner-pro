@@ -12,6 +12,8 @@ import Dashboard from "./pages/Dashboard";
 import AdminPage from "./pages/AdminPage";
 import AdminCenter from "./pages/AdminCenter";
 import ProfileSettings from "./pages/ProfileSettings";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +34,8 @@ const App = () => (
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/admin-dashboard" element={<AdminCenter />} />
             <Route path="/settings" element={<ProfileSettings />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

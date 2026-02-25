@@ -348,9 +348,9 @@ async def upgrade_subscription(
     db: Session = Depends(get_db)
 ):
     valid_upgrades = {
-        "SILVER": 100,
-        "GOLD": 500,
-        "PLATINUM": 1000
+        "SILVER": 10000,
+        "GOLD": 25000,
+        "PLATINUM": 60000
     }
     target = upgrade_req.target_tier.upper()
     

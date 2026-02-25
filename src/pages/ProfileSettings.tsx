@@ -1,29 +1,87 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { updateProfile, requestAccountDeletion, changePassword } from "@/lib/api";
+import { updateProfile, requestAccountDeletion, changePassword, getMe } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, User, MapPin, Globe, Shield, Activity } from "lucide-react";
 
 export default function ProfileSettings() {
     const { user, token, logout } = useAuth();
     const { toast } = useToast();
-    const [whatsapp, setWhatsapp] = useState("");
-    const [location, setLocation] = useState("");
+
     const [loading, setLoading] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [fetching, setFetching] = useState(true);
+
+    // Form States
+    const [fullName, setFullName] = useState("");
+    const [bio, setBio] = useState("");
+    const [profilePicture, setProfilePicture] = useState("");
+    const [phone, setPhone] = useState("");
+    const [whatsapp, setWhatsapp] = useState("");
+
+    const [location, setLocation] = useState("");
+    const [street, setStreet] = useState("");
+    const [city, setCity] = useState("");
+    const [stateRegion, setStateRegion] = useState("");
+    const [country, setCountry] = useState("");
+
+    const [socials, setSocials] = useState<any>({ instagram: "", facebook: "", website: "" });
+    const [roleMetadata, setRoleMetadata] = useState<any>({});
 
     const [oldPassword, setOldPassword] = useState("");
     const [newPassword, setNewPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [passwordLoading, setPasswordLoading] = useState(false);
 
-    const handleSave = async () => {
+    useEffect(() => {
+        if (!token) return;
+        const loadUser = async () => {
+            try {
+                const data = await getMe(token);
+                const p = data.profile || {};
+                setFullName(p.full_name || "");
+                setBio(p.bio || "");
+                setProfilePicture(p.profile_picture_url || "");
+                setPhone(p.phone || "");
+                setWhatsapp(p.whatsapp || "");
+                setLocation(p.location || "");
+                setStreet(p.address_street || "");
+                setCity(p.address_city || "");
+                setStateRegion(p.address_state || "");
+                setCountry(p.address_country || "");
+                setSocials(p.social_media || { instagram: "", facebook: "", website: "" });
+                setRoleMetadata(p.role_metadata || {});
+            } catch (e) {
+                console.error("Failed to load profile details", e);
+            } finally {
+                setFetching(false);
+            }
+        };
+        loadUser();
+    }, [token]);
+
+    const handleSaveProfile = async () => {
         try {
             setLoading(true);
-            await updateProfile({ whatsapp, location }, token!);
+            await updateProfile({
+                full_name: fullName,
+                bio,
+                profile_picture_url: profilePicture,
+                phone,
+                whatsapp,
+                location,
+                address_street: street,
+                address_city: city,
+                address_state: stateRegion,
+                address_country: country,
+                social_media: socials,
+                role_metadata: roleMetadata
+            }, token!);
             toast({ title: "Profile updated successfully" });
         } catch (e: any) {
             toast({ variant: "destructive", title: "Update Failed", description: e.message });
@@ -68,59 +126,216 @@ export default function ProfileSettings() {
         }
     };
 
+    const updateSocial = (key: string, value: string) => {
+        setSocials((prev: any) => ({ ...prev, [key]: value }));
+    };
+
+    const updateRoleMeta = (key: string, value: string) => {
+        setRoleMetadata((prev: any) => ({ ...prev, [key]: value }));
+    };
+
     if (!user) return null;
+    if (fetching) return <div className="text-center py-20 text-muted-foreground">Loading profile...</div>;
+
+    const needsRoleTab = user.userType === "pandit" || user.userType === "event_manager" || user.userType === "temple_admin" || user.userType === "supplier";
 
     return (
-        <div className="container mx-auto max-w-2xl py-12 px-4">
+        <div className="container mx-auto max-w-4xl py-12 px-4">
             <h1 className="text-3xl font-display mb-8">Account Settings</h1>
 
-            <div className="bg-card border rounded-xl p-6 shadow-sm mb-8">
-                <h2 className="text-xl font-medium mb-4">Edit Profile</h2>
-                <div className="space-y-4">
-                    <div>
-                        <Label>WhatsApp Number</Label>
-                        <Input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} placeholder="e.g. +91 9876543210" />
-                    </div>
-                    <div>
-                        <Label>Location</Label>
-                        <Input value={location} onChange={e => setLocation(e.target.value)} placeholder="City, State" />
-                    </div>
-                    <Button onClick={handleSave} disabled={loading}>{loading ? "Saving..." : "Save Changes"}</Button>
-                </div>
-            </div>
+            <Tabs defaultValue="basic" className="flex flex-col md:flex-row gap-8">
+                <TabsList className="flex md:flex-col justify-start items-start h-auto bg-transparent space-y-2 md:w-64">
+                    <TabsTrigger value="basic" className="w-full justify-start gap-3"><User size={18} /> Basic Info</TabsTrigger>
+                    <TabsTrigger value="address" className="w-full justify-start gap-3"><MapPin size={18} /> Address</TabsTrigger>
+                    <TabsTrigger value="socials" className="w-full justify-start gap-3"><Globe size={18} /> Social Media</TabsTrigger>
+                    {needsRoleTab && <TabsTrigger value="role" className="w-full justify-start gap-3"><Activity size={18} /> Service Details</TabsTrigger>}
+                    <TabsTrigger value="security" className="w-full justify-start gap-3"><Shield size={18} /> Security</TabsTrigger>
+                </TabsList>
 
-            <div className="bg-card border rounded-xl p-6 shadow-sm mb-8">
-                <h2 className="text-xl font-medium mb-4">Change Password</h2>
-                <div className="space-y-4">
-                    <div>
-                        <Label>Current Password</Label>
-                        <Input type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} />
-                    </div>
-                    <div>
-                        <Label>New Password</Label>
-                        <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
-                    </div>
-                    <div>
-                        <Label>Confirm New Password</Label>
-                        <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
-                    </div>
-                    <Button onClick={handlePasswordChange} disabled={passwordLoading} variant="secondary">
-                        {passwordLoading ? "Updating..." : "Update Password"}
-                    </Button>
-                </div>
-            </div>
+                <div className="flex-1 bg-card border rounded-xl shadow-sm min-h-[500px] overflow-hidden">
+                    <div className="p-6 md:p-8 h-full">
+                        <TabsContent value="basic" className="space-y-6 m-0">
+                            <div>
+                                <h2 className="text-2xl font-medium mb-1">Basic Information</h2>
+                                <p className="text-sm text-muted-foreground mb-6">Manage your core identity and contact details.</p>
+                            </div>
 
-            <div className="bg-destructive/10 border-destructive/20 border rounded-xl p-6 shadow-sm">
-                <h2 className="text-xl font-medium text-destructive flex items-center gap-2 mb-2">
-                    <AlertCircle className="h-5 w-5" /> Danger Zone
-                </h2>
-                <p className="text-sm text-muted-foreground mb-4">
-                    Once you request account deletion, your account status will be set to pending. After 15 days, all your data will be permanently erased in accordance with GDPR guidelines.
-                </p>
-                <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
-                    {deleting ? "Processing..." : "Request Account Deletion"}
-                </Button>
-            </div>
+                            <div className="flex flex-col sm:flex-row sm:items-end gap-6 mb-8">
+                                <div className="w-24 h-24 rounded-full border-2 border-primary/20 overflow-hidden bg-muted flex items-center justify-center shrink-0">
+                                    {profilePicture ? (
+                                        <img src={profilePicture} alt="Avatar" className="w-full h-full object-cover" />
+                                    ) : (
+                                        <User size={40} className="text-muted-foreground opacity-50" />
+                                    )}
+                                </div>
+                                <div className="flex-1 space-y-2">
+                                    <Label>Avatar URL (Link to your profile picture)</Label>
+                                    <Input value={profilePicture} onChange={e => setProfilePicture(e.target.value)} placeholder="https://example.com/photo.jpg" />
+                                </div>
+                            </div>
+
+                            <div className="grid md:grid-cols-2 gap-5">
+                                <div className="space-y-2">
+                                    <Label>Full Name</Label>
+                                    <Input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Your Name" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Standard Phone</Label>
+                                    <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91 0000000000" />
+                                </div>
+                                <div className="space-y-2 md:col-span-2">
+                                    <Label>WhatsApp Number <span className="text-red-500">*</span></Label>
+                                    <Input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} placeholder="Required for notifications" />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2 pt-2">
+                                <Label>Bio / About Me</Label>
+                                <Textarea
+                                    value={bio}
+                                    onChange={e => setBio(e.target.value)}
+                                    placeholder="Tell us a bit about yourself..."
+                                    className="min-h-[100px]"
+                                />
+                            </div>
+                            <Button onClick={handleSaveProfile} disabled={loading} className="mt-6 w-full sm:w-auto">{loading ? "Saving..." : "Save basic info"}</Button>
+                        </TabsContent>
+
+                        <TabsContent value="address" className="space-y-6 m-0">
+                            <div>
+                                <h2 className="text-2xl font-medium mb-1">Location & Address</h2>
+                                <p className="text-sm text-muted-foreground mb-6">Manage your operational base and display areas.</p>
+                            </div>
+
+                            <div className="space-y-2 pb-4 border-b">
+                                <Label>Display Location (Shown strictly on search results)</Label>
+                                <Input value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g. Mumbai, India" />
+                            </div>
+
+                            <div className="grid md:grid-cols-2 gap-5 pt-2">
+                                <div className="space-y-2 md:col-span-2">
+                                    <Label>Street Address</Label>
+                                    <Input value={street} onChange={e => setStreet(e.target.value)} placeholder="123 Main St" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>City</Label>
+                                    <Input value={city} onChange={e => setCity(e.target.value)} placeholder="City" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>State / Province</Label>
+                                    <Input value={stateRegion} onChange={e => setStateRegion(e.target.value)} placeholder="State" />
+                                </div>
+                                <div className="space-y-2 md:col-span-2">
+                                    <Label>Country</Label>
+                                    <Input value={country} onChange={e => setCountry(e.target.value)} placeholder="Country" />
+                                </div>
+                            </div>
+                            <Button onClick={handleSaveProfile} disabled={loading} className="mt-6 w-full sm:w-auto">Save Location</Button>
+                        </TabsContent>
+
+                        <TabsContent value="socials" className="space-y-6 m-0">
+                            <div>
+                                <h2 className="text-2xl font-medium mb-1">Social Media Presence</h2>
+                                <p className="text-sm text-muted-foreground mb-6">Link your external profiles for greater visibility.</p>
+                            </div>
+
+                            <div className="space-y-5">
+                                <div className="space-y-2">
+                                    <Label>Personal Website</Label>
+                                    <Input value={socials?.website || ""} onChange={e => updateSocial('website', e.target.value)} placeholder="https://..." />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Instagram Profile</Label>
+                                    <Input value={socials?.instagram || ""} onChange={e => updateSocial('instagram', e.target.value)} placeholder="@username" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Facebook Page</Label>
+                                    <Input value={socials?.facebook || ""} onChange={e => updateSocial('facebook', e.target.value)} placeholder="Facebook URL" />
+                                </div>
+                            </div>
+                            <Button onClick={handleSaveProfile} disabled={loading} className="mt-6 w-full sm:w-auto">Save Links</Button>
+                        </TabsContent>
+
+                        {needsRoleTab && (
+                            <TabsContent value="role" className="space-y-6 m-0">
+                                <div>
+                                    <h2 className="text-2xl font-medium mb-1 capitalize">{user.userType.replace("_", " ")} Details</h2>
+                                    <p className="text-sm text-muted-foreground mb-6">Update specifics relating to your service offerings.</p>
+                                </div>
+
+                                <div className="grid md:grid-cols-2 gap-5">
+                                    <div className="space-y-2">
+                                        <Label>Years of Experience</Label>
+                                        <Input
+                                            type="number"
+                                            value={roleMetadata?.experience || ""}
+                                            onChange={e => updateRoleMeta('experience', e.target.value)}
+                                            placeholder="e.g. 5"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Primary Specialty</Label>
+                                        <Input
+                                            value={roleMetadata?.specialty || ""}
+                                            onChange={e => updateRoleMeta('specialty', e.target.value)}
+                                            placeholder="e.g. Vedic Astrology, Catering, etc."
+                                        />
+                                    </div>
+                                    {user.userType === "temple_admin" && (
+                                        <div className="space-y-2 md:col-span-2">
+                                            <Label>Temple Name</Label>
+                                            <Input
+                                                value={roleMetadata?.temple_name || ""}
+                                                onChange={e => updateRoleMeta('temple_name', e.target.value)}
+                                                placeholder="Name of your Temple"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                                <Button onClick={handleSaveProfile} disabled={loading} className="mt-6 w-full sm:w-auto">Save Service Info</Button>
+                            </TabsContent>
+                        )}
+
+                        <TabsContent value="security" className="space-y-8 m-0">
+                            <div>
+                                <div>
+                                    <h2 className="text-2xl font-medium mb-1">Change Password</h2>
+                                    <p className="text-sm text-muted-foreground mb-6">Ensure your account uses a strong, unique password.</p>
+                                </div>
+                                <div className="space-y-4 max-w-sm">
+                                    <div className="space-y-2">
+                                        <Label>Current Password</Label>
+                                        <Input type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>New Password</Label>
+                                        <Input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Confirm New Password</Label>
+                                        <Input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} />
+                                    </div>
+                                    <Button className="w-full" onClick={handlePasswordChange} disabled={passwordLoading} variant="secondary">
+                                        {passwordLoading ? "Updating..." : "Update Password"}
+                                    </Button>
+                                </div>
+                            </div>
+
+                            <div className="pt-8 mt-8 border-t border-destructive/20">
+                                <h3 className="text-xl font-medium text-destructive flex items-center gap-2 mb-2">
+                                    <AlertCircle size={20} /> Danger Zone
+                                </h3>
+                                <p className="text-sm text-muted-foreground mb-6">
+                                    Once you request account deletion, it will be placed in a pending state and fully purged from our database in 15 days in accordance with GDPR guidelines.
+                                </p>
+                                <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+                                    {deleting ? "Processing..." : "Request Account Deletion"}
+                                </Button>
+                            </div>
+                        </TabsContent>
+                    </div>
+                </div>
+            </Tabs>
         </div>
     );
 }

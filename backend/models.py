@@ -60,6 +60,15 @@ class Profile(Base):
     location = Column(String)
     role_metadata = Column(JSON, default={})
     
+    # EPIC-3 Profile Enhancements
+    address_street = Column(String, nullable=True)
+    address_city = Column(String, nullable=True)
+    address_state = Column(String, nullable=True)
+    address_country = Column(String, nullable=True)
+    social_media = Column(JSON, default={})
+    profile_picture_url = Column(String, nullable=True)
+    bio = Column(Text, nullable=True)
+    
     user = relationship("User", back_populates="profile")
 
 class SearchUsage(Base):

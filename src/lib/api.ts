@@ -178,7 +178,7 @@ export async function updateEmail(id: number, data: { subject?: string; body_htm
     return response.json();
 }
 
-export async function updateProfile(data: { whatsapp?: string; location?: string }, token: string) {
+export async function updateProfile(data: any, token: string) {
     const response = await fetch(`${API_URL}/api/users/me/profile`, {
         method: "PATCH",
         headers: {

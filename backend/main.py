@@ -25,7 +25,7 @@ try:
     Base.metadata.create_all(bind=engine)
     print("Database connection and tables initialized successfully.")
     
-    # Run inline table alterations for v1.2.3 (schema patching since create_all doesn't alter)
+    # Run inline table alterations (schema patching since create_all doesn't alter)
     from sqlalchemy import text
     with engine.begin() as conn:
         try:
@@ -33,6 +33,16 @@ try:
             conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS token_balance INTEGER DEFAULT 100"))
             conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS deletion_requested_at TIMESTAMP WITH TIME ZONE"))
             print("Successfully migrated users schema for v1.2.3")
+            
+            # EPIC-3 Profile Additions
+            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS address_street VARCHAR"))
+            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS address_city VARCHAR"))
+            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS address_state VARCHAR"))
+            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS address_country VARCHAR"))
+            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS social_media JSON DEFAULT '{}'"))
+            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS profile_picture_url VARCHAR"))
+            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS bio TEXT"))
+            print("Successfully migrated profiles schema for EPIC-3")
         except Exception as e:
             print(f"Migration notice: {e}")
             

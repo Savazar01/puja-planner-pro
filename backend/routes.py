@@ -324,10 +324,9 @@ async def update_user_profile(
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
         
-    if update_data.whatsapp is not None:
-        profile.whatsapp = update_data.whatsapp
-    if update_data.location is not None:
-        profile.location = update_data.location
+    update_dict = update_data.model_dump(exclude_unset=True)
+    for key, value in update_dict.items():
+        setattr(profile, key, value)
         
     db.commit()
     db.refresh(current_user)

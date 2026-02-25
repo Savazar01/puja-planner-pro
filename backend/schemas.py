@@ -30,6 +30,15 @@ class ProfileBase(BaseModel):
     whatsapp: str
     location: Optional[str] = None
     role_metadata: Optional[Dict[str, Any]] = {}
+    
+    # EPIC-3 Enhanced Fields
+    address_street: Optional[str] = None
+    address_city: Optional[str] = None
+    address_state: Optional[str] = None
+    address_country: Optional[str] = None
+    social_media: Optional[Dict[str, Any]] = {}
+    profile_picture_url: Optional[str] = None
+    bio: Optional[str] = None
 
 class ProfileCreate(ProfileBase):
     pass
@@ -61,6 +70,16 @@ class UserResponse(UserBase):
 class ProfileUpdate(BaseModel):
     whatsapp: Optional[str] = None
     location: Optional[str] = None
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    role_metadata: Optional[Dict[str, Any]] = None
+    address_street: Optional[str] = None
+    address_city: Optional[str] = None
+    address_state: Optional[str] = None
+    address_country: Optional[str] = None
+    social_media: Optional[Dict[str, Any]] = None
+    profile_picture_url: Optional[str] = None
+    bio: Optional[str] = None
 
 class UserUpdateStatus(BaseModel):
     status: UserStatus

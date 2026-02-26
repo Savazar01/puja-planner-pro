@@ -6,6 +6,7 @@ The Planner Agent serves as the core orchestrator of the Savaz ecosystem. Its pr
 - Orchestrating complex AI interactions and service integrations (e.g., Savaz Intelligence Stack).
 - Authorizing architectural pivots and ensuring infrastructure conventions are universally followed.
 - Note: With the v1.3.0 stack finalized, the infrastructure is now "Stable & Verified", strictly local-first, and fully primed for agentic logic implementation.
+- **System State**: The local inference engine for AI agents is `qwen2.5:3b` executing via `ollama-api`. The Redis cache is directly reachable at `redis:6379`.
 
 ## I. Infrastructure & Orchestration (The "Coolify" Laws)
 - **Pure Compose Policy**: `docker-compose.yml` must contain zero proxy labels (Traefik/Caddy). All routing is handled via the Orchestrator UI using the `https://{DOMAIN}:{PORT}` handshake.

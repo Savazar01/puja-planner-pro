@@ -27,10 +27,11 @@ If you are using a proxy (like Traefik or Caddy) through a UI like Coolify, you 
 - **Intelligence Stack (Open WebUI):** `https://owebui.fossone.app:8737` (or your custom alias)
 
 #### ☁️ Cloudflare Integration (Critical Security)
-It is strictly required to enable **Cloudflare Proxy (Orange Cloud)** for `owebui.fossone.app` (and any AI-related subdomains). This masks the VPS origin IP and adds an essential layer of security over your intelligence endpoints.
+It is strictly required to enable **Cloudflare Proxy (Orange Cloud)** for `owebui.fossone.app` (and any AI-related subdomains). This masks the VPS origin IP and adds an essential layer of security over your intelligence endpoints. It requires HTTPS strictly.
 
-#### 🛡️ Verified Connectivity
+#### 🛡️ Verified Connectivity & The "Green Link"
 The Docker Compose stack natively leverages the `depends_on: service_healthy` pattern. The Open WebUI container is securely gated to only start once the `ollama-api` has completed its health checks, eradicating "Network Problem" errors on cold boots.
+For this handshake to permanently stay connected, the internal connection URL must be **`http://ollama-api:11434`** (this is the "Green Link").
 
 *Note: The `:PORT` suffix tells the internal load balancer which container port to target. The public will still access your site via standard HTTPS (443).*
 
@@ -44,6 +45,11 @@ Using generic hostnames like `postgres` or `localhost` will fail to resolve via 
 
 ### 5. Model Management (Open WebUI)
 The Savaz Intelligence Stack relies on **Open WebUI** for model management instead of automated startup scripts.
+
+#### Model Baseline
+After initial deployment, the following standard baseline models must be pulled via the Admin UI:
+- `qwen2.5:3b`
+- `nomic-embed-text`
 
 To pull required models (e.g., `qwen2.5:3b` and `nomic-embed-text`):
 1. Navigate to your Open WebUI dashboard.

@@ -99,7 +99,7 @@ services:
       - savaz-prod-net
     environment:
       - OLLAMA_HOST=0.0.0.0
-      - OLLAMA_ORIGINS=*
+      - OLLAMA_ORIGINS="*"
     healthcheck:
       test: [ "CMD", "ollama", "list" ]
       interval: 5s
@@ -121,7 +121,7 @@ services:
     networks:
       - savaz-prod-net
     environment:
-      - 'OLLAMA_BASE_URL=http://ollama-api:11434'
+      - OLLAMA_BASE_URL=http://ollama-api:11434
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://127.0.0.1:8080" ]
       interval: 5s

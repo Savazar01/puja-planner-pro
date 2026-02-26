@@ -1,0 +1,4 @@
+fastapi[all]
+presidio-analyzer
+presidio-anonymizer
+spacy

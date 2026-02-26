@@ -9,3 +9,11 @@ Features:
 1. **Dynamic Entities:** Extracts all supported scrubbing entities via `analyzer.get_supported_entities()`.
 2. **Universal Resolver:** Seamlessly parses `AGENT_{NAME}_LLM` from the environment to route between Local Server (Ollama) and Cloud Server (Gemini).
 3. **Scrubbing Engine:** Employs an "Anonymize All" strategy. All PII payload detected going towards the `gemini` LLM will be hard-replaced with `<REDACTED>`. Bypasses local AI inference smoothly.
+
+## Agent Registry (v2.9.0)
+The following 5 agents are registered within the Savaz ecosystem:
+- **Planner Agent**: `AGENT_PLANNER_LLM`
+- **Finder Agent**: `AGENT_FINDER_LLM`
+- **Concierge Agent**: `AGENT_CONCIERGE_LLM`
+- **Scribe Agent**: `AGENT_SCRIBE_LLM`
+- **Supplies Agent**: `AGENT_SUPPLIES_LLM`

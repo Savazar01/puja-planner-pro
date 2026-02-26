@@ -17,6 +17,12 @@ You must set the following variables in your deployment dashboard:
 | `ADMIN_USER` | `admin@example.com` | Automated master account creation email (First Boot). |
 | `ADMIN_PASSWORD` | `{GENERATED_SECRET}` | Automated master account password (First Boot). |
 | `SECRET_KEY` | `{GENERATED_SECRET}` | Encryption key for securing JWT tokens. |
+| `GOOGLE_API_KEY` | `your_google_api_key_here` | API Key for Google Gemini LLM. |
+| `AGENT_PLANNER_LLM` | `local` | LLM routing target for Planner Agent. |
+| `AGENT_FINDER_LLM` | `local` | LLM routing target for Finder Agent. |
+| `AGENT_CONCIERGE_LLM` | `local` | LLM routing target for Concierge Agent. |
+| `AGENT_SCRIBE_LLM` | `local` | LLM routing target for Scribe Agent. |
+| `AGENT_SUPPLIES_LLM` | `local` | LLM routing target for Supplies Agent. |
 
 ### 2. The Proxy Handshake (Port Mapping)
 If you are using a proxy (like Traefik or Caddy) through a UI like Coolify, you must explicitly bridge the domain to the container port. 

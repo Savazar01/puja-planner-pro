@@ -128,6 +128,24 @@ services:
       timeout: 30s
       retries: 10
 
+  privacy-gate:
+    build:
+      context: ./services/privacy-gate
+    container_name: privacy-gate
+    restart: unless-stopped
+    ports:
+      - "8740:8740"
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - OLLAMA_URL=${OLLAMA_URL:-http://ollama-api:11434}
+      - AGENT_PLANNER_LLM=${AGENT_PLANNER_LLM:-local}
+      - AGENT_FINDER_LLM=${AGENT_FINDER_LLM:-local}
+      - AGENT_CONCIERGE_LLM=${AGENT_CONCIERGE_LLM:-local}
+      - AGENT_SCRIBE_LLM=${AGENT_SCRIBE_LLM:-local}
+      - AGENT_SUPPLIES_LLM=${AGENT_SUPPLIES_LLM:-local}
+    networks:
+      - savaz-prod-net
+
 networks:
   savaz-prod-net:
     external: true

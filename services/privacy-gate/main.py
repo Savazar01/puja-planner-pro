@@ -67,3 +67,7 @@ async def process_request(request: Request, x_agent_name: str = Header(None)):
         "text": user_prompt,
         "agent": x_agent_name
     }
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8740)

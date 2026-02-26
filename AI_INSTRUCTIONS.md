@@ -28,6 +28,7 @@ The Planner Agent serves as the core orchestrator of the Savaz ecosystem. Its pr
 - **Tool-Use Integrity**: Agents must follow a "Plan-Act-Observe" loop.
 - **Rate Limiting & Cost Safety**: Always implement timeouts and maximum token limits for agentic loops to prevent runaway API costs.
 - **Search Decoupling**: Use variables for search providers (e.g., `SERPER_API_KEY`). Ensure search results are cleaned/sanitized before being fed to the LLM context.
+- **Privacy Gate Routing**: Instruct the system to route all Cloud-bound LLM traffic through `http://privacy-gate:8740/process` to ensure PII is masked.
 
 ## IV. UI/UX & Frontend Philosophy (React/Vite/Tailwind)
 - **Atomic Design**: Keep components small and reusable. Logic should be extracted into custom hooks (e.g., `useApi`).

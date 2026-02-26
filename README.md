@@ -8,6 +8,7 @@ This project is built with a "Pure Docker" philosophy. It is intentionally decou
 - **Frontend:** React/Vite/Nginx (Internal Port: 8734)
 - **Backend:** FastAPI/Python (Internal Port: 8735)
 - **Database:** PostgreSQL 15 (Alpine)
+- **Privacy Gate:** Privacy Gate (Port 8740)
 
 ## 🧠 Intelligence Infrastructure [STATUS: ACTIVE & VERIFIED]
 The Savaz Intelligence Stack is completely stable and operational on ports 8737-8739:

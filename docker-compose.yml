@@ -8,7 +8,6 @@ x-ollama: &service-ollama
     - savaz_ollama_storage:/root/.ollama
   networks:
     - savaz-prod-net
-  entrypoint: /bin/sh -c "ollama serve & sleep 10 && ollama pull qwen2.5:3b && ollama pull nomic-embed-text && wait"
 
 services:
   # PostgreSQL Database
@@ -100,7 +99,7 @@ services:
     restart: unless-stopped
 
   ollama-cpu:
-    profiles: [ "cpu" ]
+    container_name: ollama
     <<: *service-ollama
 
   ollama-gpu:

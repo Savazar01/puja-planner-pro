@@ -24,6 +24,10 @@ If you are using a proxy (like Traefik or Caddy) through a UI like Coolify, you 
 **Configure your domains as follows:**
 - **Web Interface:** `https://{YOUR_DOMAIN}:8734`
 - **API Service:** `https://{YOUR_API_DOMAIN}:8735`
+- **Intelligence Stack (Open WebUI):** `https://ai.{YOUR_DOMAIN}:8737`
+
+#### ☁️ Cloudflare Integration (Critical Security)
+It is strictly required to enable **Cloudflare Proxy (Orange Cloud)** for all AI-related subdomains (e.g., `ai.yourdomain.com`). This masks the VPS origin IP and adds an essential layer of security over your intelligence endpoints.
 
 *Note: The `:PORT` suffix tells the internal load balancer which container port to target. The public will still access your site via standard HTTPS (443).*
 
@@ -35,7 +39,10 @@ The stack expects an external network named `savaz-prod-net` for database isolat
 For the backend to successfully connect to the database, explicitly set `DB_HOST=savaz_db` in your environment variables. This matches the internal Docker Compose service name.
 Using generic hostnames like `postgres` or `localhost` will fail to resolve via the internal Docker DNS on Coolify and will cause persistent **Gateway Timeouts**.
 
-### 5. AI Model Auto-Provisioning
-The Savaz Intelligence Stack is configured with an automated auto-pull behavior for core models (`qwen2.5:3b` and `nomic-embed-text`) upon startup to ensure zero-manual-config.
-To verify that models are ready, use the health-check command:
-`curl http://localhost:8738/api/tags`
+### 5. Model Management (Open WebUI)
+The Savaz Intelligence Stack relies on **Open WebUI** for model management instead of automated startup scripts.
+
+To pull required models (e.g., `qwen2.5:3b` and `nomic-embed-text`):
+1. Navigate to your Open WebUI dashboard.
+2. Go to **Settings > Admin > Models**.
+3. Enter the model's name in the text input and click the download button to pull it.

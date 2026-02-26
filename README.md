@@ -10,9 +10,9 @@ This project is built with a "Pure Docker" philosophy. It is intentionally decou
 - **Database:** PostgreSQL 15 (Alpine)
 
 ## 🧠 Intelligence Infrastructure
-The Savaz Intelligence Stack is fully operational on ports 8737-8739, providing AI cognitive and memory layers:
-- **Open WebUI (Model Management Control Center):** Port 8737. All model management and pulling is handled exclusively via this interface.
-- **Ollama (Local LLM Execution):** Port 8738
+The Savaz Intelligence Stack is completely stable and operational on ports 8737-8739:
+- **Open WebUI (Model Management Control Center):** Port 8737
+- **Ollama-API Engine (Local LLM Execution):** Port 8738
 - **Redis (Intelligence Cache & PII Vault):** Port 8739
 ## 🔌 Networking & Configuration
 Connectivity is managed entirely through environment variables to allow for environment-specific scaling:

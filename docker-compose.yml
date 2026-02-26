@@ -1,14 +1,3 @@
-x-ollama: &service-ollama
-  image: ollama/ollama:latest
-  container_name: ollama
-  restart: unless-stopped
-  ports:
-    - "8738:11434"
-  volumes:
-    - savaz_ollama_storage:/root/.ollama
-  networks:
-    - savaz-prod-net
-
 services:
   # PostgreSQL Database
   savaz_db:
@@ -90,41 +79,54 @@ services:
   redis:
     image: redis:alpine
     container_name: redis
+    restart: unless-stopped
     ports:
       - "8739:6379"
     volumes:
       - savaz_redis_data:/data
     networks:
       - savaz-prod-net
-    restart: unless-stopped
 
-  ollama-cpu:
+  ollama-api:
+    image: ollama/ollama:latest
     container_name: ollama
-    <<: *service-ollama
-
-  ollama-gpu:
-    profiles: [ "gpu-nvidia" ]
-    <<: *service-ollama
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: 1
-              capabilities: [ gpu ]
+    restart: unless-stopped
+    ports:
+      - "8738:11434"
+    volumes:
+      - savaz_ollama_storage:/root/.ollama
+    networks:
+      - savaz-prod-net
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_ORIGINS=*
+    healthcheck:
+      test: [ "CMD", "ollama", "list" ]
+      interval: 5s
+      timeout: 30s
+      retries: 10
+    # Note: Add GPU deploy resources here if using ollama-gpu profile
 
   open-webui:
     image: ghcr.io/open-webui/open-webui:main
     container_name: open-webui
-    environment:
-      - OLLAMA_BASE_URL=http://ollama:11434
+    restart: unless-stopped
+    depends_on:
+      ollama-api:
+        condition: service_healthy
     ports:
       - "8737:8080"
     volumes:
       - savaz_open_webui_data:/app/backend/data
     networks:
       - savaz-prod-net
-    restart: unless-stopped
+    environment:
+      - 'OLLAMA_BASE_URL=http://ollama-api:11434'
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://127.0.0.1:8080" ]
+      interval: 5s
+      timeout: 30s
+      retries: 10
 
 networks:
   savaz-prod-net:

@@ -1,5 +1,11 @@
 # AI_INSTRUCTIONS.md (The Global Standard)
 
+## 0. Planner Agent Role
+The Planner Agent serves as the core orchestrator of the Savaz ecosystem. Its primary responsibilities include:
+- Designing and enforcing the overall system architecture, network topology, and module structures.
+- Orchestrating complex AI interactions and service integrations (e.g., Savaz Intelligence Stack).
+- Authorizing architectural pivots and ensuring infrastructure conventions are universally followed.
+
 ## I. Infrastructure & Orchestration (The "Coolify" Laws)
 - **Pure Compose Policy**: `docker-compose.yml` must contain zero proxy labels (Traefik/Caddy). All routing is handled via the Orchestrator UI using the `https://{DOMAIN}:{PORT}` handshake.
 - **Port Governance**: Use `${VARIABLE:-default}` for all port mappings.

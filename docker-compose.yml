@@ -1,3 +1,15 @@
+x-ollama: &service-ollama
+  image: ollama/ollama:latest
+  container_name: ollama
+  restart: unless-stopped
+  ports:
+    - "8738:11434"
+  volumes:
+    - savaz_ollama_storage:/root/.ollama
+  networks:
+    - savaz-prod-net
+  entrypoint: /bin/sh -c "ollama serve & sleep 10 && ollama pull qwen2.5:3b && ollama pull nomic-embed-text && wait"
+
 services:
   # PostgreSQL Database
   savaz_db:
@@ -76,6 +88,45 @@ services:
       retries: 5
       start_period: 60s
 
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - "8739:6379"
+    volumes:
+      - savaz_redis_data:/data
+    networks:
+      - savaz-prod-net
+    restart: unless-stopped
+
+  ollama-cpu:
+    profiles: [ "cpu" ]
+    <<: *service-ollama
+
+  ollama-gpu:
+    profiles: [ "gpu-nvidia" ]
+    <<: *service-ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+    ports:
+      - "8737:8080"
+    volumes:
+      - savaz_open_webui_data:/app/backend/data
+    networks:
+      - savaz-prod-net
+    restart: unless-stopped
+
 networks:
   savaz-prod-net:
     external: true
@@ -85,3 +136,6 @@ networks:
 volumes:
   savaz_db_data:
     driver: local
+  savaz_redis_data:
+  savaz_ollama_storage:
+  savaz_open_webui_data:

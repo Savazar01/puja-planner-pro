@@ -34,3 +34,8 @@ The stack expects an external network named `savaz-prod-net` for database isolat
 ### 4. Internal Service Discovery
 For the backend to successfully connect to the database, explicitly set `DB_HOST=savaz_db` in your environment variables. This matches the internal Docker Compose service name.
 Using generic hostnames like `postgres` or `localhost` will fail to resolve via the internal Docker DNS on Coolify and will cause persistent **Gateway Timeouts**.
+
+### 5. AI Model Auto-Provisioning
+The Savaz Intelligence Stack is configured with an automated auto-pull behavior for core models (`qwen2.5:3b` and `nomic-embed-text`) upon startup to ensure zero-manual-config.
+To verify that models are ready, use the health-check command:
+`curl http://localhost:8738/api/tags`

@@ -9,6 +9,11 @@ This project is built with a "Pure Docker" philosophy. It is intentionally decou
 - **Backend:** FastAPI/Python (Internal Port: 8735)
 - **Database:** PostgreSQL 15 (Alpine)
 
+## 🧠 Intelligence Infrastructure
+The Savaz Intelligence Stack operates on a continuous port sequence for AI cognitive and memory layers:
+- **Open WebUI (Model Management Control Center):** Port 8737
+- **Ollama (Local LLM Execution):** Port 8738
+- **Redis (Intelligence Cache & PII Vault):** Port 8739
 ## 🔌 Networking & Configuration
 Connectivity is managed entirely through environment variables to allow for environment-specific scaling:
 - `FRONTEND_PORT`: Controls the internal Nginx listener and external mapping.

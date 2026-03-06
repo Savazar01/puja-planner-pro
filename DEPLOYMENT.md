@@ -64,4 +64,4 @@ To pull required models (e.g., `qwen2.5:3b` and `nomic-embed-text`):
 
 ## Infrastructure Log
 
-[2026-03-06] Phase A: Successfully deployed pgvector:pg17 using a fresh data volume for clean initialization.
+[2026-03-06] Phase A: Successfully deployed pgvector:pg17 using a fresh data volume for clean initialization. Includes a hotfix for docker-compose healthcheck interpolation.

@@ -61,3 +61,7 @@ To pull required models (e.g., `qwen2.5:3b` and `nomic-embed-text`):
 1. Navigate to your Open WebUI dashboard.
 2. Go to **Settings > Admin > Models**.
 3. Enter the model's name in the text input and click the download button to pull it.
+
+## Infrastructure Log
+
+[2026-03-06] Phase A: Migrated to pgvector:pg17 for agentic long-term memory.

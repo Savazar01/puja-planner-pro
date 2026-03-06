@@ -1,13 +1,14 @@
 services:
   # PostgreSQL Database
   savaz_db:
-    image: postgres:15-alpine
+    image: pgvector/pgvector:pg17
     container_name: savaz_db_container
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: postgres
     volumes:
+      - ./init-vector.sql:/docker-entrypoint-initdb.d/init-vector.sql
       - savaz_db_data:/var/lib/postgresql/data
     networks:
       - default

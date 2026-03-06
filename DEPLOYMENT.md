@@ -64,4 +64,4 @@ To pull required models (e.g., `qwen2.5:3b` and `nomic-embed-text`):
 
 ## Infrastructure Log
 
-[2026-03-06] Phase A: Migrated to pgvector:pg17 for agentic long-term memory.
+[2026-03-06] Phase A: Migrated to pgvector. DB environment variables now managed exclusively via Coolify UI.

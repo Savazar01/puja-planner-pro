@@ -4,9 +4,9 @@ services:
     image: pgvector/pgvector:pg17
     container_name: savaz_db_container
     environment:
-      POSTGRES_USER: postgres
+      POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: postgres
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - ./init-vector.sql:/docker-entrypoint-initdb.d/init-vector.sql
       - savaz_db_data:/var/lib/postgresql/data
@@ -14,11 +14,11 @@ services:
       - default
       - savaz-prod-net
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER}" ]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 60s
 
   # FastAPI Backend
   backend:
@@ -29,11 +29,11 @@ services:
     ports:
       - "${BACKEND_PORT:-8735}:${BACKEND_PORT:-8735}"
     environment:
-      POSTGRES_USER: postgres
+      POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: postgres
+      POSTGRES_DB: ${POSTGRES_DB}
       DB_HOST: ${DB_HOST}
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@savaz_db:5432/postgres
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@savaz_db:5432/${POSTGRES_DB}
       SERPER_API_KEY: ${SERPER_API_KEY}
       FIRECRAWL_API_KEY: ${FIRECRAWL_API_KEY}
       GEMINI_API_KEY: ${GEMINI_API_KEY}

@@ -30,7 +30,11 @@ def init_db():
             db.commit()
             print(f"Superuser created with email: {admin_email}")
         else:
-            print("Admin user already exists.")
+            print("Admin user already exists. Syncing credentials with environment...")
+            user.email = settings.admin_user
+            user.hashed_password = get_password_hash(settings.admin_password)
+            db.commit()
+            print("Admin credentials synchronized.")
     except Exception as e:
         print(f"Error initializing DB data: {e}")
         

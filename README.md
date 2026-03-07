@@ -1,14 +1,16 @@
-# Puja Planner Pro
+# SavazAI - MyPandits (Phase A Stable Baseline)
 
 A robust, full-stack application designed for orchestration with container-based platforms like Coolify.
 
 ## 🏗 System Architecture
 This project is built with a "Pure Docker" philosophy. It is intentionally decoupled from proxy-specific labels (like Traefik or Caddy labels) to ensure it can be deployed on any infrastructure with a standard load balancer.
 
-- **Frontend:** React/Vite/Nginx (Internal Port: 8734)
-- **Backend:** FastAPI/Python (Internal Port: 8735)
-- **Database:** PostgreSQL 15 (Alpine)
-- **Privacy Gate:** Privacy Gate (Port 8740)
+### Service Status
+- **Frontend:** React/Vite/Nginx (Internal Port: 8734) - **Operational**
+- **Backend:** FastAPI/Python (Internal Port: 8735) - **Operational**
+- **Privacy Gate:** Privacy Gate (Port 8740) - **Operational**
+- **Database:** Postgres/pgvector (v17)
+- **Cache/Vault:** Redis (alpine)
 
 ## 🧠 Intelligence Infrastructure [STATUS: ACTIVE & VERIFIED]
 The Savaz Intelligence Stack is completely stable and operational on ports 8737-8739:
@@ -228,7 +230,8 @@ docker-compose ps           # List running containers
 **Backend:**
 - FastAPI
 - SQLAlchemy
-- PostgreSQL
+- Postgres/pgvector (v17)
+- Redis (alpine)
 - Pydantic
 - httpx
 - Google Generative AI

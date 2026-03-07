@@ -27,9 +27,10 @@ You must set the following variables in your deployment dashboard:
 ### 2. The Proxy Handshake (Port Mapping)
 If you are using a proxy (like Traefik or Caddy) through a UI like Coolify, you must explicitly bridge the domain to the container port. 
 
-**Configure your domains as follows:**
-- **Web Interface:** `https://{YOUR_DOMAIN}:8734`
-- **API Service:** `https://{YOUR_API_DOMAIN}:8735`
+**Configure your domains as follows (Known Good Port Mappings):**
+- **Web Interface:** `https://{YOUR_DOMAIN}:8734` (Frontend)
+- **API Service:** `https://{YOUR_API_DOMAIN}:8735` (Backend)
+- **Privacy Gate:** `https://{YOUR_PRIVACY_DOMAIN}:8740` (Port 8740)
 - **Intelligence Stack (Open WebUI):** `https://owebui.fossone.app:8737` (or your custom alias)
 
 #### ☁️ Cloudflare Integration (Critical Security)
@@ -63,6 +64,9 @@ To pull required models (e.g., `qwen2.5:3b` and `nomic-embed-text`):
 3. Enter the model's name in the text input and click the download button to pull it.
 
 ## Infrastructure Log
+
+### 6. Privacy Gate Integration
+The Privacy Gate is operational and must sit between the Backend and any external LLM calls to redact Sensitive Personal Information (SPI). It runs on Port `8740` and acts as a secure intermediary outbox.
 
 [2026-03-06] Phase A: Successfully deployed pgvector:pg17 using a fresh data volume for clean initialization. Includes a hotfix for docker-compose healthcheck interpolation.
 

@@ -65,3 +65,5 @@ To pull required models (e.g., `qwen2.5:3b` and `nomic-embed-text`):
 ## Infrastructure Log
 
 [2026-03-06] Phase A: Successfully deployed pgvector:pg17 using a fresh data volume for clean initialization. Includes a hotfix for docker-compose healthcheck interpolation.
+
+[2026-03-07] 2nd Rollback performed on 2026-03-07. Reverted all Phase B changes to restore system stability. Current baseline: Phase A (pgvector + Redis).

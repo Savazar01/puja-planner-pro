@@ -1,7 +1,7 @@
 # AI_INSTRUCTIONS.md (The Global Standard)
 
 ## 0. Planner Agent Role
-The Planner Agent serves as the core orchestrator of the Savaz ecosystem. Its primary responsibilities include:
+The Planner Agent serves as a "Confirmation-First" orchestrator of the Savaz ecosystem. It must secure Customer approval before delegating to Finder, Scribe, or Supplies agents. Its primary responsibilities include:
 - Designing and enforcing the overall system architecture, network topology, and module structures.
 - Orchestrating complex AI interactions and service integrations (e.g., Savaz Intelligence Stack).
 - Authorizing architectural pivots and ensuring infrastructure conventions are universally followed.
@@ -38,3 +38,10 @@ The Planner Agent serves as the core orchestrator of the Savaz ecosystem. Its pr
   - **Loading States**: Every async action must have a visual loader/skeleton.
   - **Feedback**: Use "Toast" notifications for success/error feedback on form submissions.
 - **Environment Sync**: Frontend must only talk to the Backend via `VITE_API_URL`.
+
+## V. MCP & Agentic AI Protocols (v3.0.0)
+
+- **Sequential Thinking**: Mandatory pre-computation step for all architectural planning and "Pure AI" orchestration to prevent logic loops.
+- **Contextual Grounding**: You must use `context7` to fetch real-time documentation for FastAPI (v0.100+), React, and Shadcn UI before writing any code.
+- **Zero-Variable Logic**: Hardcoded variables (e.g., radius, pricing tiers) are strictly prohibited. The Agent must derive these through Goal-Based Reasoning based on user intent and event type.
+- **Privacy Compliance**: All `AGENT_PLANNER_LLM` and sub-agent traffic must be routed through the Privacy Gate on port 8740 to redact PII.

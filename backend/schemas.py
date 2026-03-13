@@ -228,6 +228,9 @@ class EventUpdate(BaseModel):
     event_date: Optional[datetime] = None
     status: Optional[str] = None
 
+class EventCreate(EventBase):
+    pass
+
 class EventResponse(EventBase):
     id: str
     customer_id: str

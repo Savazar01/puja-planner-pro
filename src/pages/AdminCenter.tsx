@@ -22,7 +22,7 @@ export default function AdminCenter() {
     const [subscriptions, setSubscriptions] = useState<any[]>([]);
 
     useEffect(() => {
-        if (!user || user.userType !== "ADMIN") {
+        if (!user || user.userType !== "admin") {
             navigate("/");
             return;
         }
@@ -94,7 +94,7 @@ export default function AdminCenter() {
         }
     };
 
-    if (!user || user.userType !== "ADMIN") return null;
+    if (!user || user.userType !== "admin") return null;
 
     return (
         <div className="container mx-auto py-10 px-4">
@@ -383,7 +383,7 @@ function UsersTable({ users, onUpdateStatus }: { users: any[], onUpdateStatus: (
                                     </div>
                                 </TableCell>
                                 <TableCell className="text-right space-x-2 space-y-2">
-                                    {(u.role !== "HOST" && u.role !== "ADMIN") && (
+                                    {(!u.role?.toLowerCase().includes("host") && !u.role?.toLowerCase().includes("admin")) && (
                                         <div className="flex flex-wrap gap-2 justify-end">
                                             {(u.status === "PENDING" || u.status === "REJECTED") && (
                                                 <>
@@ -402,7 +402,7 @@ function UsersTable({ users, onUpdateStatus }: { users: any[], onUpdateStatus: (
                                             )}
                                         </div>
                                     )}
-                                    {u.role === "HOST" && (
+                                    {u.role?.toLowerCase().includes("host") && (
                                         <div className="text-xs text-muted-foreground italic px-2 py-1">Auto-Approved</div>
                                     )}
                                 </TableCell>

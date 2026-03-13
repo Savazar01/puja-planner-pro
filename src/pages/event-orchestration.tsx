@@ -11,7 +11,7 @@ const EventOrchestration = () => {
 
   const role = user?.userType?.toString().toLowerCase() || "";
   const isCustomer = role.includes("customer");
-  const isAdmin = user?.userType === "ADMIN";
+  const isAdmin = user?.isAdmin;
 
   if (!isCustomer && !isAdmin) {
     return <Navigate to="/dashboard" replace />;

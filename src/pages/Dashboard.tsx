@@ -28,8 +28,9 @@ const Dashboard = () => {
   if (!isAuthenticated) return <Navigate to="/" replace />;
   
   // Redirect customers to their dedicated workspace
-  const role = user?.userType?.toString().toLowerCase() || "";
-  if (role.includes("customer")) {
+  if (user?.isAdmin) {
+    // Admin stays here or goes to admin-dashboard
+  } else if (user?.userType.includes("customer")) {
     return <Navigate to="/event-orchestration" replace />;
   }
 

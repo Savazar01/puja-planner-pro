@@ -20,7 +20,7 @@ const Navbar = () => {
     { to: "/", label: "Home" },
     { to: "/search", label: "Find Pandits" },
     ...(isAuthenticated ? [
-      user?.userType?.toString().toLowerCase().includes("customer") 
+      user?.userType.includes("customer") 
         ? { to: "/event-orchestration", label: "Event Canvas" }
         : { to: "/dashboard", label: "Dashboard" }
     ] : []),

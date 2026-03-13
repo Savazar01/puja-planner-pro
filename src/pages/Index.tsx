@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -162,13 +163,26 @@ const Footer = () => (
   </footer>
 );
 
-const Index = () => (
-  <main>
-    <HeroSection />
-    <ValueProps />
-    <ServiceGrid />
-    <Footer />
-  </main>
-);
+const Index = () => {
+  const { isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
+
+  if (isAuthenticated) {
+    if (user?.isAdmin) {
+      // Admins can stay or go to admin-dashboard
+    } else if (user?.userType.includes("customer")) {
+      return <Navigate to="/event-orchestration" replace />;
+    }
+  }
+
+  return (
+    <main>
+      <HeroSection />
+      <ValueProps />
+      <ServiceGrid />
+      <Footer />
+    </main>
+  );
+};
 
 export default Index;

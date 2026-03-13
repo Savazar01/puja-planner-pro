@@ -165,7 +165,7 @@ export default function ProfileSettings() {
                 <TabsList className="flex md:flex-col justify-start items-start h-auto bg-transparent space-y-2 md:w-64">
                     <TabsTrigger value="basic" className="w-full justify-start gap-3"><User size={18} /> Basic Info</TabsTrigger>
 
-                    {user.userType === "customer" || user.userType === "HOST" ? (
+                    {user.userType === "customer" ? (
                         <TabsTrigger value="subscription" className="w-full justify-start gap-3 text-amber-600 data-[state=active]:text-amber-700 data-[state=active]:bg-amber-50">
                             <Star size={18} /> Subscription
                         </TabsTrigger>
@@ -226,7 +226,7 @@ export default function ProfileSettings() {
                             <Button onClick={handleSaveProfile} disabled={loading} className="mt-6 w-full sm:w-auto">{loading ? "Saving..." : "Save basic info"}</Button>
                         </TabsContent>
 
-                        {(user.userType === "customer" || user.userType === "HOST") && (
+                        {user.userType === "customer" && (
                             <TabsContent value="subscription" className="space-y-6 m-0">
                                 <div>
                                     <h2 className="text-2xl font-medium mb-1 flex items-center gap-2">

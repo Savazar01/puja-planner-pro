@@ -22,7 +22,7 @@ import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
 const userTypes = [
-  { value: "HOST", label: "Customer" },
+  { value: "customer", label: "Customer" },
   { value: "PANDIT", label: "Pandit" },
   { value: "TEMPLE_ADMIN", label: "Temple Admin" },
   { value: "SUPPLIER", label: "Supplier" },
@@ -39,7 +39,7 @@ const AuthModal = () => {
   const [password, setPassword] = useState("");
 
   // Registration specific state
-  const [role, setRole] = useState<string>("HOST");
+  const [role, setRole] = useState<string>("customer");
   const [fullName, setFullName] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [meta1, setMeta1] = useState("");
@@ -84,7 +84,7 @@ const AuthModal = () => {
       };
 
       await register(payload);
-      toast({ title: "Registration Successful", description: role !== "HOST" ? "Your account is pending admin approval." : "Welcome!" });
+      toast({ title: "Registration Successful", description: role !== "customer" ? "Your account is pending admin approval." : "Welcome!" });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Registration Failed", description: e.message });
     } finally {

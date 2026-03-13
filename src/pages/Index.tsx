@@ -170,7 +170,7 @@ const Index = () => {
   if (isAuthenticated) {
     if (user?.isAdmin) {
       // Admins can stay or go to admin-dashboard
-    } else if (user?.userType.includes("customer")) {
+    } else if (user?.userType === "customer") {
       return <Navigate to="/event-orchestration" replace />;
     }
   }

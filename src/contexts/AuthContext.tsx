@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { login as apiLogin, registerUser as apiRegister, getMe } from "@/lib/api";
 
-type UserType = "customer" | "host" | "pandit" | "temple_admin" | "supplier" | "event_manager" | "other" | "admin";
+type UserType = "customer" | "pandit" | "temple_admin" | "supplier" | "event_manager" | "other" | "admin";
 
 interface User {
   id: string;
@@ -40,7 +40,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const data = await getMe(authToken);
       const rawRole = (data.role || "").toString().toLowerCase();
-      const sanitizedRole = rawRole.replace(/devotee/gi, "").trim() || "customer";
+      let behaviorRole = rawRole.replace(/devotee/gi, "").trim();
+      
+      // Standardize: Map 'host' (legacy) and empty roles to 'customer'
+      if (behaviorRole === "host" || !behaviorRole) {
+        behaviorRole = "customer";
+      }
+
       const rawName = data.profile?.full_name || data.email;
       const sanitizedName = rawName.replace(/Devotee/gi, "").trim();
 
@@ -50,7 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: data.email,
         tier: data.subscription_tier?.toLowerCase() || "free",
         isAdmin: rawRole === "admin",
-        userType: sanitizedRole as UserType,
+        userType: behaviorRole as UserType,
         token_balance: data.token_balance,
         has_pending_subscription: data.has_pending_subscription
       };

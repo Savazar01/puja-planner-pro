@@ -383,7 +383,7 @@ function UsersTable({ users, onUpdateStatus }: { users: any[], onUpdateStatus: (
                                     </div>
                                 </TableCell>
                                 <TableCell className="text-right space-x-2 space-y-2">
-                                    {(!u.role?.toLowerCase().includes("host") && !u.role?.toLowerCase().includes("admin")) && (
+                                    {(!u.role?.toLowerCase().includes("customer") && !u.role?.toLowerCase().includes("host") && !u.role?.toLowerCase().includes("admin")) && (
                                         <div className="flex flex-wrap gap-2 justify-end">
                                             {(u.status === "PENDING" || u.status === "REJECTED") && (
                                                 <>
@@ -402,7 +402,7 @@ function UsersTable({ users, onUpdateStatus }: { users: any[], onUpdateStatus: (
                                             )}
                                         </div>
                                     )}
-                                    {u.role?.toLowerCase().includes("host") && (
+                                    {(u.role?.toLowerCase().includes("customer") || u.role?.toLowerCase().includes("host")) && (
                                         <div className="text-xs text-muted-foreground italic px-2 py-1">Auto-Approved</div>
                                     )}
                                 </TableCell>

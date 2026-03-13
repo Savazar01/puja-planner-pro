@@ -9,8 +9,7 @@ const EventOrchestration = () => {
 
   if (!isAuthenticated) return <Navigate to="/" replace />;
 
-  const role = user?.userType?.toString().toLowerCase() || "";
-  const isCustomer = role.includes("customer");
+  const isCustomer = user?.userType === "customer";
   const isAdmin = user?.isAdmin;
 
   if (!isCustomer && !isAdmin) {

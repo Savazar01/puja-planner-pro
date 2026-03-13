@@ -30,7 +30,7 @@ const Dashboard = () => {
   // Redirect customers to their dedicated workspace
   if (user?.isAdmin) {
     // Admin stays here or goes to admin-dashboard
-  } else if (user?.userType.includes("customer")) {
+  } else if (user?.userType === "customer") {
     return <Navigate to="/event-orchestration" replace />;
   }
 

@@ -20,9 +20,12 @@ const Navbar = () => {
     { to: "/", label: "Home" },
     { to: "/search", label: "Find Pandits" },
     ...(isAuthenticated ? [
-      user?.userType === "customer"
-        ? { to: "/event-orchestration", label: "Event Canvas" }
-        : { to: "/dashboard", label: "Dashboard" }
+      ...(user?.userType === "customer" 
+        ? [
+            { to: "/dashboard", label: "Dashboard" },
+            { to: "/event-orchestration", label: "Event Canvas" }
+          ]
+        : [{ to: "/dashboard", label: "Dashboard" }])
     ] : []),
     ...(user?.isAdmin ? [{ to: "/admin-dashboard", label: "Admin" }] : []),
   ];

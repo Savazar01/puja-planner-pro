@@ -9,7 +9,7 @@ This project is built with a "Pure Docker" philosophy. It is intentionally decou
 - **Frontend:** React/Vite/Nginx (Internal Port: 8734) - **Operational**
 - **Backend:** FastAPI/Python (Internal Port: 8735) - **Operational**
 - **Privacy Gate:** Privacy Gate (Port 8740) - **Operational**
-- **Customer Canvas:** Protected Event Workspace (RBAC enabled) - **Active**
+- **Customer Workspace:** Professional Event Canvas (RBAC enabled) - **Active**
 - **Database:** Postgres/pgvector (v17)
 - **Cache/Vault:** Redis (alpine)
 
@@ -124,15 +124,15 @@ puja-planner-pro/
 ```
 
 ### User-Facing Roles
-- **Customer**: The primary host and decision-maker. Enters the platform via the isolated **Customer Event Canvas** (`/event-orchestration`).
-- **Pandit**: Vedic specialist providing ritual services. Managed via the **Legacy Dashboard** (`/dashboard`).
-- **Admin**: System administrator overseeing the ecosystem. Accesses the **Legacy Dashboard** (`/dashboard`) and **Admin Center**.
+- **Customer**: The primary host and decision-maker. accesses the **Event Canvas** (`/event-orchestration`) and the **Customer Dashboard** (`/dashboard`).
+- **Pandit**: Vedic specialist providing ritual services. Managed via the **Pandit Dashboard** (`/dashboard`).
+- **Admin**: System administrator overseeing the ecosystem. Accesses the **Admin Dashboard** (`/dashboard`) and **Admin Center**.
 
 ## 🚀 Key Features
-- **Isolated Customer Orchestration**: Dedicated workspace at `/event-orchestration` for event planning with agentic support.
-- **Legacy Dashboard Hub**: Central management point for Admins, Pandits, and Vendors at `/dashboard`.
-- **Protected Environment**: RBAC ensures Customers land in the Canvas while Admins maintain logistics control.
+- **Customer Workspace**: Dedicated agentic planning at `/event-orchestration` for live orchestration.
+- **Dashboard Hub**: Unified management point for all roles (Customer, Admin, Pandit) at `/dashboard`.
+- **Protected Environment**: RBAC ensures streamlined access while maintaining full logistics control across views.
 - **Privacy Gate (Port 8740)**: Automated PII masking via Microsoft Presidio for all internal data handshakes.
 
 ---
-**Note**: The **"Devotee"** role has been deprecated. All user-side orchestration is strictly handled by the **"Customer"** role on the isolated Event Canvas.
+**Note**: The ecosystem is strictly standardized around the **"Customer"** role. All references to legacy terms have been purged to ensure architectural consistency.

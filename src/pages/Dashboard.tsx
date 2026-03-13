@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CalendarCheck, Users, ShoppingBag, Plus, Send, MessageCircle, Lock } from "lucide-react";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
 
 const statusColors: Record<Guest["status"], string> = {
   accepted: "bg-primary/10 text-primary",
@@ -27,12 +27,10 @@ const Dashboard = () => {
 
   if (isLoading) return null;
   if (!isAuthenticated) return <Navigate to="/" replace />;
-  
-  // Redirect customers to their dedicated workspace
+
+  // Role-based access control
   if (user?.isAdmin) {
-    // Admin stays here or goes to admin-dashboard
-  } else if (user?.userType === "customer") {
-    return <Navigate to="/event-orchestration" replace />;
+    // Admin dashboard logic
   }
 
   const tierAllowsGuests = user?.tier === "gold" || user?.tier === "platinum";
@@ -64,9 +62,21 @@ const Dashboard = () => {
   return (
     <main className="min-h-screen bg-background">
       <div className="border-b border-border bg-card px-4 py-6">
-        <div className="container mx-auto max-w-5xl">
-          <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Legacy Dashboard</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage your event logistics and coordination.</p>
+        <div className="container mx-auto max-w-5xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl capitalize">
+              {user?.userType} Dashboard
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">Manage your account logistics and coordination.</p>
+          </div>
+          {user?.userType === "customer" && (
+            <Link to="/event-orchestration">
+              <Button className="gap-2 bg-primary hover:bg-primary/90">
+                <Plus className="h-4 w-4" />
+                Open Event Canvas
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 

@@ -43,15 +43,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       const data = await getMe(authToken);
       const rawRole = (data.role || "").toString().toLowerCase();
-      let behaviorRole = rawRole.replace(/devotee/gi, "").trim();
-      
+      let behaviorRole = rawRole.trim();
+
       // Standardize: Map 'host' (legacy) and empty roles to 'customer'
       if (behaviorRole === "host" || !behaviorRole) {
         behaviorRole = "customer";
       }
 
       const rawName = data.profile?.full_name || data.email;
-      const sanitizedName = rawName.replace(/Devotee/gi, "").trim();
+      const sanitizedName = rawName.trim();
 
       const fetchedUser = {
         id: data.id,

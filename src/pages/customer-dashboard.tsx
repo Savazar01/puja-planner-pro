@@ -29,12 +29,26 @@ interface UserEvent {
 const CustomerDashboard = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
 
-  // Mock data for parallel events
-  const [events, setEvents] = useState<UserEvent[]>([
-    { id: "e1", name: "Satyanarayana Puja", date: "2026-03-20", status: "active", type: "Puja", location: "Hyderabad" },
-    { id: "e2", name: "Ayaan's ", date: "2026-04-15", status: "active", type: "Mundan", location: "Bangalore" },
-    { id: "e3", name: "Griha", date: "2026-01-10", status: "archived", type: "Griha Pravesh", location: "Mumbai" }
-  ]);
+  // State for user-generated events (no mock data)
+  const [events, setEvents] = useState<UserEvent[]>([]);
+  const [isFetching, setIsFetching] = useState(true);
+
+  React.useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await fetch('/api/events');
+        if (response.ok) {
+          const data = await response.json();
+          setEvents(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch events:", error);
+      } finally {
+        setIsFetching(false);
+      }
+    };
+    if (isAuthenticated) fetchEvents();
+  }, [isAuthenticated]);
 
   if (isLoading) return null;
   if (!isAuthenticated) return <Navigate to="/" replace />;
@@ -105,46 +119,61 @@ const CustomerDashboard = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {activeEvents.map((event) => (
-              <Card key={event.id} className="group hover:border-primary/40 transition-all hover:shadow-xl hover:shadow-primary/5">
-                <CardHeader className="pb-4">
-                  <div className="flex items-start justify-between">
-                    <Badge variant="outline" className="capitalize">{event.type}</Badge>
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-amber-500" onClick={() => handleArchive(event.id)}>
-                        <Archive className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(event.id)}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  <CardTitle className="text-xl mt-2">{event.name}</CardTitle>
-                  <CardDescription className="flex items-center gap-2">
-                    <Calendar className="h-3 w-3" />
-                    {new Date(event.date).toLocaleDateString()} • {event.location}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Link to={`/event-orchestration?id=${event.id}`}>
-                    <Button className="w-full gap-2 variant-outline group/btn border-primary/20 hover:bg-primary/5">
-                      Plan your ritual
-                      <ExternalLink className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
-            {activeEvents.length === 0 && (
-              <Card className="col-span-full border-dashed py-20 bg-muted/20">
-                <CardContent className="flex flex-col items-center justify-center text-center space-y-4">
-                  <LayoutDashboard className="h-12 w-12 text-muted-foreground/30" />
-                  <div className="space-y-1">
-                    <p className="font-semibold">No active events</p>
-                    <p className="text-sm text-muted-foreground">Start a new orchestration to see it here.</p>
-                  </div>
-                </CardContent>
-              </Card>
+            {isFetching ? (
+              <div className="col-span-full py-20 flex flex-col items-center justify-center space-y-4">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                <p className="text-muted-foreground">Retrieving your ritual canvas...</p>
+              </div>
+            ) : (
+              <>
+                {activeEvents.map((event) => (
+                  <Card key={event.id} className="group hover:border-primary/40 transition-all hover:shadow-xl hover:shadow-primary/5">
+                    <CardHeader className="pb-4">
+                      <div className="flex items-start justify-between">
+                        <Badge variant="outline" className="capitalize">{event.type}</Badge>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-amber-500" onClick={() => handleArchive(event.id)}>
+                            <Archive className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(event.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <CardTitle className="text-xl mt-2">{event.name}</CardTitle>
+                      <CardDescription className="flex items-center gap-2">
+                        <Calendar className="h-3 w-3" />
+                        {new Date(event.date).toLocaleDateString()} • {event.location}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Link to={`/event-orchestration?id=${event.id}`}>
+                        <Button className="w-full gap-2 variant-outline group/btn border-primary/20 hover:bg-primary/5">
+                          Plan your ritual
+                          <ExternalLink className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                        </Button>
+                      </Link>
+                    </CardContent>
+                  </Card>
+                ))}
+                {activeEvents.length === 0 && (
+                  <Card className="col-span-full border-dashed py-20 bg-muted/20">
+                    <CardContent className="flex flex-col items-center justify-center text-center space-y-4">
+                      <LayoutDashboard className="h-12 w-12 text-muted-foreground/30" />
+                      <div className="space-y-1">
+                        <p className="font-semibold text-lg">Your Canvas is Ready</p>
+                        <p className="text-sm text-muted-foreground">You haven't planned any rituals yet. Let's start one!</p>
+                        <Link to="/event-orchestration" className="inline-block mt-4">
+                          <Button size="lg" className="gap-2">
+                            <Plus className="h-5 w-5" />
+                            Plan a Ritual
+                          </Button>
+                        </Link>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
             )}
           </div>
         </section>

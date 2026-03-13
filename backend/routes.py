@@ -10,7 +10,7 @@ from schemas import (
     UserCreate, UserResponse, Token, PasswordChange, UserUpdateStatus,
     EmailTemplateResponse, EmailTemplateUpdate, ProfileUpdate,
     ForgotPasswordRequest, ResetPasswordRequest, SubscriptionUpgrade,
-    EventCreate, EventResponse, SelectionRequest
+    EventCreate, EventResponse, SelectionRequest, EventUpdate
 )
 from models import (
     Pandit, Venue, Catering, User, Profile, UserStatus, UserRole, 
@@ -549,6 +549,31 @@ async def list_events(
     db: Session = Depends(get_db)
 ):
     return db.query(Event).filter(Event.customer_id == current_user.id).all()
+
+
+@router.patch("/api/events/{event_id}", response_model=EventResponse)
+async def update_event(
+    event_id: str,
+    event_update: EventUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    event = db.query(Event).filter(Event.id == event_id, Event.customer_id == current_user.id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+        
+    if event_update.title is not None:
+        event.title = event_update.title
+    if event_update.location is not None:
+        event.location = event_update.location
+    if event_update.event_date is not None:
+        event.event_date = event_update.event_date
+    if event_update.status is not None:
+        event.status = event_update.status
+        
+    db.commit()
+    db.refresh(event)
+    return event
 
 
 @router.post("/api/events/{event_id}/select", response_model=EventResponse)

@@ -56,6 +56,9 @@ const EventCanvas = () => {
   const eventId = searchParams.get("id");
   const [intent, setIntent] = useState("");
   const [isEventActive, setIsEventActive] = useState(!!eventId);
+  const [eventData, setEventData] = useState<any>(null);
+  const [isEditingMetadata, setIsEditingMetadata] = useState(false);
+  const [editForm, setEditForm] = useState({ title: "", location: "", date: "", time: "" });
   
   // New modules state
   const [guests, setGuests] = useState([
@@ -85,10 +88,56 @@ const EventCanvas = () => {
   const [selectedPartners, setSelectedPartners] = useState<any[]>([]);
 
   useEffect(() => {
-    if (eventId) {
-      setIsEventActive(true);
-    }
+    const fetchEventData = async () => {
+      if (eventId) {
+        try {
+          const response = await fetch(`/api/events`);
+          const allEvents = await response.json();
+          const currentEvent = allEvents.find((e: any) => e.id === eventId);
+          if (currentEvent) {
+            setEventData(currentEvent);
+            const dt = currentEvent.event_date ? new Date(currentEvent.event_date) : new Date();
+            setEditForm({
+              title: currentEvent.title,
+              location: currentEvent.location || "",
+              date: dt.toISOString().split('T')[0],
+              time: dt.toTimeString().split(' ')[0].substring(0, 5)
+            });
+            setSelectedPartners(currentEvent.bookings || []);
+            setIsEventActive(true);
+          }
+        } catch (error) {
+          console.error("Failed to fetch event data:", error);
+        }
+      }
+    };
+    fetchEventData();
   }, [eventId]);
+
+  const handleUpdateMetadata = async () => {
+    if (!eventId) return;
+    try {
+      const combinedDateTime = new Date(`${editForm.date}T${editForm.time}`);
+      const response = await fetch(`/api/events/${eventId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: editForm.title,
+          location: editForm.location,
+          event_date: combinedDateTime.toISOString()
+        })
+      });
+      if (response.ok) {
+        const updated = await response.json();
+        setEventData(updated);
+        setIsEditingMetadata(false);
+        toast({ title: "Details Updated", description: "Your ritual settings have been saved." });
+      }
+    } catch (error) {
+      console.error("Failed to update metadata:", error);
+      toast({ title: "Update Failed", description: "Could not save changes.", variant: "destructive" });
+    }
+  };
 
   const handleIntentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -266,9 +315,54 @@ const EventCanvas = () => {
                     <div className="absolute left-0 mt-1 h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center border-2 border-primary ring-4 ring-background">
                       <CheckCircle2 className="h-6 w-6 text-primary" />
                     </div>
-                    <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 shadow-sm">
-                      <h4 className="font-semibold text-foreground">{currentEventName}</h4>
-                      <p className="text-sm text-muted-foreground uppercase">{intent || "Family Context"}</p>
+                    <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 shadow-sm group relative">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h4 className="font-semibold text-foreground">{eventData?.title || currentEventName}</h4>
+                          <p className="text-sm text-muted-foreground uppercase">{intent || "Family Context"}</p>
+                          {eventData?.event_date && (
+                             <p className="text-xs text-primary/70 mt-1">
+                               {new Date(eventData.event_date).toLocaleString()} • {eventData.location}
+                             </p>
+                          )}
+                        </div>
+                        <Dialog open={isEditingMetadata} onOpenChange={setIsEditingMetadata}>
+                          <DialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Edit Ritual Details</DialogTitle>
+                              <CardDescription>Adjust the core anchors of your ceremony.</CardDescription>
+                            </DialogHeader>
+                            <div className="grid gap-4 py-4">
+                              <div className="grid gap-2">
+                                <Label>Ritual Title</Label>
+                                <Input value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})} />
+                              </div>
+                              <div className="grid gap-2">
+                                <Label>Location</Label>
+                                <Input value={editForm.location} onChange={e => setEditForm({...editForm, location: e.target.value})} />
+                              </div>
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="grid gap-2">
+                                  <Label>Date</Label>
+                                  <Input type="date" value={editForm.date} onChange={e => setEditForm({...editForm, date: e.target.value})} />
+                                </div>
+                                <div className="grid gap-2">
+                                  <Label>Time</Label>
+                                  <Input type="time" value={editForm.time} onChange={e => setEditForm({...editForm, time: e.target.value})} />
+                                </div>
+                              </div>
+                            </div>
+                            <DialogFooter>
+                              <Button onClick={handleUpdateMetadata}>Save Details</Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
                     </div>
                   </div>
 

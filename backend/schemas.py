@@ -222,8 +222,11 @@ class EventBase(BaseModel):
     location: Optional[str] = None
     event_date: Optional[datetime] = None
 
-class EventCreate(EventBase):
-    pass
+class EventUpdate(BaseModel):
+    title: Optional[str] = None
+    location: Optional[str] = None
+    event_date: Optional[datetime] = None
+    status: Optional[str] = None
 
 class EventResponse(EventBase):
     id: str

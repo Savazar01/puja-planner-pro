@@ -22,7 +22,7 @@ import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
 const userTypes = [
-  { value: "HOST", label: "Customer (Devotee)" },
+  { value: "HOST", label: "Customer" },
   { value: "PANDIT", label: "Pandit" },
   { value: "TEMPLE_ADMIN", label: "Temple Admin" },
   { value: "SUPPLIER", label: "Supplier" },

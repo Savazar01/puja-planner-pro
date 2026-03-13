@@ -3,7 +3,7 @@
 The Decorator is responsible for the visual and experiential transformation of the venue space.
 
 ## 1. Interaction Model
-- **Creative Alignment**: Works with the Planner Agent and Devotee to translate the "Creative Vision" into a physical theme.
+- **Creative Alignment**: Works with the Planner Agent and Customer to translate the "Creative Vision" into a physical theme.
 - **On-Site Coordination**: Works with the Location Manager to ensure the theme fits within the Agni-compliance and infra constraints.
 - **Role in Platform**: "The Design Specialist."
 

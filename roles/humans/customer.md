@@ -1,10 +1,10 @@
-# Blueprint: Devotee (The Visionary Customer)
+# Blueprint: Customer (The Event Host)
 
-The Devotee is the primary user and host of the event. They hold the "Creative Vision" and are the final decision-makers.
+The Customer is the primary user and host of the event. They hold the "Creative Vision" and are the final decision-makers.
 
 ## 1. Interaction Model
 - **Primary Handshake**: Collaborative session with the Planner Agent to establish event scale, vibe, and tradition level.
-- **Decision Boundary**: Every agentic proposal (Finder's shortlist, Scribe's card design) must be confirmed by the Devotee.
+- **Decision Boundary**: Every agentic proposal (Finder's shortlist, Scribe's card design) must be confirmed by the Customer.
 - **Role in Platform**: "The Requester."
 
 ## 2. Metadata Requirements (For Scribe Agent)

@@ -8,7 +8,7 @@ Each human role is primary defined by a `metadata` blob (JSONB) optimized for se
 
 | Role | Metadata Schema (JSONB) | Service_Categories |
 | :--- | :--- | :--- |
-| **Devotee** | `{"preferences": ["string"], "catering_nature": "string (Sattvik/Regular)", "location_radius": "int"}` | N/A |
+| **Customer** | `{"preferences": ["string"], "catering_nature": "string (Sattvik/Regular)", "location_radius": "int"}` | N/A |
 | **Pandit** | `{"specialties": ["Ritualist", "Astrologer", "Muhurtam", "Ayurveda"], "experience_years": "int", "languages": ["string"]}` | `Puja`, `Wedding`, `Astrology`, `Ayurveda` |
 | **Temple Admin** | `{"temple_name": "string", "deity": "string", "capacity": "int", "amenities": ["string"]}` | `Temple_Stay`, `Prasad`, `Rituals` |
 | **Media** | `{"equipment": ["string"], "portfolio_url": "url", "base_rate": "decimal"}` | `Photography`, `Videography`, `Live_Stream` |

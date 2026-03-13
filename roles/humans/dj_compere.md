@@ -3,7 +3,7 @@
 The DJ/Compere is responsible for the energy, announcements, and musical flow of the ceremonial and celebratory phases.
 
 ## 1. Interaction Model
-- **Vibe Handshake**: Works with the Planner Agent and Devotee to align on the musical genre and announcement style (Traditional vs. Modern Energy).
+- **Vibe Handshake**: Works with the Planner Agent and Customer to align on the musical genre and announcement style (Traditional vs. Modern Energy).
 - **Technical Handshake**: Coordinates with the Location Manager for power and sound setup.
 - **Role in Platform**: "The Flow Specialist."
 

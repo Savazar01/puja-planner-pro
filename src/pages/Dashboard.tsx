@@ -10,10 +10,10 @@ const Dashboard = () => {
 
   if (!isAuthenticated) return <Navigate to="/" replace />;
 
-  const isDevotee = user?.userType === "devotee" || user?.userType === "customer";
+  const isCustomer = user?.userType === "customer";
   const isAdmin = user?.userType === "ADMIN";
 
-  if (!isDevotee && !isAdmin) {
+  if (!isCustomer && !isAdmin) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="max-w-md w-full text-center space-y-6 p-8 rounded-2xl border border-border bg-card">
@@ -24,7 +24,7 @@ const Dashboard = () => {
           </div>
           <h1 className="text-2xl font-bold text-foreground">Access Restricted</h1>
           <p className="text-muted-foreground">
-            The Event Canvas is reserved for active Devotees. Please contact support if you believe this is an error or switch to a customer account.
+            The Event Canvas is reserved for active Customers. Please contact support if you believe this is an error.
           </p>
           <Button onClick={() => window.location.href = "/"} className="w-full">
             Return to Home
@@ -40,7 +40,7 @@ const Dashboard = () => {
         <div className="container mx-auto max-w-7xl px-4 py-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="font-display text-3xl font-bold tracking-tight text-foreground md:text-4xl">Protected Devotee Workspace</h1>
+              <h1 className="font-display text-3xl font-bold tracking-tight text-foreground md:text-4xl">Protected Customer Workspace</h1>
               <p className="mt-2 text-sm text-muted-foreground flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
                 Live Event Canvas — Synchronized with MyPandits Global Constitution

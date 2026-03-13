@@ -9,7 +9,7 @@ This project is built with a "Pure Docker" philosophy. It is intentionally decou
 - **Frontend:** React/Vite/Nginx (Internal Port: 8734) - **Operational**
 - **Backend:** FastAPI/Python (Internal Port: 8735) - **Operational**
 - **Privacy Gate:** Privacy Gate (Port 8740) - **Operational**
-- **Devotee Canvas:** Protected Event Workspace (RBAC enabled) - **Active**
+- **Customer Canvas:** Protected Event Workspace (RBAC enabled) - **Active**
 - **Database:** Postgres/pgvector (v17)
 - **Cache/Vault:** Redis (alpine)
 
@@ -151,7 +151,7 @@ The backend includes an intelligent Discovery Agent that:
 - Event management dashboard
 - Guest list management
 - Event checklist tracking
-- Protected Devotee Workspace (Agentic Event Canvas)
+- Protected Customer Workspace (Agentic Event Canvas)
 - Authentication with tiered access & RBAC
 - Password management & recovery
 - Administrative Dashboard (Pending Requests & Active Users)
@@ -253,3 +253,6 @@ All rights reserved.
 For deployment issues, see [DEPLOYMENT.md](./DEPLOYMENT.md#troubleshooting).
 
 For API documentation, visit the `/docs` endpoint when the backend is running.
+
+---
+**Note**: As of v3.1.0, the **'Devotee'** role has been deprecated and Consolidated under the **'Customer'** role to streamline agentic orchestration.

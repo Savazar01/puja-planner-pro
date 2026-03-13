@@ -1,6 +1,6 @@
 # Blueprint: Mehendi Artist (Vedic Artistry)
 
-The Mehendi Artist is a specialist in traditional and modern henna art, primarily servicing the Devotee and female guests.
+The Mehendi Artist is a specialist in traditional and modern henna art, primarily servicing the Customer and female guests.
 
 ## 1. Interaction Model
 - **Booking**: Matched by the Finder Agent for style and rate per participant.

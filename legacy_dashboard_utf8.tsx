@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { mockGuests, mockChecklist, type Guest, type ChecklistItem } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
@@ -26,12 +26,6 @@ const Dashboard = () => {
   const [newGuestPhone, setNewGuestPhone] = useState("");
 
   if (!isAuthenticated) return <Navigate to="/" replace />;
-  
-  // Redirect customers to their dedicated workspace
-  const role = user?.userType?.toString().toLowerCase() || "";
-  if (role.includes("customer")) {
-    return <Navigate to="/event-orchestration" replace />;
-  }
 
   const tierAllowsGuests = user?.tier === "gold" || user?.tier === "platinum";
 
@@ -61,8 +55,8 @@ const Dashboard = () => {
     <main className="min-h-screen bg-background">
       <div className="border-b border-border bg-card px-4 py-6">
         <div className="container mx-auto max-w-5xl">
-          <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Legacy Dashboard</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage your event logistics and coordination.</p>
+          <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl">Event Dashboard</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Manage your Satyanarayan Puja ΓÇö Dec 15, 2026</p>
         </div>
       </div>
 

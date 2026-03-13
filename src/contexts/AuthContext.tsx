@@ -75,8 +75,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(res.access_token);
     const u = await fetchUser(res.access_token);
     setShowAuthModal(false);
-    if (u && u.userType === "ADMIN") {
-      window.location.href = "/admin-dashboard";
+    if (u) {
+      if (u.userType === "ADMIN") {
+        window.location.href = "/admin-dashboard";
+      } else if (u.userType.toString().toLowerCase().includes("customer")) {
+        window.location.href = "/event-orchestration";
+      } else {
+        window.location.href = "/dashboard";
+      }
     }
   }, [fetchUser]);
 

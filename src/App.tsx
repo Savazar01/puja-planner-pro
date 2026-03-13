@@ -13,6 +13,7 @@ import AdminCenter from "./pages/AdminCenter";
 import ProfileSettings from "./pages/ProfileSettings";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import EventOrchestration from "./pages/event-orchestration";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/search" element={<SearchResults />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/event-orchestration" element={<EventOrchestration />} />
             <Route path="/admin" element={<AdminCenter />} />
             <Route path="/admin-dashboard" element={<AdminCenter />} />
             <Route path="/settings" element={<ProfileSettings />} />

@@ -123,136 +123,16 @@ puja-planner-pro/
 └── README.md
 ```
 
-## Features
+### User-Facing Roles
+- **Customer**: The primary host and decision-maker. Enters the platform via the isolated **Customer Event Canvas** (`/event-orchestration`).
+- **Pandit**: Vedic specialist providing ritual services. Managed via the **Legacy Dashboard** (`/dashboard`).
+- **Admin**: System administrator overseeing the ecosystem. Accesses the **Legacy Dashboard** (`/dashboard`) and **Admin Center**.
 
-### Discovery Agent
-
-The backend includes an intelligent Discovery Agent that:
-
-1. **Searches** using Serper.dev for local businesses
-2. **Scrapes** detailed information using Firecrawl
-3. **Parses** unstructured data into JSON using Gemini AI
-4. **Caches** results for 24 hours to minimize API costs
-5. **Stores** discovered entities in PostgreSQL
-
-### API Endpoints
-
-- `POST /api/search` - Universal search across all categories
-- `GET /api/discover/pandits` - Discover Pandits by location
-- `GET /api/discover/venues` - Discover Venues by location
-- `GET /api/discover/catering` - Discover Catering services
-- `POST /api/auth/forgot-password` - Request a password reset email
-- `POST /api/auth/reset-password` - Reset password using JWT token
-- `GET /health` - Health check
-
-### Frontend Features
-
-- Search for Pandits, Temples, and Venues
-- Event management dashboard
-- Guest list management
-- Event checklist tracking
-- Protected Customer Workspace (Agentic Event Canvas)
-- Authentication with tiered access & RBAC (Note: The **"Devotee"** role has been deprecated. All user-side orchestration is strictly handled by the **"Customer"** role.)
-- Password management & recovery
-- Administrative Dashboard (Pending Requests & Active Users)
-- Responsive design with premium UI
-
-## Deployment
-
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for comprehensive deployment instructions including:
-
-- Local development setup
-- Coolify deployment on Debian 13 VPS
-- Manual deployment with Docker
-- Nginx configuration
-- SSL setup with Certbot
-- Troubleshooting guide
-
-## Environment Variables
-
-### Backend (.env)
-
-```env
-DATABASE_URL=postgresql://user:password@postgres:5432/puja_planner
-SERPER_API_KEY=your_serper_api_key
-FIRECRAWL_API_KEY=your_firecrawl_api_key
-GEMINI_API_KEY=your_gemini_api_key
-RESEND_API_KEY=your_resend_api_key
-ENVIRONMENT=development
-DEBUG=True
-CORS_ORIGINS=http://localhost:5173,http://localhost:8734
-CACHE_EXPIRY_HOURS=24
-ADMIN_USER=your_admin_email@example.com
-ADMIN_PASSWORD=your_admin_password_here
-SECRET_KEY=your_secret_key
-```
-
-### Frontend (.env)
-
-```env
-VITE_API_URL=https://{YOUR_API_DOMAIN}
-FRONTEND_HOST={YOUR_DOMAIN}
-BACKEND_HOST={YOUR_API_DOMAIN}
-FRONTEND_PORT=8734
-BACKEND_PORT=8735
-```
-
-### Dynamic Port Forwarding
-The infrastructure is strictly template-driven via Docker Compose. Ensure `FRONTEND_PORT` and `BACKEND_PORT` match any downstream proxy rules (Coolify / Traefik) and internal mappings will automatically decouple to the target without the need for static configurations.
-
-## Scripts
-
-```bash
-# Frontend
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run preview      # Preview production build
-npm run lint         # Run ESLint
-npm run test         # Run tests
-
-# Docker
-docker-compose up --build   # Build and start all services
-docker-compose down         # Stop all services
-docker-compose logs -f      # View logs
-docker-compose ps           # List running containers
-```
-
-## Tech Stack
-
-**Frontend:**
-- React 18
-- TypeScript
-- Vite
-- Tailwind CSS
-- shadcn/ui components
-- React Query
-- React Router
-- Framer Motion
-
-**Backend:**
-- FastAPI
-- SQLAlchemy
-- Postgres/pgvector (v17)
-- Redis (alpine)
-- Pydantic
-- httpx
-- Google Generative AI
-  
-**DevOps:**
-- Docker
-- Docker Compose
-- Nginx
-- Coolify (deployment)
-
-## License
-
-All rights reserved.
-
-## Support
-
-For deployment issues, see [DEPLOYMENT.md](./DEPLOYMENT.md#troubleshooting).
-
-For API documentation, visit the `/docs` endpoint when the backend is running.
+## 🚀 Key Features
+- **Isolated Customer Orchestration**: Dedicated workspace at `/event-orchestration` for event planning with agentic support.
+- **Legacy Dashboard Hub**: Central management point for Admins, Pandits, and Vendors at `/dashboard`.
+- **Protected Environment**: RBAC ensures Customers land in the Canvas while Admins maintain logistics control.
+- **Privacy Gate (Port 8740)**: Automated PII masking via Microsoft Presidio for all internal data handshakes.
 
 ---
-**Note**: As of v3.1.0, the **'Devotee'** role has been deprecated and Consolidated under the **'Customer'** role to streamline agentic orchestration.
+**Note**: The **"Devotee"** role has been deprecated. All user-side orchestration is strictly handled by the **"Customer"** role on the isolated Event Canvas.

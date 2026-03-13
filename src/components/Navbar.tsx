@@ -19,7 +19,11 @@ const Navbar = () => {
   const navLinks = [
     { to: "/", label: "Home" },
     { to: "/search", label: "Find Pandits" },
-    ...(isAuthenticated ? [{ to: "/dashboard", label: "Dashboard" }] : []),
+    ...(isAuthenticated ? [
+      user?.userType?.toString().toLowerCase().includes("customer") 
+        ? { to: "/event-orchestration", label: "Event Canvas" }
+        : { to: "/dashboard", label: "Dashboard" }
+    ] : []),
     ...(user?.isAdmin ? [{ to: "/admin-dashboard", label: "Admin" }] : []),
   ];
 

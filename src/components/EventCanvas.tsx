@@ -12,7 +12,9 @@ import {
   ChevronRight,
   FileText,
   UserCheck,
-  CheckCircle2
+  CheckCircle2,
+  MessageCircle,
+  Share2
 } from "lucide-react";
 import { 
   Sheet, 
@@ -28,6 +30,16 @@ import {
   TabsTrigger 
 } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger,
+  DialogFooter
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/use-toast";
 
 const EventCanvas = () => {
   const [searchParams] = useSearchParams();
@@ -48,6 +60,11 @@ const EventCanvas = () => {
     { id: "s3", name: "Coconuts (2)", completed: false },
     { id: "s4", name: "Red Cloth", completed: true }
   ]);
+  
+  const [newGuest, setNewGuest] = useState({ name: "", phone: "" });
+  const [newSupply, setNewSupply] = useState("");
+  const [isGuestDialogOpen, setIsGuestDialogOpen] = useState(false);
+  const [isSupplyDialogOpen, setIsSupplyDialogOpen] = useState(false);
 
   useEffect(() => {
     if (eventId) {
@@ -59,6 +76,42 @@ const EventCanvas = () => {
     e.preventDefault();
     if (intent.trim()) {
       setIsEventActive(true);
+    }
+  };
+
+  const addGuest = () => {
+    if (newGuest.name.trim()) {
+      setGuests(prev => [...prev, { id: `g${Date.now()}`, name: newGuest.name, status: "Not yet responded" }]);
+      setNewGuest({ name: "", phone: "" });
+      setIsGuestDialogOpen(false);
+      toast({ title: "Guest Added", description: `${newGuest.name} has been added to your planning list.` });
+    }
+  };
+
+  const toggleGuestStatus = (id: string) => {
+    const statuses = ["Coming", "Not yet responded", "Declined"];
+    setGuests(prev => prev.map(g => {
+      if (g.id === id) {
+        const nextIdx = (statuses.indexOf(g.status) + 1) % statuses.length;
+        return { ...g, status: statuses[nextIdx] as any };
+      }
+      return g;
+    }));
+  };
+
+  const sendWhatsAppInvite = (guestName: string, phone: string = "") => {
+    const message = `Namaste ${guestName}! We would be honored to have you join us for our upcoming ritual. Please let us know if you can attend.`;
+    const encodedMsg = encodeURIComponent(message);
+    const waUrl = phone ? `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodedMsg}` : `https://wa.me/?text=${encodedMsg}`;
+    window.open(waUrl, "_blank");
+  };
+
+  const addSupply = () => {
+    if (newSupply.trim()) {
+      setSupplies(prev => [...prev, { id: `s${Date.now()}`, name: newSupply, completed: false }]);
+      setNewSupply("");
+      setIsSupplyDialogOpen(false);
+      toast({ title: "Item Added", description: `Added ${newSupply} to your ritual supplies.` });
     }
   };
 
@@ -186,18 +239,53 @@ const EventCanvas = () => {
                   <CardTitle className="text-2xl font-bold">Guest List</CardTitle>
                   <CardDescription>{confirmedGuests} of {guests.length} guests are coming</CardDescription>
                 </div>
-                <Button className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Invite Guests
-                </Button>
+                
+                <Dialog open={isGuestDialogOpen} onOpenChange={setIsGuestDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Invite Guests
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Invite a Guest</DialogTitle>
+                      <CardDescription>Add someone you'd like to join your ritual.</CardDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="name">Name</Label>
+                        <Input id="name" value={newGuest.name} onChange={(e) => setNewGuest({...newGuest, name: e.target.value})} placeholder="e.g. Anil Sharma" />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="phone">Phone (Optional for WhatsApp)</Label>
+                        <Input id="phone" value={newGuest.phone} onChange={(e) => setNewGuest({...newGuest, phone: e.target.value})} placeholder="e.g. 9876543210" />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={addGuest}>Add to List</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </CardHeader>
               <CardContent className="space-y-4">
-                {guests.map((guest) => (
-                  <div key={guest.id} className="flex items-center justify-between p-4 rounded-xl border border-border bg-background/50">
-                    <div className="font-medium">{guest.name}</div>
-                    <Badge variant={guest.status === "Coming" ? "default" : "secondary"}>
-                      {guest.status}
-                    </Badge>
+                {guests.map((guest: any) => (
+                  <div key={guest.id} className="flex items-center justify-between p-4 rounded-xl border border-border bg-background/50 group">
+                    <div className="flex items-center gap-4">
+                      <div className="font-medium">{guest.name}</div>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:bg-green-50 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => sendWhatsAppInvite(guest.name)}>
+                        <MessageCircle className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge 
+                        variant={guest.status === "Coming" ? "default" : guest.status === "Declined" ? "destructive" : "secondary"}
+                        className="cursor-pointer hover:opacity-80 transition-all px-3 py-1"
+                        onClick={() => toggleGuestStatus(guest.id)}
+                      >
+                        {guest.status}
+                      </Badge>
+                    </div>
                   </div>
                 ))}
               </CardContent>
@@ -206,9 +294,35 @@ const EventCanvas = () => {
 
           <TabsContent value="supplies" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <Card className="bg-card">
-              <CardHeader className="border-b border-border mb-6">
-                <CardTitle className="text-2xl font-bold">Ritual Supplies</CardTitle>
-                <CardDescription>Items needed for your ceremony</CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between border-b border-border mb-6">
+                <div>
+                  <CardTitle className="text-2xl font-bold">Ritual Supplies</CardTitle>
+                  <CardDescription>Items needed for your ceremony</CardDescription>
+                </div>
+                
+                <Dialog open={isSupplyDialogOpen} onOpenChange={setIsSupplyDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Add Item
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>Add Ritual Supply</DialogTitle>
+                      <CardDescription>What's missing for the ceremony?</CardDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="supply">Item Name</Label>
+                        <Input id="supply" value={newSupply} onChange={(e) => setNewSupply(e.target.value)} placeholder="e.g. Pure Ghee, Coconuts" />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button onClick={addSupply}>Add to Checklist</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </CardHeader>
               <CardContent className="space-y-4">
                 {supplies.map((item) => (
@@ -221,10 +335,6 @@ const EventCanvas = () => {
                     </label>
                   </div>
                 ))}
-                <Button variant="outline" className="w-full gap-2 mt-4 text-muted-foreground dashed">
-                  <Plus className="h-4 w-4" />
-                  Add an item
-                </Button>
               </CardContent>
             </Card>
           </TabsContent>

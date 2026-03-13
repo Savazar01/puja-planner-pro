@@ -131,6 +131,7 @@ puja-planner-pro/
 ## 🚀 Key Features
 - **Customer Workspace**: Dedicated agentic planning at `/event-orchestration` for live orchestration.
 - **Dashboard Hub**: Unified management point for all roles (Customer, Admin, Pandit) at `/dashboard`.
+- **Agentic Sourcing**: All practitioner discovery and service hiring is now handled exclusively via the **Event Canvas** workspace. Legacy manual search has been deprecated.
 - **Privacy Gate (Port 8740)**: Automated PII masking via Microsoft Presidio for all internal data handshakes.
 
 ---

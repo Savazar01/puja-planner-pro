@@ -20,8 +20,8 @@ const statusColors: Record<Guest["status"], string> = {
 
 const Dashboard = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
-  const [guests, setGuests] = useState<Guest[]>(mockGuests);
-  const [checklist, setChecklist] = useState<ChecklistItem[]>(mockChecklist);
+  const [guests, setGuests] = useState<Guest[]>([]);
+  const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [newGuestName, setNewGuestName] = useState("");
   const [newGuestPhone, setNewGuestPhone] = useState("");
 
@@ -58,6 +58,8 @@ const Dashboard = () => {
 
   const completedCount = checklist.filter((c) => c.completed).length;
   const categories = [...new Set(checklist.map((c) => c.category))];
+
+  const hasData = guests.length > 0 || checklist.length > 0;
 
   return (
     <main className="min-h-screen bg-background">
@@ -99,12 +101,26 @@ const Dashboard = () => {
                 <ShoppingBag className="h-6 w-6 text-secondary-foreground" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-foreground">{completedCount}/{checklist.length}</p>
+                <p className="text-2xl font-bold text-foreground">{checklist.length > 0 ? `${completedCount}/${checklist.length}` : "0"}</p>
                 <p className="text-sm text-muted-foreground">Supplies Ready</p>
               </div>
             </CardContent>
           </Card>
         </div>
+
+        {!hasData && (
+          <Card className="mt-8 border-dashed bg-muted/20">
+            <CardContent className="py-20 text-center space-y-4">
+              <div className="mx-auto w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+                <CalendarCheck className="h-8 w-8 text-muted-foreground/40" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-lg font-semibold">No Active Events</h3>
+                <p className="text-sm text-muted-foreground">Once you create an event via the Event Canvas, your summaries will appear here.</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Tabs defaultValue="guests" className="mt-8">
           <TabsList className="bg-secondary">

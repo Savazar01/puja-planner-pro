@@ -39,7 +39,7 @@ export interface ChecklistItem {
 }
 
 export const mockPandits: Pandit[] = [
-  { id: "1", name: "Pt. Ramesh Shastri", specialization: "Satyanarayan Puja, Griha Pravesh", location: "Mumbai, Maharashtra", rating: 4.9, reviews: 234, verified: true, image: "", languages: ["Hindi", "Sanskrit", "Marathi"], priceRange: "₹5,000 - ₹15,000" },
+  { id: "1", name: "Pt. Ramesh Shastri", specialization: "Griha Pravesh, Vastu", location: "Mumbai, Maharashtra", rating: 4.9, reviews: 234, verified: true, image: "", languages: ["Hindi", "Sanskrit", "Marathi"], priceRange: "₹5,000 - ₹15,000" },
   { id: "2", name: "Pt. Suresh Dikshit", specialization: "Wedding Ceremonies, Havan", location: "Delhi NCR", rating: 4.8, reviews: 189, verified: true, image: "", languages: ["Hindi", "Sanskrit"], priceRange: "₹8,000 - ₹25,000" },
   { id: "3", name: "Pt. Venkatesh Iyer", specialization: "Vastu Shanti, Navagraha Puja", location: "Bangalore, Karnataka", rating: 4.7, reviews: 156, verified: true, image: "", languages: ["Kannada", "Sanskrit", "Hindi"], priceRange: "₹4,000 - ₹12,000" },
   { id: "4", name: "Pt. Arun Trivedi", specialization: "Mundan, Annaprashan", location: "Ahmedabad, Gujarat", rating: 4.9, reviews: 312, verified: true, image: "", languages: ["Gujarati", "Hindi", "Sanskrit"], priceRange: "₹3,000 - ₹10,000" },
@@ -145,6 +145,6 @@ export const discoveryLogs = [
   { id: "1", type: "pandit", name: "Pt. Krishna Das", source: "Serper", location: "Lucknow, UP", timestamp: "2 min ago" },
   { id: "2", type: "event", name: "Maha Shivratri Special Puja", source: "Firecrawl", location: "ISKCON Delhi", timestamp: "5 min ago" },
   { id: "3", type: "pandit", name: "Pt. Mohan Lal", source: "Gemini", location: "Varanasi, UP", timestamp: "12 min ago" },
-  { id: "4", type: "event", name: "Satyanarayan Katha", source: "Serper", location: "Birla Mandir Jaipur", timestamp: "18 min ago" },
+  { id: "4", type: "event", name: "Ganesh Chaturthi", source: "Serper", location: "Siddhivinayak Mumbai", timestamp: "18 min ago" },
   { id: "5", type: "pandit", name: "Pt. Gopal Sharma", source: "Firecrawl", location: "Chennai, TN", timestamp: "25 min ago" },
 ];

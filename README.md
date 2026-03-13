@@ -152,7 +152,7 @@ The backend includes an intelligent Discovery Agent that:
 - Guest list management
 - Event checklist tracking
 - Protected Customer Workspace (Agentic Event Canvas)
-- Authentication with tiered access & RBAC
+- Authentication with tiered access & RBAC (Note: The **"Devotee"** role has been deprecated. All user-side orchestration is strictly handled by the **"Customer"** role.)
 - Password management & recovery
 - Administrative Dashboard (Pending Requests & Active Users)
 - Responsive design with premium UI

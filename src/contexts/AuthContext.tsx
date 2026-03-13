@@ -39,13 +39,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchUser = useCallback(async (authToken: string) => {
     try {
       const data = await getMe(authToken);
+      const rawRole = (data.role || "").toString();
+      const sanitizedRole = rawRole.replace(/Devotee/gi, "").trim() || "customer";
+      const rawName = data.profile?.full_name || data.email;
+      const sanitizedName = rawName.replace(/Devotee/gi, "").trim();
+
       const fetchedUser = {
         id: data.id,
-        name: data.profile?.full_name || data.email,
+        name: sanitizedName,
         email: data.email,
         tier: data.subscription_tier?.toLowerCase() || "free",
         isAdmin: data.role === "ADMIN",
-        userType: data.role as UserType,
+        userType: sanitizedRole.toLowerCase() as UserType,
         token_balance: data.token_balance,
         has_pending_subscription: data.has_pending_subscription
       };

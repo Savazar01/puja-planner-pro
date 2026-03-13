@@ -10,7 +10,8 @@ const Dashboard = () => {
 
   if (!isAuthenticated) return <Navigate to="/" replace />;
 
-  const isCustomer = user?.userType === "customer";
+  const role = user?.userType?.toString().toLowerCase() || "";
+  const isCustomer = role.includes("customer");
   const isAdmin = user?.userType === "ADMIN";
 
   if (!isCustomer && !isAdmin) {

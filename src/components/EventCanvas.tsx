@@ -14,7 +14,11 @@ import {
   UserCheck,
   CheckCircle2,
   MessageCircle,
-  Share2
+  Share2,
+  MoreVertical,
+  Pencil,
+  Trash2,
+  Users
 } from "lucide-react";
 import { 
   Sheet, 
@@ -40,6 +44,12 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const EventCanvas = () => {
   const [searchParams] = useSearchParams();
@@ -49,9 +59,9 @@ const EventCanvas = () => {
   
   // New modules state
   const [guests, setGuests] = useState([
-    { id: "g1", name: "Anil Sharma", status: "Coming" },
-    { id: "g2", name: "Meena Gupta", status: "Not yet responded" },
-    { id: "g3", name: "Rahul V.", status: "Coming" }
+    { id: "g1", name: "Anil Sharma", phone: "9876543210", memberCount: 4, status: "Coming" },
+    { id: "g2", name: "Meena Gupta", phone: "9876543211", memberCount: 2, status: "Not yet responded" },
+    { id: "g3", name: "Rahul V.", phone: "9876543212", memberCount: 1, status: "Coming" }
   ]);
   
   const [supplies, setSupplies] = useState([
@@ -61,10 +71,11 @@ const EventCanvas = () => {
     { id: "s4", name: "Red Cloth", completed: true }
   ]);
   
-  const [newGuest, setNewGuest] = useState({ name: "", phone: "" });
+  const [newGuest, setNewGuest] = useState({ id: "", name: "", phone: "", memberCount: 1 });
   const [newSupply, setNewSupply] = useState("");
   const [isGuestDialogOpen, setIsGuestDialogOpen] = useState(false);
   const [isSupplyDialogOpen, setIsSupplyDialogOpen] = useState(false);
+  const [editingGuestId, setEditingGuestId] = useState<string | null>(null);
 
   useEffect(() => {
     if (eventId) {
@@ -80,12 +91,29 @@ const EventCanvas = () => {
   };
 
   const addGuest = () => {
-    if (newGuest.name.trim()) {
-      setGuests(prev => [...prev, { id: `g${Date.now()}`, name: newGuest.name, status: "Not yet responded" }]);
-      setNewGuest({ name: "", phone: "" });
+    if (newGuest.name.trim() && newGuest.phone.trim()) {
+      if (editingGuestId) {
+        setGuests(prev => prev.map(g => g.id === editingGuestId ? { ...newGuest, id: editingGuestId } as any : g));
+        setEditingGuestId(null);
+        toast({ title: "Guest Updated", description: `${newGuest.name}'s details have been updated.` });
+      } else {
+        setGuests(prev => [...prev, { ...newGuest, id: `g${Date.now()}`, status: "Not yet responded" } as any]);
+        toast({ title: "Guest Added", description: `${newGuest.name} has been added to your planning list.` });
+      }
+      setNewGuest({ id: "", name: "", phone: "", memberCount: 1 });
       setIsGuestDialogOpen(false);
-      toast({ title: "Guest Added", description: `${newGuest.name} has been added to your planning list.` });
     }
+  };
+
+  const removeGuest = (id: string) => {
+    setGuests(prev => prev.filter(g => g.id !== id));
+    toast({ title: "Guest Removed", description: "The guest has been removed from your list." });
+  };
+
+  const openEditGuest = (guest: any) => {
+    setNewGuest({ ...guest });
+    setEditingGuestId(guest.id);
+    setIsGuestDialogOpen(true);
   };
 
   const toggleGuestStatus = (id: string) => {
@@ -99,10 +127,10 @@ const EventCanvas = () => {
     }));
   };
 
-  const sendWhatsAppInvite = (guestName: string, phone: string = "") => {
-    const message = `Namaste ${guestName}! We would be honored to have you join us for our upcoming ritual. Please let us know if you can attend.`;
+  const sendWhatsAppInvite = (guest: any) => {
+    const message = `Namaste ${guest.name}! We would be honored to have you join us for our upcoming ritual. Please let us know if your family of ${guest.memberCount} can attend.`;
     const encodedMsg = encodeURIComponent(message);
-    const waUrl = phone ? `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodedMsg}` : `https://wa.me/?text=${encodedMsg}`;
+    const waUrl = `https://wa.me/${guest.phone.replace(/\D/g, '')}?text=${encodedMsg}`;
     window.open(waUrl, "_blank");
   };
 
@@ -116,7 +144,8 @@ const EventCanvas = () => {
   };
 
   const currentEventName = eventId ? `Planning: ${eventId}` : "New Event Planning";
-  const confirmedGuests = guests.filter(g => g.status === "Coming").length;
+  const confirmedInvitations = guests.filter(g => g.status === "Coming").length;
+  const totalGuestsComing = guests.filter(g => g.status === "Coming").reduce((acc, g) => acc + (g.memberCount || 1), 0);
 
   return (
     <div className="space-y-8 pb-12">
@@ -237,33 +266,47 @@ const EventCanvas = () => {
               <CardHeader className="flex flex-row items-center justify-between border-b border-border mb-6">
                 <div>
                   <CardTitle className="text-2xl font-bold">Guest List</CardTitle>
-                  <CardDescription>{confirmedGuests} of {guests.length} guests are coming</CardDescription>
+                  <CardDescription>
+                    {confirmedInvitations} invitations accepted ({totalGuestsComing} total guests)
+                  </CardDescription>
                 </div>
                 
-                <Dialog open={isGuestDialogOpen} onOpenChange={setIsGuestDialogOpen}>
+                <Dialog open={isGuestDialogOpen} onOpenChange={(open) => {
+                  setIsGuestDialogOpen(open);
+                  if (!open) {
+                    setEditingGuestId(null);
+                    setNewGuest({ id: "", name: "", phone: "", memberCount: 1 });
+                  }
+                }}>
                   <DialogTrigger asChild>
                     <Button className="gap-2">
                       <Plus className="h-4 w-4" />
-                      Invite Guests
+                      Add Guest
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                      <DialogTitle>Invite a Guest</DialogTitle>
-                      <CardDescription>Add someone you'd like to join your ritual.</CardDescription>
+                      <DialogTitle>{editingGuestId ? "Edit Guest" : "Add a Guest"}</DialogTitle>
+                      <CardDescription>All fields are required for WhatsApp coordination.</CardDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                       <div className="grid gap-2">
-                        <Label htmlFor="name">Name</Label>
+                        <Label htmlFor="name">Full Name</Label>
                         <Input id="name" value={newGuest.name} onChange={(e) => setNewGuest({...newGuest, name: e.target.value})} placeholder="e.g. Anil Sharma" />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="phone">Phone (Optional for WhatsApp)</Label>
-                        <Input id="phone" value={newGuest.phone} onChange={(e) => setNewGuest({...newGuest, phone: e.target.value})} placeholder="e.g. 9876543210" />
+                        <Label htmlFor="phone">WhatsApp Number</Label>
+                        <Input id="phone" value={newGuest.phone} onChange={(e) => setNewGuest({...newGuest, phone: e.target.value})} placeholder="e.g. 919876543210" />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="members">Members in Family</Label>
+                        <Input id="members" type="number" min="1" value={newGuest.memberCount} onChange={(e) => setNewGuest({...newGuest, memberCount: parseInt(e.target.value) || 1})} />
                       </div>
                     </div>
                     <DialogFooter>
-                      <Button onClick={addGuest}>Add to List</Button>
+                      <Button onClick={addGuest} disabled={!newGuest.name || !newGuest.phone}>
+                        {editingGuestId ? "Save Changes" : "Save Guest"}
+                      </Button>
                     </DialogFooter>
                   </DialogContent>
                 </Dialog>
@@ -272,19 +315,45 @@ const EventCanvas = () => {
                 {guests.map((guest: any) => (
                   <div key={guest.id} className="flex items-center justify-between p-4 rounded-xl border border-border bg-background/50 group">
                     <div className="flex items-center gap-4">
-                      <div className="font-medium">{guest.name}</div>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-green-600 hover:bg-green-50 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => sendWhatsAppInvite(guest.name)}>
-                        <MessageCircle className="h-4 w-4" />
-                      </Button>
+                      <div className="flex flex-col">
+                        <div className="font-bold flex items-center gap-2">
+                          {guest.name}
+                          <Badge variant="outline" className="text-[10px] h-4 px-1 flex items-center gap-1 border-primary/20">
+                            <Users className="h-3 w-3" />
+                            {guest.memberCount}
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-muted-foreground">{guest.phone}</div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
+                      <Button variant="ghost" size="icon" className="h-9 w-9 text-green-600 hover:bg-green-50" onClick={() => sendWhatsAppInvite(guest)}>
+                        <MessageCircle className="h-5 w-5" />
+                      </Button>
+                      
                       <Badge 
                         variant={guest.status === "Coming" ? "default" : guest.status === "Declined" ? "destructive" : "secondary"}
-                        className="cursor-pointer hover:opacity-80 transition-all px-3 py-1"
+                        className="cursor-pointer hover:opacity-80 transition-all px-3 py-1 min-w-[100px] text-center justify-center"
                         onClick={() => toggleGuestStatus(guest.id)}
                       >
                         {guest.status}
                       </Badge>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openEditGuest(guest)} className="gap-2">
+                            <Pencil className="h-4 w-4" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => removeGuest(guest.id)} className="gap-2 text-destructive">
+                            <Trash2 className="h-4 w-4" /> Remove
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                 ))}

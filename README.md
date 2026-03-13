@@ -131,7 +131,6 @@ puja-planner-pro/
 ## 🚀 Key Features
 - **Customer Workspace**: Dedicated agentic planning at `/event-orchestration` for live orchestration.
 - **Dashboard Hub**: Unified management point for all roles (Customer, Admin, Pandit) at `/dashboard`.
-- **Protected Environment**: RBAC ensures streamlined access while maintaining full logistics control across views.
 - **Privacy Gate (Port 8740)**: Automated PII masking via Microsoft Presidio for all internal data handshakes.
 
 ---

@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import AuthModal from "@/components/AuthModal";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import SearchResults from "./pages/SearchResults";
 import Dashboard from "./pages/Dashboard";
@@ -29,7 +31,7 @@ const App = () => (
           <AuthModal />
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/search" element={<SearchResults />} />
+            <Route path="/search" element={<SearchRedirect />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/event-orchestration" element={<EventOrchestration />} />
             <Route path="/admin" element={<AdminCenter />} />
@@ -44,5 +46,13 @@ const App = () => (
     </TooltipProvider>
   </QueryClientProvider>
 );
+
+const SearchRedirect = () => {
+  const { user } = useAuth();
+  if (user?.userType === "customer") {
+    return <Navigate to="/event-orchestration" replace />;
+  }
+  return <Navigate to="/dashboard" replace />;
+};
 
 export default App;

@@ -18,7 +18,6 @@ const Navbar = () => {
 
   const navLinks = [
     { to: "/", label: "Home" },
-    { to: "/search", label: "Find Pandits" },
     ...(isAuthenticated ? [
       ...(user?.userType === "customer" 
         ? [

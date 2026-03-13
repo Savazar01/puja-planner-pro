@@ -129,11 +129,12 @@ puja-planner-pro/
 - **Admin**: System administrator overseeing the ecosystem. Accesses the **Admin Dashboard** (`/dashboard`) and **Admin Center**.
 
 ## 🚀 Key Features
-- **Customer Workspace**: Dedicated agentic planning at `/event-orchestration` for live orchestration. Supports parallel event switching via unique IDs.
-- **Customer Dashboard**: Centralized management hub at `/customer-dashboard` for tracking multiple ongoing events, analytics, and lifecycle (Archive/Delete) controls.
-- **Dashboard Hub**: Unified management point for Admin and Pandit roles at `/dashboard`.
-- **Agentic Sourcing**: All practitioner discovery and service hiring is now handled exclusively via the **Event Canvas** workspace. Legacy manual search has been deprecated.
-- **Privacy Gate (Port 8740)**: Automated PII masking via Microsoft Presidio for all internal data handshakes.
+- **Event Planning Hub**: Family-focused workspace at `/event-orchestration` for managing rituals.
+  - **Planning**: Agent-driven sourcing for Pandits and services.
+  - **Guests**: Simple RSVP and guest list management.
+  - **Supplies**: Friendly checklists for ritual items.
+- **My Dashboard**: Warm, centralized hub at `/customer-dashboard` for tracking upcoming rituals.
+- **Privacy Gate (8740)**: Automated PII masking for all family and event data.
 
 ---
-**Note**: The ecosystem is strictly standardized around the **"Customer"** role. All references to legacy terms have been purged to ensure architectural consistency.
+**Note**: The UI has been simplified to use warm, non-technical language (**"Event Planning"**, **"My Events"**) to serve Customers as a helpful assistant rather than a technical tool.

@@ -23,10 +23,10 @@ const EventOrchestration = () => {
         <div className="container mx-auto max-w-7xl px-4 py-8">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="font-display text-3xl font-bold tracking-tight text-foreground md:text-4xl">Customer Event Canvas</h1>
+              <h1 className="font-display text-3xl font-bold tracking-tight text-foreground md:text-4xl">Event Planning</h1>
               <p className="mt-2 text-sm text-muted-foreground flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                Live Event Orchestration — Powered by Agentic Intelligence
+                Planning your ritual — A helping hand for your family
               </p>
             </div>
             <div className="flex items-center gap-2">

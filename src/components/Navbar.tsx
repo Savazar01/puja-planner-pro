@@ -21,8 +21,8 @@ const Navbar = () => {
     ...(isAuthenticated ? [
       ...(user?.userType === "customer" 
         ? [
-            { to: "/customer-dashboard", label: "Customer Dashboard" },
-            { to: "/event-orchestration", label: "Event Canvas" }
+            { to: "/customer-dashboard", label: "My Dashboard" },
+            { to: "/event-orchestration", label: "Event Planning" }
           ]
         : [{ to: "/dashboard", label: "Dashboard" }])
     ] : []),

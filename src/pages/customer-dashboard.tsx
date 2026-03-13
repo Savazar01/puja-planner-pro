@@ -4,12 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Carousel } from "@/components/ui/carousel";
-import { 
-  Calendar, 
-  Clock, 
-  Archive, 
-  Trash2, 
-  ExternalLink, 
+import {
+  Calendar,
+  Clock,
+  Archive,
+  Trash2,
+  ExternalLink,
   Plus,
   LayoutDashboard,
   CheckCircle2,
@@ -28,12 +28,12 @@ interface UserEvent {
 
 const CustomerDashboard = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
-  
+
   // Mock data for parallel events
   const [events, setEvents] = useState<UserEvent[]>([
     { id: "e1", name: "Satyanarayana Puja", date: "2026-03-20", status: "active", type: "Puja", location: "Hyderabad" },
-    { id: "e2", name: "Ayaan's Mundan", date: "2026-04-15", status: "active", type: "Mundan", location: "Bangalore" },
-    { id: "e3", name: "House Warming", date: "2026-01-10", status: "archived", type: "Griha Pravesh", location: "Mumbai" }
+    { id: "e2", name: "Ayaan's ", date: "2026-04-15", status: "active", type: "Mundan", location: "Bangalore" },
+    { id: "e3", name: "Griha", date: "2026-01-10", status: "archived", type: "Griha Pravesh", location: "Mumbai" }
   ]);
 
   if (isLoading) return null;
@@ -59,13 +59,13 @@ const CustomerDashboard = () => {
       <div className="border-b border-border bg-card/50 backdrop-blur-md sticky top-16 z-30">
         <div className="container mx-auto max-w-7xl px-4 py-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="font-display text-3xl font-bold tracking-tight text-foreground md:text-4xl">Customer Dashboard</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Manage your spiritual journey and parallel orchestrations.</p>
+            <h1 className="font-display text-3xl font-bold tracking-tight text-foreground md:text-4xl">My Dashboard</h1>
+            <p className="mt-2 text-sm text-muted-foreground">Manage your upcoming rituals and family events.</p>
           </div>
           <Link to="/event-orchestration">
             <Button className="gap-2 shadow-lg shadow-primary/20">
               <Plus className="h-5 w-5" />
-              New Orchestration
+              Plan a Ritual
             </Button>
           </Link>
         </div>
@@ -75,9 +75,9 @@ const CustomerDashboard = () => {
         {/* Analytics Stats */}
         <section className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {[
-            { label: "Total Events", value: events.length, icon: Calendar, color: "text-blue-500" },
-            { label: "Active Now", value: activeEvents.length, icon: Clock, color: "text-amber-500" },
-            { label: "Pending Actions", value: 3, icon: AlertCircle, color: "text-red-500" },
+            { label: "My Events", value: events.length, icon: Calendar, color: "text-blue-500" },
+            { label: "Planned Rituals", value: activeEvents.length, icon: Clock, color: "text-amber-500" },
+            { label: "Things to Do", value: 3, icon: AlertCircle, color: "text-red-500" },
             { label: "Completed", value: 1, icon: CheckCircle2, color: "text-green-500" },
           ].map((stat, i) => (
             <Card key={i} className="bg-card/40 border-primary/10">
@@ -99,11 +99,11 @@ const CustomerDashboard = () => {
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold flex items-center gap-2">
               <Clock className="h-6 w-6 text-primary" />
-              Active Orchestrations
+              My Events
             </h2>
-            <Badge variant="secondary">{activeEvents.length} Running</Badge>
+            <Badge variant="secondary">{activeEvents.length} Planning</Badge>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {activeEvents.map((event) => (
               <Card key={event.id} className="group hover:border-primary/40 transition-all hover:shadow-xl hover:shadow-primary/5">
@@ -128,7 +128,7 @@ const CustomerDashboard = () => {
                 <CardContent>
                   <Link to={`/event-orchestration?id=${event.id}`}>
                     <Button className="w-full gap-2 variant-outline group/btn border-primary/20 hover:bg-primary/5">
-                      Open Workspace
+                      Plan your ritual
                       <ExternalLink className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
                     </Button>
                   </Link>

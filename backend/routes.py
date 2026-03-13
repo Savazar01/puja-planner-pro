@@ -9,9 +9,13 @@ from schemas import (
     VenueResponse, CateringResponse, DiscoveryResponse,
     UserCreate, UserResponse, Token, PasswordChange, UserUpdateStatus,
     EmailTemplateResponse, EmailTemplateUpdate, ProfileUpdate,
-    ForgotPasswordRequest, ResetPasswordRequest, SubscriptionUpgrade
+    ForgotPasswordRequest, ResetPasswordRequest, SubscriptionUpgrade,
+    EventCreate, EventResponse, SelectionRequest
 )
-from models import Pandit, Venue, Catering, User, Profile, UserStatus, UserRole, EmailTemplate, EmailEventType
+from models import (
+    Pandit, Venue, Catering, User, Profile, UserStatus, UserRole, 
+    EmailTemplate, EmailEventType, Event, Booking
+)
 from discovery_agent import discovery_agent
 from config import settings
 from auth import (
@@ -78,35 +82,15 @@ async def search(
         catering_list = []
         
         if category in ["all", "pandits"]:
-            # Search in database first
-            pandits_db = db.query(Pandit).filter(
-                Pandit.location.ilike(f"%{location}%")
-            ).limit(10).all()
-            
-            if not pandits_db:
-                # Discover new pandits
-                pandits_db = await discovery_agent.discover_pandits(location, db)
-            
+            pandits_db = await discovery_agent.discover_pandits(location, db)
             pandits_list = [PanditResponse.from_orm(p) for p in pandits_db]
         
         if category in ["all", "venues"]:
-            venues_db = db.query(Venue).filter(
-                Venue.location.ilike(f"%{location}%")
-            ).limit(10).all()
-            
-            if not venues_db:
-                venues_db = await discovery_agent.discover_venues(location, db)
-            
+            venues_db = await discovery_agent.discover_venues(location, db)
             venues_list = [VenueResponse.from_orm(v) for v in venues_db]
         
         if category in ["all", "catering"]:
-            catering_db = db.query(Catering).filter(
-                Catering.location.ilike(f"%{location}%")
-            ).limit(10).all()
-            
-            if not catering_db:
-                catering_db = await discovery_agent.discover_catering(location, db)
-            
+            catering_db = await discovery_agent.discover_catering(location, db)
             catering_list = [CateringResponse.from_orm(c) for c in catering_db]
         
         # Save to cache
@@ -537,4 +521,90 @@ async def update_email_template(
     db.commit()
     db.refresh(template)
     return template
+
+
+# --- Event & Selection Routes ---
+
+@router.post("/api/events", response_model=EventResponse)
+async def create_event(
+    event_in: EventCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    event = Event(
+        customer_id=current_user.id,
+        title=event_in.title,
+        location=event_in.location,
+        event_date=event_in.event_date
+    )
+    db.add(event)
+    db.commit()
+    db.refresh(event)
+    return event
+
+
+@router.get("/api/events", response_model=List[EventResponse])
+async def list_events(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    return db.query(Event).filter(Event.customer_id == current_user.id).all()
+
+
+@router.post("/api/events/{event_id}/select", response_model=EventResponse)
+async def select_partner(
+    event_id: str,
+    selection: SelectionRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    event = db.query(Event).filter(Event.id == event_id, Event.customer_id == current_user.id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+        
+    # Check if already booked
+    existing = db.query(Booking).filter(
+        Booking.event_id == event_id,
+        Booking.partner_id == selection.partner_id
+    ).first()
+    
+    if existing:
+        return event
+        
+    booking = Booking(
+        event_id=event_id,
+        partner_id=selection.partner_id,
+        partner_type=selection.partner_type,
+        is_external=selection.is_external,
+        partner_data=selection.partner_data,
+        status="CONFIRMED" if selection.is_external else "PENDING"
+    )
+    
+    db.add(booking)
+    db.commit()
+    db.refresh(event)
+    return event
+
+
+@router.delete("/api/events/{event_id}/deselect/{partner_id}")
+async def deselect_partner(
+    event_id: str,
+    partner_id: str,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    event = db.query(Event).filter(Event.id == event_id, Event.customer_id == current_user.id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+        
+    booking = db.query(Booking).filter(
+        Booking.event_id == event_id,
+        Booking.partner_id == partner_id
+    ).first()
+    
+    if booking:
+        db.delete(booking)
+        db.commit()
+        
+    return {"status": "success"}
 

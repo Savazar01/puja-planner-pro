@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
 from database import Base
+import uuid
 
 class UserRole(str, enum.Enum):
     ADMIN = "ADMIN"
@@ -127,6 +128,7 @@ class Pandit(Base):
     phone = Column(String)
     email = Column(String)
     website = Column(String)
+    is_internal = Column(Boolean, default=False)
     additional_info = Column(JSON)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -148,6 +150,7 @@ class Venue(Base):
     phone = Column(String)
     email = Column(String)
     website = Column(String)
+    is_internal = Column(Boolean, default=False)
     rating = Column(Float, default=0.0)
     reviews = Column(Integer, default=0)
     additional_info = Column(JSON)
@@ -170,6 +173,7 @@ class Catering(Base):
     phone = Column(String)
     email = Column(String)
     website = Column(String)
+    is_internal = Column(Boolean, default=False)
     rating = Column(Float, default=0.0)
     reviews = Column(Integer, default=0)
     additional_info = Column(JSON)
@@ -189,3 +193,32 @@ class SearchCache(Base):
     results = Column(JSON)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     expires_at = Column(DateTime(timezone=True))
+
+
+class Event(Base):
+    """ORM model for Events/Ritual Planning."""
+    __tablename__ = "events"
+    
+    id = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    customer_id = Column(String, ForeignKey("users.id"), index=True)
+    title = Column(String, nullable=False)
+    location = Column(String)
+    event_date = Column(DateTime(timezone=True))
+    status = Column(String, default="PLANNING") # PLANNING, CONFIRMED, COMPLETED, ARCHIVED
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    bookings = relationship("Booking", back_populates="event")
+
+class Booking(Base):
+    """ORM model for linking Partners to Events."""
+    __tablename__ = "bookings"
+    
+    id = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    event_id = Column(String, ForeignKey("events.id"), index=True)
+    partner_id = Column(String, index=True) # Can be Pandit, Venue, or Catering ID
+    partner_type = Column(String) # 'PANDIT', 'VENUE', 'CATERING'
+    status = Column(String, default="PENDING") # PENDING, CONFIRMED, REJECTED
+    is_external = Column(Boolean, default=False)
+    partner_data = Column(JSON) # Snapshot of external partner data if not internal
+    
+    event = relationship("Event", back_populates="bookings")

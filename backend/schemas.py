@@ -129,6 +129,7 @@ class PanditResponse(BaseModel):
     rating: float = 0.0
     reviews: int = 0
     verified: bool = False
+    is_internal: bool = False
     languages: List[str] = []
     price_range: Optional[str] = None
     phone: Optional[str] = None
@@ -151,6 +152,7 @@ class VenueResponse(BaseModel):
     amenities: List[str] = []
     price_range: Optional[str] = None
     verified: bool = False
+    is_internal: bool = False
     phone: Optional[str] = None
     email: Optional[str] = None
     website: Optional[str] = None
@@ -172,6 +174,7 @@ class CateringResponse(BaseModel):
     price_per_plate: Optional[str] = None
     min_order: Optional[int] = None
     verified: bool = False
+    is_internal: bool = False
     phone: Optional[str] = None
     email: Optional[str] = None
     website: Optional[str] = None
@@ -199,3 +202,40 @@ class DiscoveryResponse(BaseModel):
     count: int
     location: str
     source: str = "discovery_agent"
+
+
+class BookingBase(BaseModel):
+    partner_id: str
+    partner_type: str
+    is_external: bool = False
+    partner_data: Optional[Dict[str, Any]] = None
+
+class BookingResponse(BookingBase):
+    id: str
+    status: str
+    
+    class Config:
+        from_attributes = True
+
+class EventBase(BaseModel):
+    title: str
+    location: Optional[str] = None
+    event_date: Optional[datetime] = None
+
+class EventCreate(EventBase):
+    pass
+
+class EventResponse(EventBase):
+    id: str
+    customer_id: str
+    status: str
+    bookings: List[BookingResponse] = []
+    
+    class Config:
+        from_attributes = True
+
+class SelectionRequest(BaseModel):
+    partner_id: str
+    partner_type: str
+    is_external: bool = False
+    partner_data: Optional[Dict[str, Any]] = None

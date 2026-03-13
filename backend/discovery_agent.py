@@ -8,14 +8,17 @@ import google.generativeai as genai
 from config import settings
 from sqlalchemy.orm import Session
 from models import Pandit, Venue, Catering, SearchCache
+import asyncio
 
 
 class DiscoveryAgent:
     """Intelligent discovery agent using Serper, Firecrawl, and Gemini."""
     
     def __init__(self):
-        # API Keys and Models are lazy-loaded to prevent startup crashes when env vars are missing
-        pass
+        self.privacy_gate_url = "http://localhost:8740"
+        self.proxies = {
+            "all://": self.privacy_gate_url
+        }
     
     async def search_with_serper(self, query: str, location: str = "") -> List[Dict[str, Any]]:
         """Search using Serper.dev API for local businesses."""
@@ -36,7 +39,7 @@ class DiscoveryAgent:
         }
         
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(proxies=self.proxies, timeout=30.0) as client:
                 response = await client.post(url, json=payload, headers=headers)
                 response.raise_for_status()
                 data = response.json()
@@ -72,7 +75,7 @@ class DiscoveryAgent:
         }
         
         try:
-            async with httpx.AsyncClient(timeout=60.0) as client:
+            async with httpx.AsyncClient(proxies=self.proxies, timeout=60.0) as client:
                 response = await client.post(api_url, json=payload, headers=headers)
                 response.raise_for_status()
                 data = response.json()
@@ -189,164 +192,133 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
             print(f"Gemini parsing error: {e}")
             return None
     
-    async def discover_pandits(self, location: str, db: Session) -> List[Pandit]:
-        """Full discovery pipeline for Pandits."""
+    async def discover_pandits(self, location: str, db: Session, include_web: bool = True) -> List[Pandit]:
+        """Discovery for Pandits: Merges internal DB and external web results."""
+        # 1. Internal Search
+        internal_pandits = db.query(Pandit).filter(
+            Pandit.location.ilike(f"%{location}%"),
+            Pandit.verified == True
+        ).all()
+        for p in internal_pandits:
+            p.is_internal = True
+
+        if not include_web:
+            return internal_pandits
+
+        # 2. External Web Search
         query = f"pandits priests hindu ceremonies {location}"
-        
-        # Search with Serper
         search_results = await self.search_with_serper(query, location)
         
-        pandits = []
-        
-        for result in search_results[:5]:  # Limit to top 5 results
+        external_pandits = []
+        for result in search_results[:3]:  # Top 3 for web results
             url = result.get("link")
-            if not url:
+            if not url or any(p.website == url for p in internal_pandits):
                 continue
             
-            # Scrape with Firecrawl
             content = await self.scrape_with_firecrawl(url)
-            
             if not content:
-                # Fallback: create from search snippet
-                pandit_data = {
-                    "name": result.get("title", "Unknown"),
-                    "specialization": result.get("snippet", ""),
-                    "location": location,
-                    "website": url
-                }
+                pandit_data = {"name": result.get("title", "Unknown"), "location": location, "website": url}
             else:
-                # Parse with Gemini
                 pandit_data = self.parse_with_gemini(content, "pandit")
-                if not pandit_data:
-                    continue
+                if not pandit_data: continue
                 pandit_data["website"] = url
             
-            # Create Pandit model
             pandit = Pandit(
                 id=str(uuid.uuid4()),
                 name=pandit_data.get("name", "Unknown"),
-                specialization=pandit_data.get("specialization"),
                 location=pandit_data.get("location", location),
-                rating=pandit_data.get("rating", 0.0),
-                reviews=pandit_data.get("reviews", 0),
-                verified=pandit_data.get("verified", False),
-                languages=pandit_data.get("languages", []),
-                price_range=pandit_data.get("price_range"),
-                phone=pandit_data.get("phone"),
-                email=pandit_data.get("email"),
                 website=pandit_data.get("website"),
+                verified=False,
+                is_internal=False,
                 additional_info=pandit_data
             )
-            
-            # Save to database
-            db.add(pandit)
-            pandits.append(pandit)
+            external_pandits.append(pandit)
         
-        db.commit()
-        return pandits
-    
-    async def discover_venues(self, location: str, db: Session) -> List[Venue]:
-        """Full discovery pipeline for Venues."""
+        return internal_pandits + external_pandits
+
+    async def discover_venues(self, location: str, db: Session, include_web: bool = True) -> List[Venue]:
+        """Discovery for Venues: Merges internal DB and external web results."""
+        internal_venues = db.query(Venue).filter(
+            Venue.location.ilike(f"%{location}%"),
+            Venue.verified == True
+        ).all()
+        for v in internal_venues:
+            v.is_internal = True
+
+        if not include_web:
+            return internal_venues
+
         query = f"wedding halls marriage venues banquet halls {location}"
-        
         search_results = await self.search_with_serper(query, location)
         
-        venues = []
-        
-        for result in search_results[:5]:
+        external_venues = []
+        for result in search_results[:3]:
             url = result.get("link")
-            if not url:
+            if not url or any(v.website == url for v in internal_venues):
                 continue
             
             content = await self.scrape_with_firecrawl(url)
-            
             if not content:
-                venue_data = {
-                    "name": result.get("title", "Unknown"),
-                    "location": location,
-                    "address": result.get("snippet", ""),
-                    "website": url
-                }
+                venue_data = {"name": result.get("title", "Unknown"), "location": location, "website": url}
             else:
                 venue_data = self.parse_with_gemini(content, "venue")
-                if not venue_data:
-                    continue
+                if not venue_data: continue
                 venue_data["website"] = url
             
             venue = Venue(
                 id=str(uuid.uuid4()),
                 name=venue_data.get("name", "Unknown"),
                 location=venue_data.get("location", location),
-                address=venue_data.get("address"),
-                capacity=venue_data.get("capacity"),
-                venue_type=venue_data.get("venue_type"),
-                amenities=venue_data.get("amenities", []),
-                price_range=venue_data.get("price_range"),
-                verified=venue_data.get("verified", False),
-                phone=venue_data.get("phone"),
-                email=venue_data.get("email"),
                 website=venue_data.get("website"),
-                rating=venue_data.get("rating", 0.0),
-                reviews=venue_data.get("reviews", 0),
+                verified=False,
+                is_internal=False,
                 additional_info=venue_data
             )
-            
-            db.add(venue)
-            venues.append(venue)
+            external_venues.append(venue)
         
-        db.commit()
-        return venues
-    
-    async def discover_catering(self, location: str, db: Session) -> List[Catering]:
-        """Full discovery pipeline for Catering services."""
+        return internal_venues + external_venues
+
+    async def discover_catering(self, location: str, db: Session, include_web: bool = True) -> List[Catering]:
+        """Discovery for Catering: Merges internal DB and external web results."""
+        internal_catering = db.query(Catering).filter(
+            Catering.location.ilike(f"%{location}%"),
+            Catering.verified == True
+        ).all()
+        for c in internal_catering:
+            c.is_internal = True
+
+        if not include_web:
+            return internal_catering
+
         query = f"catering services satvik food wedding catering {location}"
-        
         search_results = await self.search_with_serper(query, location)
         
-        catering_list = []
-        
-        for result in search_results[:5]:
+        external_catering = []
+        for result in search_results[:3]:
             url = result.get("link")
-            if not url:
+            if not url or any(c.website == url for c in internal_catering):
                 continue
             
             content = await self.scrape_with_firecrawl(url)
-            
             if not content:
-                catering_data = {
-                    "name": result.get("title", "Unknown"),
-                    "location": location,
-                    "specialties": [result.get("snippet", "")],
-                    "website": url
-                }
+                catering_data = {"name": result.get("title", "Unknown"), "location": location, "website": url}
             else:
                 catering_data = self.parse_with_gemini(content, "catering")
-                if not catering_data:
-                    continue
+                if not catering_data: continue
                 catering_data["website"] = url
             
             catering = Catering(
                 id=str(uuid.uuid4()),
                 name=catering_data.get("name", "Unknown"),
                 location=catering_data.get("location", location),
-                cuisine_types=catering_data.get("cuisine_types", []),
-                specialties=catering_data.get("specialties", []),
-                price_per_plate=catering_data.get("price_per_plate"),
-                min_order=catering_data.get("min_order"),
-                verified=catering_data.get("verified", False),
-                phone=catering_data.get("phone"),
-                email=catering_data.get("email"),
                 website=catering_data.get("website"),
-                rating=catering_data.get("rating", 0.0),
-                reviews=catering_data.get("reviews", 0),
+                verified=False,
+                is_internal=False,
                 additional_info=catering_data
             )
-            
-            db.add(catering)
-            catering_list.append(catering)
+            external_catering.append(catering)
         
-        db.commit()
-        return catering_list
+        return internal_catering + external_catering
     
     def get_cache_key(self, query: str, location: str, category: str) -> str:
         """Generate cache key for search query."""

@@ -76,6 +76,13 @@ const EventCanvas = () => {
   const [isGuestDialogOpen, setIsGuestDialogOpen] = useState(false);
   const [isSupplyDialogOpen, setIsSupplyDialogOpen] = useState(false);
   const [editingGuestId, setEditingGuestId] = useState<string | null>(null);
+  const [searchResults, setSearchResults] = useState<{ pandits: any[], venues: any[], catering: any[] }>({
+    pandits: [],
+    venues: [],
+    catering: []
+  });
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedPartners, setSelectedPartners] = useState<any[]>([]);
 
   useEffect(() => {
     if (eventId) {
@@ -83,10 +90,57 @@ const EventCanvas = () => {
     }
   }, [eventId]);
 
-  const handleIntentSubmit = (e: React.FormEvent) => {
+  const handleIntentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (intent.trim()) {
       setIsEventActive(true);
+      setIsSearching(true);
+      try {
+        const response = await fetch(`/api/search`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: intent, location: "Hyderabad" }) // Fallback location
+        });
+        const data = await response.json();
+        setSearchResults({
+          pandits: data.pandits || [],
+          venues: data.venues || [],
+          catering: data.catering || []
+        });
+      } catch (error) {
+        console.error("Search failed:", error);
+        toast({ title: "Search Error", description: "Could not fetch suggestions. Please try again.", variant: "destructive" });
+      } finally {
+        setIsSearching(false);
+      }
+    }
+  };
+
+  const selectPartner = async (partner: any, type: string) => {
+    if (!eventId) {
+      toast({ title: "No Event", description: "Please create an event first." });
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/api/events/${eventId}/select`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          partner_id: partner.id,
+          partner_type: type,
+          is_external: !partner.is_internal,
+          partner_data: partner.is_internal ? null : partner
+        })
+      });
+      
+      if (response.ok) {
+        const updatedEvent = await response.json();
+        setSelectedPartners(updatedEvent.bookings);
+        toast({ title: "Partner Selected", description: `${partner.name} has been added to your ritual plan.` });
+      }
+    } catch (error) {
+      console.error("Selection failed:", error);
     }
   };
 
@@ -224,9 +278,23 @@ const EventCanvas = () => {
                     </div>
                     <div className="p-4 rounded-xl border border-accent/20 bg-accent/5 shadow-sm">
                       <h4 className="font-semibold text-foreground">Sourcing Helpers</h4>
-                      <p className="text-sm text-muted-foreground">Finding the right people for your ceremony.</p>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedPartners.length > 0 ? `${selectedPartners.length} partner(s) aligned.` : "Finding the right people for your ceremony."}
+                      </p>
                     </div>
                   </div>
+
+                  {selectedPartners.map((booking, idx) => (
+                    <div key={booking.id || idx} className="relative pl-12">
+                      <div className="absolute left-0 mt-1 h-10 w-10 rounded-full bg-green-100 flex items-center justify-center border-2 border-green-500 ring-4 ring-background">
+                        <CheckCircle2 className="h-6 w-6 text-green-600" />
+                      </div>
+                      <div className="p-4 rounded-xl border border-green-200 bg-green-50 shadow-sm">
+                        <h4 className="font-semibold text-foreground">{booking.partner_data?.name || "Partner Selected"}</h4>
+                        <p className="text-sm text-muted-foreground uppercase">{booking.partner_type}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </section>
 
@@ -237,25 +305,72 @@ const EventCanvas = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Card className="hover:border-primary/50 transition-colors group cursor-pointer bg-card">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="text-lg font-bold">The Pandit</CardTitle>
-                      <UserCheck className="h-5 w-5 text-primary" />
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground">Looking for a priest who fits your traditions...</p>
-                    </CardContent>
-                  </Card>
+                  {isSearching ? (
+                    <div className="col-span-full py-12 flex flex-col items-center justify-center space-y-4">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                      <p className="text-muted-foreground animate-pulse">Agents are scouring the web & internal database...</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Search Results Display */}
+                      {[...searchResults.pandits, ...searchResults.venues, ...searchResults.catering].length > 0 ? (
+                        [...searchResults.pandits, ...searchResults.venues, ...searchResults.catering].map((partner, idx) => (
+                          <Card key={partner.id || idx} className="hover:border-primary/50 transition-all group bg-card overflow-hidden">
+                            <CardHeader className="flex flex-row items-start justify-between pb-2">
+                              <div className="space-y-1">
+                                <CardTitle className="text-lg font-bold flex items-center gap-2">
+                                  {partner.name}
+                                  {partner.is_internal && (
+                                    <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-green-200 gap-1 text-[10px] h-5">
+                                      <CheckCircle2 className="h-3 w-3" />
+                                      Verified Member
+                                    </Badge>
+                                  )}
+                                </CardTitle>
+                                <CardDescription>{partner.location}</CardDescription>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                              <p className="text-sm text-muted-foreground line-clamp-2">
+                                {partner.specialization || partner.venue_type || partner.cuisine_types?.join(", ") || "Available for your ceremony."}
+                              </p>
+                              <Button 
+                                className="w-full gap-2" 
+                                variant={selectedPartners.some(b => b.partner_id === partner.id) ? "secondary" : "default"}
+                                onClick={() => selectPartner(partner, partner.specialization ? 'PANDIT' : partner.venue_type ? 'VENUE' : 'CATERING')}
+                                disabled={selectedPartners.some(b => b.partner_id === partner.id)}
+                              >
+                                {selectedPartners.some(b => b.partner_id === partner.id) ? "Selected" : "Select for Ritual"}
+                                <ChevronRight className="h-4 w-4" />
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        ))
+                      ) : (
+                        <>
+                          <Card className="hover:border-primary/50 transition-colors group cursor-pointer bg-card">
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                              <CardTitle className="text-lg font-bold">The Pandit</CardTitle>
+                              <UserCheck className="h-5 w-5 text-primary" />
+                            </CardHeader>
+                            <CardContent>
+                              <p className="text-sm text-muted-foreground">Looking for a priest who fits your traditions...</p>
+                            </CardContent>
+                          </Card>
 
-                  <Card className="hover:border-accent/50 transition-colors group cursor-pointer bg-card">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="text-lg font-bold">The Help</CardTitle>
-                      <Search className="h-5 w-5 text-accent-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground">Connecting with caterers and decorators...</p>
-                    </CardContent>
-                  </Card>
+                          <Card className="hover:border-accent/50 transition-colors group cursor-pointer bg-card">
+                            <CardHeader className="flex flex-row items-center justify-row items-center justify-between pb-2">
+                              <CardTitle className="text-lg font-bold">The Help</CardTitle>
+                              <Search className="h-5 w-5 text-accent-foreground" />
+                            </CardHeader>
+                            <CardContent>
+                              <p className="text-sm text-muted-foreground">Connecting with caterers and decorators...</p>
+                            </CardContent>
+                          </Card>
+                        </>
+                      )}
+                    </>
+                  )}
                 </div>
               </section>
             </div>

@@ -10,14 +10,16 @@ This project is built with a "Pure Docker" philosophy. It is intentionally decou
 - **Backend:** FastAPI/Python (Internal Port: 8735) - **Operational**
 - **Privacy Gate:** Privacy Gate (Port 8740) - **Operational**
 - **Customer Workspace:** Professional Event Canvas (RBAC enabled) - **Active**
-- **Database:** Postgres/pgvector (v17)
-- **Cache/Vault:** Redis (alpine)
+- **Database:** Postgres/pgvector (v17) - **Supports Local Intelligence & PII Vault**
+- **Cache/Vault:** Redis (alpine) - **Search & Agentic Memory**
+- **Sourcing Engine (Port 8735):** Parallel Discovery (Internal DB + Web)
 
 ## 🧠 Intelligence Infrastructure [STATUS: ACTIVE & VERIFIED]
 The Savaz Intelligence Stack is completely stable and operational on ports 8737-8739:
 - **Open WebUI (Model Management Control Center):** Port 8737
 - **Ollama-API Engine (Local LLM Execution):** Port 8738
-- **Redis (Intelligence Cache & PII Vault):** Port 8739
+- **Intelligence Handshake:** Parallel Search Logic (Internal + External)
+- **Privacy Gate (8740):** Automated Anonymization for external LLM/Search calls.
 ## 🔌 Networking & Configuration
 Connectivity is managed entirely through environment variables to allow for environment-specific scaling:
 - `FRONTEND_PORT`: Controls the internal Nginx listener and external mapping.
@@ -134,7 +136,11 @@ puja-planner-pro/
   - **Guests**: Simple RSVP and guest list management.
   - **Supplies**: Friendly checklists for ritual items.
 - **My Dashboard**: Warm, centralized hub at `/customer-dashboard` for tracking upcoming rituals.
-- **Privacy Gate (8740)**: Automated PII masking for all family and event data.
+- **Agentic Sourcing Engine**: Fully activated parallel discovery.
+  - **Live Web Research**: Real-time results via SerpAPI and Firecrawl.
+  - **Internal Prioritization**: Automatic flagging of registered "Verified Members".
+  - **Privacy First**: All external intelligence calls are routed through the Privacy Gate (8740).
+  - **Handshake Flow**: Seamless partner selection and ritual planning integration.
 
 ---
 **Note**: The UI has been simplified to use warm, non-technical language (**"Event Planning"**, **"My Events"**) to serve Customers as a helpful assistant rather than a technical tool.

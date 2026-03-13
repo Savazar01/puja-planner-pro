@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,8 +23,18 @@ import {
 } from "@/components/ui/sheet";
 
 const EventCanvas = () => {
+  const [searchParams] = useSearchParams();
+  const eventId = searchParams.get("id");
   const [intent, setIntent] = useState("");
-  const [isEventActive, setIsEventActive] = useState(false);
+  const [isEventActive, setIsEventActive] = useState(!!eventId);
+
+  useEffect(() => {
+    if (eventId) {
+      setIsEventActive(true);
+      // In a real app, fetch event data here
+      console.log(`Loading context for event: ${eventId}`);
+    }
+  }, [eventId]);
 
   const handleIntentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +42,8 @@ const EventCanvas = () => {
       setIsEventActive(true);
     }
   };
+
+  const currentEventName = eventId ? `Event #${eventId}` : "New Orchestration";
 
   return (
     <div className="space-y-8 pb-12">
@@ -91,8 +104,8 @@ const EventCanvas = () => {
                   <CheckCircle2 className="h-6 w-6 text-primary" />
                 </div>
                 <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 shadow-sm">
-                  <h4 className="font-semibold text-foreground">Intent Captured</h4>
-                  <p className="text-sm text-muted-foreground uppercase">{intent}</p>
+                  <h4 className="font-semibold text-foreground">{currentEventName}</h4>
+                  <p className="text-sm text-muted-foreground uppercase">{intent || "Active Context"}</p>
                 </div>
               </div>
 

@@ -16,6 +16,7 @@ import ProfileSettings from "./pages/ProfileSettings";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import EventOrchestration from "./pages/event-orchestration";
+import CustomerDashboard from "./pages/customer-dashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/search" element={<SearchRedirect />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/customer-dashboard" element={<CustomerDashboard />} />
             <Route path="/event-orchestration" element={<EventOrchestration />} />
             <Route path="/admin" element={<AdminCenter />} />
             <Route path="/admin-dashboard" element={<AdminCenter />} />
@@ -50,7 +52,7 @@ const App = () => (
 const SearchRedirect = () => {
   const { user } = useAuth();
   if (user?.userType === "customer") {
-    return <Navigate to="/event-orchestration" replace />;
+    return <Navigate to="/customer-dashboard" replace />;
   }
   return <Navigate to="/dashboard" replace />;
 };

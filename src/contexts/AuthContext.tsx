@@ -59,7 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         email: data.email,
         tier: data.subscription_tier?.toLowerCase() || "free",
         isAdmin: rawRole === "admin",
-        userType: behaviorRole as UserType,
+        userType: behaviorRole.includes("customer") ? "customer" : behaviorRole as UserType,
         token_balance: data.token_balance,
         has_pending_subscription: data.has_pending_subscription
       };
@@ -91,7 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (u.isAdmin) {
         window.location.href = "/admin-dashboard";
       } else if (targetRole === "customer") {
-        window.location.href = "/event-orchestration";
+        window.location.href = "/customer-dashboard";
       } else {
         window.location.href = "/dashboard";
       }

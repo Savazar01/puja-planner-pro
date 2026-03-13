@@ -28,9 +28,8 @@ const Dashboard = () => {
   if (isLoading) return null;
   if (!isAuthenticated) return <Navigate to="/" replace />;
 
-  // Role-based access control
-  if (user?.isAdmin) {
-    // Admin dashboard logic
+  if (user?.userType === "customer") {
+    return <Navigate to="/customer-dashboard" replace />;
   }
 
   const tierAllowsGuests = user?.tier === "gold" || user?.tier === "platinum";
@@ -62,21 +61,11 @@ const Dashboard = () => {
   return (
     <main className="min-h-screen bg-background">
       <div className="border-b border-border bg-card px-4 py-6">
-        <div className="container mx-auto max-w-5xl flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl capitalize">
-              {user?.userType} Dashboard
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">Manage your account logistics and coordination.</p>
-          </div>
-          {user?.userType === "customer" && (
-            <Link to="/event-orchestration">
-              <Button className="gap-2 bg-primary hover:bg-primary/90">
-                <Plus className="h-4 w-4" />
-                Open Event Canvas
-              </Button>
-            </Link>
-          )}
+        <div className="container mx-auto max-w-5xl">
+          <h1 className="font-display text-2xl font-bold text-foreground md:text-3xl capitalize">
+            {user?.userType} Dashboard
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">Manage your event logistics and coordination.</p>
         </div>
       </div>
 

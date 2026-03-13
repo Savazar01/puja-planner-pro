@@ -5,8 +5,9 @@ import EventCanvas from "@/components/EventCanvas";
 import { ShieldAlert } from "lucide-react";
 
 const EventOrchestration = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
 
+  if (isLoading) return null;
   if (!isAuthenticated) return <Navigate to="/" replace />;
 
   const isCustomer = user?.userType === "customer";

@@ -12,7 +12,7 @@ import { ArrowUpDown, Download } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export default function AdminCenter() {
-    const { user, token } = useAuth();
+    const { user, token, isLoading } = useAuth();
     const navigate = useNavigate();
     const { toast } = useToast();
     const [users, setUsers] = useState<any[]>([]);
@@ -22,6 +22,7 @@ export default function AdminCenter() {
     const [subscriptions, setSubscriptions] = useState<any[]>([]);
 
     useEffect(() => {
+        if (isLoading) return;
         if (!user || user.userType !== "admin") {
             navigate("/");
             return;
@@ -94,7 +95,7 @@ export default function AdminCenter() {
         }
     };
 
-    if (!user || user.userType !== "admin") return null;
+    if (isLoading || !user || user.userType !== "admin") return null;
 
     return (
         <div className="container mx-auto py-10 px-4">

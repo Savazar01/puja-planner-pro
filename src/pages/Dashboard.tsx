@@ -19,12 +19,13 @@ const statusColors: Record<Guest["status"], string> = {
 };
 
 const Dashboard = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const [guests, setGuests] = useState<Guest[]>(mockGuests);
   const [checklist, setChecklist] = useState<ChecklistItem[]>(mockChecklist);
   const [newGuestName, setNewGuestName] = useState("");
   const [newGuestPhone, setNewGuestPhone] = useState("");
 
+  if (isLoading) return null;
   if (!isAuthenticated) return <Navigate to="/" replace />;
   
   // Redirect customers to their dedicated workspace

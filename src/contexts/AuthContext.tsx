@@ -19,6 +19,7 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   searchCount: number;
   login: (email: string, pass: string) => Promise<void>;
   register: (data: any) => Promise<void>;
@@ -33,11 +34,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
+  const [isLoading, setIsLoading] = useState(!!localStorage.getItem("token"));
   const [searchCount, setSearchCount] = useState(0);
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   const fetchUser = useCallback(async (authToken: string) => {
     try {
+      setIsLoading(true);
       const data = await getMe(authToken);
       const rawRole = (data.role || "").toString().toLowerCase();
       let behaviorRole = rawRole.replace(/devotee/gi, "").trim();
@@ -66,6 +69,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error("Failed to fetch user via token:", e);
       logout();
       return null;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -111,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider
-      value={{ user, token, isAuthenticated: !!user, searchCount, login, logout, register, incrementSearch, showAuthModal, setShowAuthModal }}
+      value={{ user, token, isAuthenticated: !!token && !!user, isLoading, searchCount, login, logout, register, incrementSearch, showAuthModal, setShowAuthModal }}
     >
       {children}
     </AuthContext.Provider>

@@ -164,8 +164,10 @@ const Footer = () => (
 );
 
 const Index = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, isLoading } = useAuth();
   const navigate = useNavigate();
+
+  if (isLoading) return null;
 
   if (isAuthenticated) {
     if (user?.isAdmin) {

@@ -15,7 +15,7 @@ class DiscoveryAgent:
     """Intelligent discovery agent using Serper, Firecrawl, and Gemini."""
     
     def __init__(self):
-        self.privacy_gate_url = "http://localhost:8740"
+        self.privacy_gate_url = settings.privacy_gate_url
         self.proxies = {
             "all://": self.privacy_gate_url
         }

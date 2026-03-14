@@ -159,4 +159,4 @@ async def root():
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("BACKEND_PORT"))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=settings.debug, proxy_headers=True, forwarded_allow_ips="*")
+    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=settings.debug, proxy_headers=True, forwarded_allow_ips="*", headers=[("X-Forwarded-Proto", "https")])

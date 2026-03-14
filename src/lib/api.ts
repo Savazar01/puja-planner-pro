@@ -52,7 +52,7 @@ export async function login(email: string, password: string) {
     formData.append("password", password);
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
     const loginUrl = `${VITE_API_URL}/api/auth/token`;
 
@@ -75,7 +75,7 @@ export async function login(email: string, password: string) {
         console.error(`Login Failed to Fetch from URL: ${loginUrl}`, error);
         
         if (error.name === 'AbortError') {
-             throw new Error("Login request timed out after 10 seconds. Please check your network or proxy configuration.");
+             throw new Error("Login request timed out after 30 seconds. Please check your network or proxy configuration.");
         }
         
         // Return clear diagnostic of failed fetch

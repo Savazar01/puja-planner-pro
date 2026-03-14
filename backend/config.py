@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     firecrawl_api_key: str = ""
     gemini_api_key: str = ""
     resend_api_key: str = ""
+    privacy_gate_url: str = "http://localhost:8740"
     
     # Application
     environment: str = "development"

@@ -1,5 +1,6 @@
 import uuid
 import json
+import os
 from datetime import datetime
 from typing import Annotated, List, Dict, Optional, Any
 from typing_extensions import TypedDict
@@ -12,6 +13,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from config import settings
 from database import get_db
 from models import Event, AgentLog
+from discovery_agent import discovery_agent
 
 class VedicEventState(TypedDict):
     """The state of the Vedic Event orchestration."""
@@ -42,56 +44,82 @@ async def concierge_node(state: VedicEventState):
         "status": state.get("status") or "DRAFT"
     }
 
-async def scribe_node(state: VedicEventState):
-    """Scribe Agent: SILENT PERSISTENCE (Postgres)."""
-    with next(get_db()) as db:
-        event_id = state.get("event_id")
-        
-        if not event_id:
-            event = Event(
-                id=str(uuid.uuid4()),
-                customer_id=state.get("customer_id") or "system",
-                title=state["user_query"][:50],
-                location=state.get("location"),
-                status="DRAFT"
-            )
-            db.add(event)
-            db.commit()
-            db.refresh(event)
-            event_id = event.id
-        else:
-            event = db.query(Event).filter(Event.id == event_id).first()
-            if event:
-                event.location = state.get("location") or event.location
-                if state.get("intent_harvested") and event.status == "DRAFT":
-                    event.status = "ROLES_CONFIRMED"
-                db.commit()
-        
-        # Persistence for logs
-        log = AgentLog(
-            id=str(uuid.uuid4()),
-            event_id=event_id,
-            agent_type="SCRIBE",
-            tool_used="LangGraph Persistence",
-            summary_outcome=f"State synced for Event {event_id}. Intent Harvested: {state.get('intent_harvested')}."
-        )
-        db.add(log)
-        db.commit()
-        
-        # Determine where to go next
-        # If we just arrived from Concierge, go to Planner
-        # If we arrived from Supplies, we are done
-        prev_node = state.get("next_node")
-        next_n = "planner" if prev_node == "scribe" or not prev_node else "END"
-        if prev_node == "supplies":
-            next_n = "END"
+    try:
+        with next(get_db()) as db:
+            event_id = state.get("event_id")
             
-    return {"event_id": event_id, "next_node": next_n}
+            if not event_id:
+                event = Event(
+                    id=str(uuid.uuid4()),
+                    customer_id=state.get("customer_id") or "system",
+                    title=state["user_query"][:50],
+                    location=state.get("location"),
+                    status="DRAFT"
+                )
+                db.add(event)
+                db.commit()
+                db.refresh(event)
+                event_id = event.id
+            else:
+                event = db.query(Event).filter(Event.id == event_id).first()
+                if event:
+                    event.location = state.get("location") or event.location
+                    if state.get("intent_harvested") and event.status == "DRAFT":
+                        event.status = "ROLES_CONFIRMED"
+                    db.commit()
+            
+            # Persistence for logs
+            log = AgentLog(
+                id=str(uuid.uuid4()),
+                event_id=event_id,
+                agent_type="SCRIBE",
+                tool_used="LangGraph Persistence",
+                summary_outcome=f"State synced for Event {event_id}. Intent Harvested: {state.get('intent_harvested')}."
+            )
+            db.add(log)
+            db.commit()
+            
+            # Determine where to go next
+            prev_node = state.get("next_node")
+            next_n = "planner" if prev_node == "scribe" or not prev_node else "END"
+            if prev_node == "supplies":
+                next_n = "END"
+                
+        return {"event_id": event_id, "next_node": next_n}
+    except Exception as e:
+        print(f"Scribe Error: {e}")
+        # Graceful fallback: Don't crash the graph if persistence fails, but log it
+        return {"next_node": "planner"}
+
+def get_planner_greeting():
+    """Extract Turn 1 greeting from planner_agent.md."""
+    try:
+        path = "roles/agents/planner_agent.md"
+        if not os.path.exists(path):
+            return "Hello! I am your AI Event Manager. How can I help you plan your ritual today?"
+        
+        with open(path, "r") as f:
+            content = f.read()
+            if "### Turn 1: The Blank Canvas Opening" in content:
+                # Simple extraction of the blocked quote
+                parts = content.split("### Turn 1: The Blank Canvas Opening")[1].split("> \"")[1].split("\"")[0]
+                return parts
+    except: pass
+    return "Hello! I am your AI Event Manager. I’m here to help you coordinate and bring your vision to life."
 
 async def planner_node(state: VedicEventState):
     """Planner Agent: Intent Harvesting & Hard Gating."""
     user_msg = state["messages"][-1].content if state["messages"] else state["user_query"]
     
+    # 0. Check for Empty/Start Intent (Turn 1 Greeting)
+    if not user_msg or user_msg.lower() in ["hi", "hello", "start", "begin", "plan"]:
+        return {
+            "clarification_needed": True,
+            "clarification_message": get_planner_greeting(),
+            "next_node": "scribe",
+            "intent_harvested": False
+        }
+
     # 1. PII Scrubbing (Mandatory)
     import httpx
     scrubbed_msg = user_msg
@@ -116,10 +144,9 @@ async def planner_node(state: VedicEventState):
     
     Return JSON: {{"ritual_name": "...", "language": "...", "style": "...", "location": "...", "intent_harvested": bool, "question": "..."}}
     """
-    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=settings.gemini_api_key)
-    response = await llm.ainvoke(prompt)
-    
     try:
+        llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=settings.gemini_api_key)
+        response = await llm.ainvoke(prompt)
         data = json.loads(response.content.strip().replace("```json", "").replace("```", ""))
         harvested = data.get("intent_harvested", False)
         return {
@@ -132,8 +159,14 @@ async def planner_node(state: VedicEventState):
             "clarification_message": data.get("question") if not harvested else None,
             "next_node": "finder" if harvested else "scribe"
         }
-    except:
-        return {"next_node": "scribe"}
+    except Exception as e:
+        print(f"Planner Error: {e}")
+        return {
+            "clarification_needed": True,
+            "clarification_message": "I've saved your draft. Could you tell me more about the ritual style or language you prefer?",
+            "next_node": "scribe",
+            "status": "DRAFT_SAVED"
+        }
 
 from tools import SerperSearchTool, FirecrawlScrapeTool
 

@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     # Application
     environment: str = "development"
     debug: bool = True
-    cors_origins: str = "http://localhost:5173,http://localhost:3000"
+    cors_origins: str = "http://localhost:5173,http://localhost:3000,https://puja.fossone.app,https://www.mypandits.com"
     
     # Auth
     admin_user: str = "savazar01@gmail.com"

@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 from urllib.parse import quote_plus
 
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -20,84 +21,78 @@ from sqlalchemy.orm import Session
 from auth import verify_password
 from models import User, UserRole
 
-# Create database tables resiliently
-try:
-    Base.metadata.create_all(bind=engine)
-    print("Database connection and tables initialized successfully.")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Create database tables resiliently in a background context
+    try:
+        from database import engine, Base
+        from sqlalchemy import text
+        from initial_data import init_db
+        
+        Base.metadata.create_all(bind=engine)
+        print("Database connection and tables initialized successfully.")
+        
+        # Run inline table alterations
+        with engine.begin() as conn:
+            try:
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_tier VARCHAR(50) DEFAULT 'FREE'"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS token_balance INTEGER DEFAULT 100"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS deletion_requested_at TIMESTAMP WITH TIME ZONE"))
+                conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS address_street VARCHAR"))
+                conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS address_city VARCHAR"))
+                conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS address_state VARCHAR"))
+                conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS address_country VARCHAR"))
+                conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS social_media JSON DEFAULT '{}'"))
+                conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS profile_picture_url VARCHAR"))
+                conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS bio TEXT"))
+                
+                # EPIC-5: Subscription Requests
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS subscription_requests (
+                        id VARCHAR PRIMARY KEY,
+                        user_id VARCHAR REFERENCES users(id),
+                        target_tier VARCHAR NOT NULL,
+                        status VARCHAR DEFAULT 'PENDING',
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                    )
+                """))
+                
+                # AGENT LOGS
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS agent_logs (
+                        id VARCHAR PRIMARY KEY,
+                        event_id VARCHAR,
+                        agent_type VARCHAR,
+                        tool_used VARCHAR,
+                        summary_outcome TEXT,
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                    )
+                """))
+            except Exception as e:
+                print(f"Migration notice: {e}")
+                
+        # Upgrade types
+        with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
+            try:
+                conn.execute(text("ALTER TYPE emaileventtype ADD VALUE IF NOT EXISTS 'RESET_PASSWORD'"))
+            except Exception:
+                pass
+                
+        init_db()
+    except Exception as e:
+        print(f"Warning: Database initialization failed on startup: {e}")
     
-    # Run inline table alterations (schema patching since create_all doesn't alter)
-    from sqlalchemy import text
-    with engine.begin() as conn:
-        try:
-            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_tier VARCHAR(50) DEFAULT 'FREE'"))
-            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS token_balance INTEGER DEFAULT 100"))
-            conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS deletion_requested_at TIMESTAMP WITH TIME ZONE"))
-            print("Successfully migrated users schema for v1.2.3")
-            
-            # EPIC-3 Profile Additions
-            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS address_street VARCHAR"))
-            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS address_city VARCHAR"))
-            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS address_state VARCHAR"))
-            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS address_country VARCHAR"))
-            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS social_media JSON DEFAULT '{}'"))
-            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS profile_picture_url VARCHAR"))
-            conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS bio TEXT"))
-            print("Successfully migrated profiles schema for EPIC-3")
-            
-            # EPIC-4: Retroactive Token Grant for Legacy Customers
-            conn.execute(text("UPDATE users SET token_balance = 1000 WHERE role = 'HOST' AND token_balance < 1000"))
-            print("Successfully grandfathered existing Customers into the EPIC-4 Token Economy")
-            
-            # EPIC-5: Subscription Requests
-            conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS subscription_requests (
-                    id VARCHAR PRIMARY KEY,
-                    user_id VARCHAR REFERENCES users(id),
-                    target_tier VARCHAR NOT NULL,
-                    status VARCHAR DEFAULT 'PENDING',
-                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                )
-            """))
-            print("Successfully migrated subscription_requests schema for EPIC-5")
-            
-            # AGENT LOGS
-            conn.execute(text("""
-                CREATE TABLE IF NOT EXISTS agent_logs (
-                    id VARCHAR PRIMARY KEY,
-                    event_id VARCHAR,
-                    agent_type VARCHAR,
-                    tool_used VARCHAR,
-                    summary_outcome TEXT,
-                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-                )
-            """))
-            print("Successfully migrated agent_logs schema")
-        except Exception as e:
-            print(f"Migration notice: {e}")
-            
-    # Postgres ENUM types must be upgraded outside of a transaction block
-    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
-        try:
-            conn.execute(text("ALTER TYPE emaileventtype ADD VALUE IF NOT EXISTS 'RESET_PASSWORD'"))
-        except Exception:
-            pass
-            
-            
-    from initial_data import init_db
-    init_db()
-except Exception as e:
-    print(f"Warning: Database initialization failed on startup: {e}")
-    print("The application will continue to run, but database features may be unavailable until it recovers.")
+    yield
 
 # Initialize FastAPI app
 app = FastAPI(
     title="Puja Planner Pro API",
     description="Backend API with Discovery Agent for finding Pandits, Venues, and Catering services",
     version="1.0.0",
-    docs_url=None,  # Disabled to provide custom HTTPS route below
-    redoc_url=None, # Disabled default Redoc
+    docs_url=None,
     openapi_url="/openapi.json",
     root_path="",
+    lifespan=lifespan,
 )
 
 security = HTTPBasic()

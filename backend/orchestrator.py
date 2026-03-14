@@ -178,29 +178,38 @@ async def supplies_node(state: VedicEventState):
     suggested = discovery_agent.suggest_ritual_supplies(ritual)
     return {"supplies_suggested": suggested, "next_node": "scribe"}
 
-# --- Unified Graph Construction ---
+# --- Unified Graph Construction (Lazy Loaded) ---
 
-workflow = StateGraph(VedicEventState)
+_graph = None
 
-workflow.add_node("concierge", concierge_node)
-workflow.add_node("scribe", scribe_node)
-workflow.add_node("planner", planner_node)
-workflow.add_node("finder", finder_node)
-workflow.add_node("supplies", supplies_node)
-
-workflow.add_edge(START, "concierge")
-workflow.add_edge("concierge", "scribe")
-
-def router(state: VedicEventState):
-    n = state.get("next_node", "scribe")
-    if n == "END":
-        return END
-    return n
-
-workflow.add_conditional_edges("scribe", router)
-workflow.add_conditional_edges("planner", router)
-workflow.add_edge("finder", "supplies")
-workflow.add_edge("supplies", "scribe")
-
-checkpointer = MemorySaver()
-graph = workflow.compile(checkpointer=checkpointer)
+def get_orchestrator_graph():
+    """Lazily compile the graph to prevent blocking worker startup."""
+    global _graph
+    if _graph is not None:
+        return _graph
+        
+    workflow = StateGraph(VedicEventState)
+    
+    workflow.add_node("concierge", concierge_node)
+    workflow.add_node("scribe", scribe_node)
+    workflow.add_node("planner", planner_node)
+    workflow.add_node("finder", finder_node)
+    workflow.add_node("supplies", supplies_node)
+    
+    workflow.add_edge(START, "concierge")
+    workflow.add_edge("concierge", "scribe")
+    
+    def router(state: VedicEventState):
+        n = state.get("next_node", "scribe")
+        if n == "END":
+            return END
+        return n
+    
+    workflow.add_conditional_edges("scribe", router)
+    workflow.add_conditional_edges("planner", router)
+    workflow.add_edge("finder", "supplies")
+    workflow.add_edge("supplies", "scribe")
+    
+    checkpointer = MemorySaver()
+    _graph = workflow.compile(checkpointer=checkpointer)
+    return _graph

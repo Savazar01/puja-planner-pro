@@ -50,7 +50,8 @@ async def search(
     """
     # 1. Invoke LangGraph Orchestrator
     async def run_orchestration():
-        from orchestrator import graph
+        from orchestrator import get_orchestrator_graph
+        graph = get_orchestrator_graph()
         
         # Prepare state
         initial_state = {

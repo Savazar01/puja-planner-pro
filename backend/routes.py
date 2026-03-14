@@ -5,8 +5,7 @@ from typing import List, Optional, Dict
 import uuid
 from database import get_db
 from schemas import (
-    SearchRequest, SearchResponse, PanditResponse, 
-    VenueResponse, CateringResponse, DiscoveryResponse,
+    SearchRequest, SearchResponse, ProviderResponse,
     UserCreate, UserResponse, Token, PasswordChange, UserUpdateStatus,
     EmailTemplateResponse, EmailTemplateUpdate, ProfileUpdate,
     ForgotPasswordRequest, ResetPasswordRequest, SubscriptionUpgrade,

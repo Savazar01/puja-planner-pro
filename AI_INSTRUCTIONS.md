@@ -1,10 +1,12 @@
-## 0. Planner Agent Role (Hierarchical Orchestration)
-The Planner Agent is the **Root Orchestrator**. It must decompose complex user intents into parallel sub-tasks for specialized agents.
-- **Planner**: Decomposes intent -> Assigns tasks.
-- **Scribe**: Persists data immediately ('Auto-Save') -> Manages interface.
-- **Finder**: Sources internal 'Members ✓' -> Triggers external search fallback.
-- **Supplies**: Generates ritual-specific samagri lists dynamically.
-- **Parallel Execution**: Mandated for multi-role intents (e.g., Search for [Pandit + Caterer] simultaneously).
+## 0. LangGraph Orchestration (Unified 5-Agent Workforce)
+The application MUST use **LangGraph** as the sole orchestration engine. The workforce consists of 5 specialized agents:
+1. **Concierge**: Entry point / Triage.
+2. **Planner**: Root Orchestrator / Intent Harvesting (Hard Gate).
+3. **Finder**: Professional Discovery (Port 8740).
+4. **Supplies**: Ritual Samagri Sourcing.
+5. **Scribe**: Silent Persistence (Postgres).
+- **Hard Gate**: Discovery tools MUST be unreachable until the Planner sets `intent_harvested=True`.
+- **Parallel Execution**: Mandated for multi-role intents via the Graph topology.
 
 ## I. Infrastructure & Orchestration (The "Coolify" Laws)
 - **Port Governance**: Public access via **443 (HTTPS)**. Internal mappings: **8734 (Frontend)**, **8735 (Backend)**, **8740 (Privacy Gate)**.

@@ -68,6 +68,56 @@ async def process_request(request: Request, x_agent_name: str = Header(None)):
         "agent": x_agent_name
     }
 
+import json
+
+@app.post("/outbound")
+async def outbound_proxy(request: Request):
+    """
+    Forwarding proxy for external APIs (Serper, Firecrawl) that redacts PII in responses.
+    """
+    try:
+        body = await request.json()
+    except:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+        
+    url = body.get("url")
+    method = body.get("method", "POST")
+    headers = body.get("headers", {})
+    payload = body.get("payload")
+
+    if not url:
+        raise HTTPException(status_code=400, detail="Missing target URL")
+
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        try:
+            if method.upper() == "POST":
+                response = await client.post(url, json=payload, headers=headers)
+            else:
+                response = await client.get(url, params=payload, headers=headers)
+            
+            # Simple Scrubbing on response content if it's JSON
+            try:
+                data = response.json()
+                data_str = json.dumps(data)
+            except:
+                data_str = response.text
+            
+            analysis_results = analyzer.analyze(text=data_str, entities=ALL_SUPPORTED_ENTITIES, language='en')
+            anonymized_result = anonymizer.anonymize(
+                text=data_str,
+                analyzer_results=analysis_results,
+                operators={"DEFAULT": OperatorConfig("replace", {"new_value": "<REDACTED>"})}
+            )
+            
+            try:
+                return json.loads(anonymized_result.text)
+            except:
+                return {"text": anonymized_result.text}
+                
+        except Exception as e:
+            logger.error(f"Outbound Proxy Error: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8740)

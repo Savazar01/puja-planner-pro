@@ -51,13 +51,12 @@ async def search(
     event_id = request.event_id
     ritual_type = None
     
-    # 1. Start/Resume Event Lifecycle
+    # 1. Start/Resume Event Lifecycle: [SCRIBE] Silent Save
     if not event_id:
-        # Create a new DRAFT event for this intent
         new_event = Event(
             id=str(uuid.uuid4()),
             customer_id=current_user.id,
-            title=request.query[:50] + "..." if len(request.query) > 50 else request.query,
+            title=request.query[:50] + ("..." if len(request.query) > 50 else ""),
             status="DRAFT"
         )
         db.add(new_event)
@@ -65,85 +64,72 @@ async def search(
         db.refresh(new_event)
         event_id = new_event.id
         
-        # [ROOT ORCHESTRATION] Planner decomposes the intent
+        # [NEW] [TURN-1] Dialogue Gate: Strictly Planner Only
         try:
             planner_log = AgentLog(
                 id=str(uuid.uuid4()),
                 event_id=event_id,
                 agent_type="PLANNER",
-                tool_used="Orchestration",
-                summary_outcome=f"Decomposing Intent: '{request.query}'. Initiating parallel sub-agent tasks: [FINDER: Professional Search, SUPPLIES: Samagri Sourcing]."
+                tool_used="Dialogue Gate",
+                summary_outcome="Turn 1 Initiation. Finder locked. Implementing 'Blank Canvas' protocol."
             )
             db.add(planner_log)
             db.commit()
         except: pass
         
-        # 2. Agentic Synergy: Supplies Agent Auto-Population
-        # Detect ritual and suggest supplies
-        suggested_supplies = discovery_agent.suggest_ritual_supplies(request.query)
-        if suggested_supplies:
-            for item in suggested_supplies:
-                db_item = Supply(
-                    id=str(uuid.uuid4()),
-                    event_id=event_id,
-                    name=item.get("name"),
-                    category=item.get("category"),
-                    quantity=item.get("quantity"),
-                    completed=False
-                )
-                db.add(db_item)
-            db.commit()
-
-    # 3. Logging Strategy (Agentic Audit)
-    try:
-        log_entry = AgentLog(
-            id=str(uuid.uuid4()),
+        return SearchResponse(
+            results=[],
+            total_results=0,
+            cached=False,
             event_id=event_id,
-            agent_type="FINDER",
-            tool_used="Initiation",
-            summary_outcome=f"Intent: '{request.query}'. Created/Resumed Event: {event_id}."
-        )
-        db.add(log_entry)
-        db.commit()
-    except Exception as e:
-        print(f"Agent Log Error: {e}")
-
-    if not settings.serper_api_key or not settings.firecrawl_api_key:
-        raise HTTPException(
-            status_code=500, detail="Missing Search API Keys"
+            clarification_needed=True,
+            clarification_message="Warm welcome! I've saved your intent. To help me find the perfect ritual professionals for you, could you tell me a bit more about your tradition or any specific language preferences?"
         )
 
-    location = request.location or "India"
-    category = request.category or "all"
-    
-    # 4. Hierarchical Orchestration: The 'Wait' Protocol (Turn 2)
-    # Extract traditional context using Gemini
+    # 2. Existing Event Flow
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    # [WAIT PROTOCOL] Intent Analysis for Status Transition
     intent_analysis_prompt = f"""
     Analyze the user's intent: "{request.query}"
     Identify if the following 'Traditional Context' is present:
     1. Language/Tradition (e.g., Telugu, Bengali, Vedic)
     2. Specific Ritual Style (e.g., Sattvik, Grand, Simple)
-    3. Hierarchy/Roles needed (e.g., Pandit, Caterer)
-    
-    If context for Language or Ritual Style is missing, generate a warm REFLECTIVE question to ask the user.
-    Also, extract the 'specific_ritual' name if found.
     
     Return JSON: 
     {{
         "context_complete": true/false,
-        "ritual_name": "Satyanarayana Swamy Vratham",
+        "ritual_name": "Satyanarayana Swamy",
         "language": "Telugu",
         "style": "Sattvik",
         "question": "Warm question if context_complete is false"
     }}
     """
+    
     try:
+        import httpx
+        scrub_url = f"{settings.privacy_gate_url}/process"
+        scrubbed_prompt = intent_analysis_prompt
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                scrub_resp = await client.post(scrub_url, json={"prompt": intent_analysis_prompt}, headers={"X-Agent-Name": "PLANNER"})
+                if scrub_resp.status_code == 200:
+                    scrubbed_prompt = scrub_resp.json().get("text", intent_analysis_prompt)
+        except: pass
+
         from google.generativeai import GenerativeModel
         model = GenerativeModel('gemini-1.5-flash')
-        analysis_resp = model.generate_content(intent_analysis_prompt)
+        analysis_resp = model.generate_content(scrubbed_prompt)
         analysis = json.loads(analysis_resp.text.strip().replace("```json", "").replace("```", ""))
         
-        if not analysis.get("context_complete") and not request.event_id: # Only wait for new intents
+        # Status Transition Logic
+        if analysis.get("context_complete") and event.status == "DRAFT":
+            event.status = "ROLES_CONFIRMED"
+            db.commit()
+        
+        if event.status == "DRAFT":
              return SearchResponse(
                 results=[],
                 total_results=0,
@@ -153,27 +139,22 @@ async def search(
                 clarification_needed=True,
                 clarification_message=analysis.get("question", "Could you share a bit more about your traditions or specific requirements for this ritual?")
             )
+            
         ritual_name = analysis.get("ritual_name", request.query)
         pref_language = analysis.get("language")
         pref_style = analysis.get("style", "Traditional")
     except Exception as e:
-        print(f"Intent Analysis Error: {e}")
+        print(f"Orchestration Error: {e}")
         ritual_name = request.query
         pref_language = None
         pref_style = None
 
-    # 5. Search Execution
-    cache_entry = discovery_agent.check_cache(request.query, location, category, db)
-    if cache_entry:
-        results = [ProviderResponse(**p) for p in cache_entry.results.get("results", [])]
-        if not is_unlimited:
-            results = results[:15]
-        return SearchResponse(
-            results=results,
-            total_results=len(results),
-            cached=True,
-            event_id=event_id
-        )
+    # 3. [FINDER] Professional Search: Only if state is ROLES_CONFIRMED/PLANNING
+    if event.status not in ["ROLES_CONFIRMED", "PLANNING"]:
+        return SearchResponse(results=[], total_results=0, event_id=event_id)
+
+    location = request.location or "India"
+    category = request.category or "all"
     
     try:
         results_list = []
@@ -216,11 +197,6 @@ async def search(
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Search APIs failed: {str(e)}"
-        )
 
 
 @router.get("/api/discover/{role}", response_model=List[ProviderResponse])

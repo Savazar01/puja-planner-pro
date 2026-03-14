@@ -82,41 +82,13 @@ export async function getMe(token: string) {
 }
 
 /**
- * Discover Pandits in a specific location
+ * Discover providers based on dynamic role and location
  */
-export async function discoverPandits(location: string): Promise<Pandit[]> {
+export async function discoverProviders(role: string, location: string): Promise<any[]> {
+    const safeRole = encodeURIComponent(role.toLowerCase());
+    const safeLocation = encodeURIComponent(location);
     const response = await fetch(
-        `${API_URL}/api/discover/pandits?location=${encodeURIComponent(location)}`
-    );
-
-    if (!response.ok) {
-        throw new Error(`API Error: ${response.statusText}`);
-    }
-
-    return response.json();
-}
-
-/**
- * Discover Venues in a specific location
- */
-export async function discoverVenues(location: string): Promise<any[]> {
-    const response = await fetch(
-        `${API_URL}/api/discover/venues?location=${encodeURIComponent(location)}`
-    );
-
-    if (!response.ok) {
-        throw new Error(`API Error: ${response.statusText}`);
-    }
-
-    return response.json();
-}
-
-/**
- * Discover Catering services in a specific location
- */
-export async function discoverCatering(location: string): Promise<any[]> {
-    const response = await fetch(
-        `${API_URL}/api/discover/catering?location=${encodeURIComponent(location)}`
+        `${API_URL}/api/discover/${safeRole}?location=${safeLocation}`
     );
 
     if (!response.ok) {

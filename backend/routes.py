@@ -60,59 +60,43 @@ async def search(
     
     if cache_entry:
         # Return cached results
-        pandits = [PanditResponse(**p) for p in cache_entry.results.get("pandits", [])]
-        venues = [VenueResponse(**v) for v in cache_entry.results.get("venues", [])]
-        catering = [CateringResponse(**c) for c in cache_entry.results.get("catering", [])]
+        results = [ProviderResponse(**p) for p in cache_entry.results.get("results", [])]
         
         if not is_unlimited:
-            pandits = pandits[:5]
-            venues = venues[:5]
-            catering = catering[:5]
+            results = results[:15]
             
         return SearchResponse(
-            pandits=pandits,
-            venues=venues,
-            catering=catering,
-            total_results=len(pandits) + len(venues) + len(catering),
+            results=results,
+            total_results=len(results),
             cached=True
         )
     
     try:
         # No cache, perform discovery
-        pandits_list = []
-        venues_list = []
-        catering_list = []
+        results_list = []
         
-        if category in ["all", "pandits"]:
-            pandits_db = await discovery_agent.discover_pandits(location, db)
-            pandits_list = [PanditResponse.from_orm(p) for p in pandits_db]
-        
-        if category in ["all", "venues"]:
-            venues_db = await discovery_agent.discover_venues(location, db)
-            venues_list = [VenueResponse.from_orm(v) for v in venues_db]
-        
-        if category in ["all", "catering"]:
-            catering_db = await discovery_agent.discover_catering(location, db)
-            catering_list = [CateringResponse.from_orm(c) for c in catering_db]
+        if category in ["all", "", None]:
+            for role in ["PANDIT", "VENUE", "CATERING"]:
+                res = await discovery_agent.discover_providers(role, location, db)
+                results_list.extend([ProviderResponse(**p) for p in res])
+        else:
+            cat_map = {"pandits": "PANDIT", "venues": "VENUE", "catering": "CATERING"}
+            role = cat_map.get(category.lower(), category.upper())
+            res = await discovery_agent.discover_providers(role, location, db)
+            results_list = [ProviderResponse(**p) for p in res]
         
         # Save to cache
         cache_data = {
-            "pandits": [p.dict() for p in pandits_list],
-            "venues": [v.dict() for v in venues_list],
-            "catering": [c.dict() for c in catering_list]
+            "results": [r.model_dump() for r in results_list]
         }
-        discovery_agent.save_to_cache(request.query, location, category, cache_data, db)
+        discovery_agent.save_to_cache(request.query, location, category or "all", cache_data, db)
         
         if not is_unlimited:
-            pandits_list = pandits_list[:5]
-            venues_list = venues_list[:5]
-            catering_list = catering_list[:5]
+            results_list = results_list[:15]
         
         return SearchResponse(
-            pandits=pandits_list,
-            venues=venues_list,
-            catering=catering_list,
-            total_results=len(pandits_list) + len(venues_list) + len(catering_list),
+            results=results_list,
+            total_results=len(results_list),
             cached=False
         )
     except Exception as e:
@@ -122,58 +106,17 @@ async def search(
         )
 
 
-@router.get("/api/discover/pandits", response_model=List[PanditResponse])
-async def discover_pandits_endpoint(
+@router.get("/api/discover/{role}", response_model=List[ProviderResponse])
+async def discover_providers_endpoint(
+    role: str,
     location: str = Query(..., description="Location to search in"),
     db: Session = Depends(get_db)
 ):
-    """Discover Pandits in a specific location."""
-    # Check database first
-    existing = db.query(Pandit).filter(
-        Pandit.location.ilike(f"%{location}%")
-    ).limit(10).all()
+    """Discover providers in a dynamic role and specific location."""
     
-    if existing:
-        return [PanditResponse.from_orm(p) for p in existing]
-    
-    # Discover new
-    pandits = await discovery_agent.discover_pandits(location, db)
-    return [PanditResponse.from_orm(p) for p in pandits]
-
-
-@router.get("/api/discover/venues", response_model=List[VenueResponse])
-async def discover_venues_endpoint(
-    location: str = Query(..., description="Location to search in"),
-    db: Session = Depends(get_db)
-):
-    """Discover Venues in a specific location."""
-    existing = db.query(Venue).filter(
-        Venue.location.ilike(f"%{location}%")
-    ).limit(10).all()
-    
-    if existing:
-        return [VenueResponse.from_orm(v) for v in existing]
-    
-    venues = await discovery_agent.discover_venues(location, db)
-    return [VenueResponse.from_orm(v) for v in venues]
-
-
-@router.get("/api/discover/catering", response_model=List[CateringResponse])
-async def discover_catering_endpoint(
-    location: str = Query(..., description="Location to search in"),
-    db: Session = Depends(get_db)
-):
-    """Discover Catering services in a specific location."""
-    existing = db.query(Catering).filter(
-        Catering.location.ilike(f"%{location}%")
-    ).limit(10).all()
-    
-    if existing:
-        return [CateringResponse.from_orm(c) for c in existing]
-    
-    catering = await discovery_agent.discover_catering(location, db)
-    return [CateringResponse.from_orm(c) for c in catering]
-
+    # Generic wrapper removes hardcoded Pandits/Venues tables logic
+    providers = await discovery_agent.discover_providers(role, location, db)
+    return [ProviderResponse(**p) for p in providers]
 
 # --- Auth & Identity Routes ---
 

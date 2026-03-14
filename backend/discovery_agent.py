@@ -192,133 +192,126 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
             print(f"Gemini parsing error: {e}")
             return None
     
-    async def discover_pandits(self, location: str, db: Session, include_web: bool = True) -> List[Pandit]:
-        """Discovery for Pandits: Merges internal DB and external web results."""
-        # 1. Internal Search
-        internal_pandits = db.query(Pandit).filter(
-            Pandit.location.ilike(f"%{location}%"),
-            Pandit.verified == True
-        ).all()
-        for p in internal_pandits:
-            p.is_internal = True
+    async def discover_providers(self, role: str, location: str, db: Session, include_web: bool = True) -> List[Dict[str, Any]]:
+        """Discovery for Providers: Merges internal DB and external web results dynamically."""
+        from models import User, Profile, UserRole, UserStatus, AgentLog
+        
+        role_upper = role.upper()
+        target_role = None
+        try:
+            target_role = UserRole[role_upper]
+        except KeyError:
+            pass
+            
+        internal_providers = []
+        if target_role:
+            # 1. Internal Search
+            users_in_role = db.query(User).join(Profile).filter(
+                User.role == target_role,
+                User.status == UserStatus.APPROVED,
+                (Profile.location.ilike(f"%{location}%") | Profile.address_city.ilike(f"%{location}%"))
+            ).all()
+            
+            for user in users_in_role:
+                profile = user.profile
+                internal_providers.append({
+                    "id": user.id,
+                    "name": profile.full_name or "Unnamed Member",
+                    "role": role_upper,
+                    "location": profile.location or profile.address_city or location,
+                    "rating": 5.0,
+                    "reviews": 1,
+                    "is_platform_member": True,
+                    "phone": profile.phone or profile.whatsapp,
+                    "email": user.email,
+                    "additional_info": profile.role_metadata or {}
+                })
+        
+        # Log internal discovery
+        try:
+            log_entry = AgentLog(
+                id=str(uuid.uuid4()),
+                agent_type="FINDER",
+                tool_used="Internal DB Lookups",
+                summary_outcome=f"Internal search performed for role {role_upper} in location {location}. Found {len(internal_providers)} member(s)."
+            )
+            db.add(log_entry)
+            db.commit()
+        except:
+            pass
 
         if not include_web:
-            return internal_pandits
+            return internal_providers
 
         # 2. External Web Search
-        query = f"pandits priests hindu ceremonies {location}"
+        query_map = {
+            "PANDIT": "pandits priests hindu ceremonies",
+            "VENUE": "wedding halls marriage venues banquet halls",
+            "CATERING": "catering services satvik food wedding catering"
+        }
+        search_term = query_map.get(role_upper, f"{role} services")
+        query = f"{search_term} {location}"
+        
         search_results = await self.search_with_serper(query, location)
         
-        external_pandits = []
+        external_providers = []
         for result in search_results[:3]:  # Top 3 for web results
             url = result.get("link")
-            if not url or any(p.website == url for p in internal_pandits):
+            if not url or any(p.get("website") == url for p in internal_providers):
                 continue
             
             content = await self.scrape_with_firecrawl(url)
+            
+            prompt_key = "pandit" # default fallback
+            if role_upper == "VENUE": prompt_key = "venue"
+            elif role_upper == "CATERING": prompt_key = "catering"
+                
             if not content:
-                pandit_data = {"name": result.get("title", "Unknown"), "location": location, "website": url}
+                provider_data = {"name": result.get("title", "Unknown"), "location": location, "website": url}
             else:
-                pandit_data = self.parse_with_gemini(content, "pandit")
-                if not pandit_data: continue
-                pandit_data["website"] = url
+                provider_data = self.parse_with_gemini(content, prompt_key)
+                if not provider_data: continue
+                provider_data["website"] = url
             
-            pandit = Pandit(
+            # Simple deduplication by phone
+            ext_phone = provider_data.get("phone", "")
+            is_dup = False
+            if ext_phone and ext_phone != "null":
+                for p in internal_providers:
+                    if p.get("phone") and ext_phone in p.get("phone"):
+                        is_dup = True
+                        break
+            if is_dup: continue
+            
+            external_providers.append({
+                "id": str(uuid.uuid4()),
+                "name": provider_data.get("name", "Unknown"),
+                "role": role_upper,
+                "location": provider_data.get("location", location),
+                "rating": provider_data.get("rating", 0.0),
+                "reviews": provider_data.get("reviews", 0),
+                "is_platform_member": False,
+                "phone": provider_data.get("phone"),
+                "email": provider_data.get("email"),
+                "website": provider_data.get("website"),
+                "price_range": provider_data.get("price_range"),
+                "additional_info": provider_data
+            })
+            
+        # Log external discovery
+        try:
+            log_ext = AgentLog(
                 id=str(uuid.uuid4()),
-                name=pandit_data.get("name", "Unknown"),
-                location=pandit_data.get("location", location),
-                website=pandit_data.get("website"),
-                verified=False,
-                is_internal=False,
-                additional_info=pandit_data
+                agent_type="FINDER",
+                tool_used="SerpAPI/Firecrawl",
+                summary_outcome=f"External parallel search for role {role_upper} in location {location}. Generated {len(external_providers)} external result(s)."
             )
-            external_pandits.append(pandit)
-        
-        return internal_pandits + external_pandits
-
-    async def discover_venues(self, location: str, db: Session, include_web: bool = True) -> List[Venue]:
-        """Discovery for Venues: Merges internal DB and external web results."""
-        internal_venues = db.query(Venue).filter(
-            Venue.location.ilike(f"%{location}%"),
-            Venue.verified == True
-        ).all()
-        for v in internal_venues:
-            v.is_internal = True
-
-        if not include_web:
-            return internal_venues
-
-        query = f"wedding halls marriage venues banquet halls {location}"
-        search_results = await self.search_with_serper(query, location)
-        
-        external_venues = []
-        for result in search_results[:3]:
-            url = result.get("link")
-            if not url or any(v.website == url for v in internal_venues):
-                continue
+            db.add(log_ext)
+            db.commit()
+        except:
+            pass
             
-            content = await self.scrape_with_firecrawl(url)
-            if not content:
-                venue_data = {"name": result.get("title", "Unknown"), "location": location, "website": url}
-            else:
-                venue_data = self.parse_with_gemini(content, "venue")
-                if not venue_data: continue
-                venue_data["website"] = url
-            
-            venue = Venue(
-                id=str(uuid.uuid4()),
-                name=venue_data.get("name", "Unknown"),
-                location=venue_data.get("location", location),
-                website=venue_data.get("website"),
-                verified=False,
-                is_internal=False,
-                additional_info=venue_data
-            )
-            external_venues.append(venue)
-        
-        return internal_venues + external_venues
-
-    async def discover_catering(self, location: str, db: Session, include_web: bool = True) -> List[Catering]:
-        """Discovery for Catering: Merges internal DB and external web results."""
-        internal_catering = db.query(Catering).filter(
-            Catering.location.ilike(f"%{location}%"),
-            Catering.verified == True
-        ).all()
-        for c in internal_catering:
-            c.is_internal = True
-
-        if not include_web:
-            return internal_catering
-
-        query = f"catering services satvik food wedding catering {location}"
-        search_results = await self.search_with_serper(query, location)
-        
-        external_catering = []
-        for result in search_results[:3]:
-            url = result.get("link")
-            if not url or any(c.website == url for c in internal_catering):
-                continue
-            
-            content = await self.scrape_with_firecrawl(url)
-            if not content:
-                catering_data = {"name": result.get("title", "Unknown"), "location": location, "website": url}
-            else:
-                catering_data = self.parse_with_gemini(content, "catering")
-                if not catering_data: continue
-                catering_data["website"] = url
-            
-            catering = Catering(
-                id=str(uuid.uuid4()),
-                name=catering_data.get("name", "Unknown"),
-                location=catering_data.get("location", location),
-                website=catering_data.get("website"),
-                verified=False,
-                is_internal=False,
-                additional_info=catering_data
-            )
-            external_catering.append(catering)
-        
-        return internal_catering + external_catering
+        return internal_providers + external_providers
     
     def get_cache_key(self, query: str, location: str, category: str) -> str:
         """Generate cache key for search query."""

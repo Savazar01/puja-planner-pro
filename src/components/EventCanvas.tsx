@@ -79,11 +79,7 @@ const EventCanvas = () => {
   const [isGuestDialogOpen, setIsGuestDialogOpen] = useState(false);
   const [isSupplyDialogOpen, setIsSupplyDialogOpen] = useState(false);
   const [editingGuestId, setEditingGuestId] = useState<string | null>(null);
-  const [searchResults, setSearchResults] = useState<{ pandits: any[], venues: any[], catering: any[] }>({
-    pandits: [],
-    venues: [],
-    catering: []
-  });
+  const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedPartners, setSelectedPartners] = useState<any[]>([]);
 
@@ -151,11 +147,7 @@ const EventCanvas = () => {
           body: JSON.stringify({ query: intent, location: "Hyderabad" }) // Fallback location
         });
         const data = await response.json();
-        setSearchResults({
-          pandits: data.pandits || [],
-          venues: data.venues || [],
-          catering: data.catering || []
-        });
+        setSearchResults(data.results || []);
       } catch (error) {
         console.error("Search failed:", error);
         toast({ title: "Search Error", description: "Could not fetch suggestions. Please try again.", variant: "destructive" });
@@ -407,17 +399,17 @@ const EventCanvas = () => {
                   ) : (
                     <>
                       {/* Search Results Display */}
-                      {[...searchResults.pandits, ...searchResults.venues, ...searchResults.catering].length > 0 ? (
-                        [...searchResults.pandits, ...searchResults.venues, ...searchResults.catering].map((partner, idx) => (
+                      {searchResults.length > 0 ? (
+                        searchResults.map((partner, idx) => (
                           <Card key={partner.id || idx} className="hover:border-primary/50 transition-all group bg-card overflow-hidden">
                             <CardHeader className="flex flex-row items-start justify-between pb-2">
                               <div className="space-y-1">
                                 <CardTitle className="text-lg font-bold flex items-center gap-2">
                                   {partner.name}
-                                  {partner.is_internal && (
+                                  {partner.is_platform_member && (
                                     <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-green-200 gap-1 text-[10px] h-5">
                                       <CheckCircle2 className="h-3 w-3" />
-                                      Verified Member
+                                      Member ✓
                                     </Badge>
                                   )}
                                 </CardTitle>
@@ -426,12 +418,12 @@ const EventCanvas = () => {
                             </CardHeader>
                             <CardContent className="space-y-4">
                               <p className="text-sm text-muted-foreground line-clamp-2">
-                                {partner.specialization || partner.venue_type || partner.cuisine_types?.join(", ") || "Available for your ceremony."}
+                                {partner.additional_info?.specialization || partner.additional_info?.venue_type || partner.additional_info?.cuisine_types?.join(", ") || "Available for your ceremony."}
                               </p>
                               <Button 
                                 className="w-full gap-2" 
                                 variant={selectedPartners.some(b => b.partner_id === partner.id) ? "secondary" : "default"}
-                                onClick={() => selectPartner(partner, partner.specialization ? 'PANDIT' : partner.venue_type ? 'VENUE' : 'CATERING')}
+                                onClick={() => selectPartner(partner, partner.role || 'SUPPLIER')}
                                 disabled={selectedPartners.some(b => b.partner_id === partner.id)}
                               >
                                 {selectedPartners.some(b => b.partner_id === partner.id) ? "Selected" : "Select for Ritual"}

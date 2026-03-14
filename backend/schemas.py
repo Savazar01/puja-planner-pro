@@ -120,80 +120,31 @@ class SearchRequest(BaseModel):
     category: Optional[str] = Field(None, description="Category filter: pandits, venues, catering")
 
 
-class PanditResponse(BaseModel):
-    """Response schema for Pandit data."""
+class ProviderResponse(BaseModel):
+    """Generic response schema for any discovered provider."""
     id: str
     name: str
-    specialization: Optional[str] = None
+    role: str
     location: Optional[str] = None
     rating: float = 0.0
     reviews: int = 0
-    verified: bool = False
-    is_internal: bool = False
-    languages: List[str] = []
+    is_platform_member: bool = False
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    website: Optional[str] = None
     price_range: Optional[str] = None
-    phone: Optional[str] = None
-    email: Optional[str] = None
-    website: Optional[str] = None
     additional_info: Optional[dict] = None
     
     class Config:
         from_attributes = True
-
-
-class VenueResponse(BaseModel):
-    """Response schema for Venue data."""
-    id: str
-    name: str
-    location: Optional[str] = None
-    address: Optional[str] = None
-    capacity: Optional[int] = None
-    venue_type: Optional[str] = None
-    amenities: List[str] = []
-    price_range: Optional[str] = None
-    verified: bool = False
-    is_internal: bool = False
-    phone: Optional[str] = None
-    email: Optional[str] = None
-    website: Optional[str] = None
-    rating: float = 0.0
-    reviews: int = 0
-    additional_info: Optional[dict] = None
-    
-    class Config:
-        from_attributes = True
-
-
-class CateringResponse(BaseModel):
-    """Response schema for Catering data."""
-    id: str
-    name: str
-    location: Optional[str] = None
-    cuisine_types: List[str] = []
-    specialties: List[str] = []
-    price_per_plate: Optional[str] = None
-    min_order: Optional[int] = None
-    verified: bool = False
-    is_internal: bool = False
-    phone: Optional[str] = None
-    email: Optional[str] = None
-    website: Optional[str] = None
-    rating: float = 0.0
-    reviews: int = 0
-    additional_info: Optional[dict] = None
-    
-    class Config:
-        from_attributes = True
-
 
 class SearchResponse(BaseModel):
     """Combined search response."""
-    pandits: List[PanditResponse] = []
-    venues: List[VenueResponse] = []
-    catering: List[CateringResponse] = []
+    results: List[ProviderResponse] = []
     total_results: int = 0
     cached: bool = False
     timestamp: datetime = Field(default_factory=datetime.now)
+
 
 
 class DiscoveryResponse(BaseModel):

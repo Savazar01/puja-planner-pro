@@ -46,6 +46,19 @@ async def search(
     Universal search endpoint across all categories.
     Uses caching to minimize API calls.
     """
+    # [NEW] Early Logging: Record Search Intent Immediately
+    try:
+        log_entry = AgentLog(
+            id=str(uuid.uuid4()),
+            event_id=None,
+            agent_type="FINDER",
+            tool_used="Initiation",
+            summary_outcome=f"Search Initiated for '{request.query}' in '{request.location or 'India'}'."
+        )
+        db.add(log_entry)
+        db.commit()
+    except Exception as e:
+        print(f"Agent Log Error: {e}")
     if not settings.serper_api_key or not settings.firecrawl_api_key:
         raise HTTPException(
             status_code=500,
@@ -113,6 +126,20 @@ async def discover_providers_endpoint(
     db: Session = Depends(get_db)
 ):
     """Discover providers in a dynamic role and specific location."""
+    
+    # [NEW] Early Logging: Record Search Intent Immediately
+    try:
+        log_entry = AgentLog(
+            id=str(uuid.uuid4()),
+            event_id=None,
+            agent_type="FINDER",
+            tool_used="Initiation",
+            summary_outcome=f"Search Initiated for role '{role.upper()}' in '{location}'."
+        )
+        db.add(log_entry)
+        db.commit()
+    except Exception as e:
+        print(f"Agent Log Error: {e}")
     
     # Generic wrapper removes hardcoded Pandits/Venues tables logic
     providers = await discovery_agent.discover_providers(role, location, db)

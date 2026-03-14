@@ -164,12 +164,18 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
                 return None
                 
             genai.configure(api_key=settings.gemini_api_key)
-            gemini_model = genai.GenerativeModel('gemini-1.5-flash')
             
             prompt = prompts.get(entity_type, prompts["pandit"])
             full_prompt = f"{prompt}\n\nContent to parse:\n{content[:4000]}"  # Limit content length
             
-            response = gemini_model.generate_content(full_prompt)
+            # Intelligent Model Fallback
+            try:
+                gemini_model = genai.GenerativeModel('gemini-1.5-pro')
+                response = gemini_model.generate_content(full_prompt)
+            except Exception as pro_error:
+                print(f"Gemini Pro inference failed: {pro_error}. Triggering Fallback to Flash.")
+                gemini_model = genai.GenerativeModel('gemini-1.5-flash')
+                response = gemini_model.generate_content(full_prompt)
             
             # Extract JSON from response
             text = response.text.strip()

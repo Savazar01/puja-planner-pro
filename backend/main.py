@@ -143,7 +143,7 @@ app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
+    allow_origins=settings.cors_origins_list + ["https://puja.fossone.app", "https://pujaapi.fossone.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

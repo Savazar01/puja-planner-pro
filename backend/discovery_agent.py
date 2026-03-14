@@ -360,6 +360,45 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
         db.add(cache_entry)
         db.commit()
 
+    def suggest_ritual_supplies(self, intent: str) -> List[Dict[str, Any]]:
+        """Sourcing for Supplies: Uses Gemini to suggest a ritual-specific checklist."""
+        prompt = f"""
+        You are the 'Supplies Agent' for MyPandits. 
+        Based on the customer's intent: "{intent}", identify the specific Hindu ritual if any.
+        Generate a list of 5-10 essential samagri/supplies needed for this ritual.
+        Categorize each item (e.g., Essentials, Havan Items, Aarti Items, Decoration).
+        
+        Return ONLY a JSON list of objects with these keys: 
+        "name", "category", "quantity" (if applicable, e.g. "2", "1 packet", "As needed").
+        
+        Example:
+        [
+            {{"name": "Coconut", "category": "Essentials", "quantity": "2"}},
+            {{"name": "Ghee", "category": "Havan Items", "quantity": "500g"}}
+        ]
+        
+        If the intent is too vague or not a ritual, return an empty list [].
+        ONLY RETURN JSON.
+        """
+        
+        try:
+            model = genai.GenerativeModel('gemini-1.5-flash')
+            response = model.generate_content(prompt)
+            text = response.text.strip()
+            # Clean up potential markdown formatting
+            if "```json" in text:
+                text = text.split("```json")[1].split("```")[0].strip()
+            elif "```" in text:
+                text = text.split("```")[1].split("```")[0].strip()
+            
+            supplies = json.loads(text)
+            if isinstance(supplies, list):
+                return supplies
+            return []
+        except Exception as e:
+            print(f"Supplies Agent Error: {e}")
+            return []
+
 
 # Global instance
 discovery_agent = DiscoveryAgent()

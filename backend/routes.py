@@ -10,12 +10,13 @@ from schemas import (
     EmailTemplateResponse, EmailTemplateUpdate, ProfileUpdate,
     ForgotPasswordRequest, ResetPasswordRequest, SubscriptionUpgrade,
     EventCreate, EventResponse, SelectionRequest, EventUpdate,
-    AgentLogCreate, AgentLogResponse
+    AgentLogCreate, AgentLogResponse,
+    GuestCreate, GuestResponse, SupplyCreate, SupplyResponse
 )
 from models import (
     Pandit, Venue, Catering, User, Profile, UserStatus, UserRole, 
-    Pandit, Venue, Catering, User, Profile, UserStatus, UserRole, 
-    EmailTemplate, EmailEventType, Event, Booking, AgentLog
+    EmailTemplate, EmailEventType, Event, Booking, AgentLog,
+    Guest, Supply
 )
 from discovery_agent import discovery_agent
 from config import settings
@@ -39,54 +40,97 @@ async def health_check():
 async def search(
     request: SearchRequest,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
     is_unlimited: bool = Depends(search_bouncer)
 ):
     """
     Universal search endpoint across all categories.
-    Uses caching to minimize API calls.
+    Creates a DRAFT event if event_id is missing.
+    Populates supplies based on ritual intent.
     """
-    # [NEW] Early Logging: Record Search Intent Immediately
+    event_id = request.event_id
+    ritual_type = None
+    
+    # 1. Start/Resume Event Lifecycle
+    if not event_id:
+        # Create a new DRAFT event for this intent
+        new_event = Event(
+            id=str(uuid.uuid4()),
+            customer_id=current_user.id,
+            title=request.query[:50] + "..." if len(request.query) > 50 else request.query,
+            status="DRAFT"
+        )
+        db.add(new_event)
+        db.commit()
+        db.refresh(new_event)
+        event_id = new_event.id
+        
+        # [ROOT ORCHESTRATION] Planner decomposes the intent
+        try:
+            planner_log = AgentLog(
+                id=str(uuid.uuid4()),
+                event_id=event_id,
+                agent_type="PLANNER",
+                tool_used="Orchestration",
+                summary_outcome=f"Decomposing Intent: '{request.query}'. Initiating parallel sub-agent tasks: [FINDER: Professional Search, SUPPLIES: Samagri Sourcing]."
+            )
+            db.add(planner_log)
+            db.commit()
+        except: pass
+        
+        # 2. Agentic Synergy: Supplies Agent Auto-Population
+        # Detect ritual and suggest supplies
+        suggested_supplies = discovery_agent.suggest_ritual_supplies(request.query)
+        if suggested_supplies:
+            for item in suggested_supplies:
+                db_item = Supply(
+                    id=str(uuid.uuid4()),
+                    event_id=event_id,
+                    name=item.get("name"),
+                    category=item.get("category"),
+                    quantity=item.get("quantity"),
+                    completed=False
+                )
+                db.add(db_item)
+            db.commit()
+
+    # 3. Logging Strategy (Agentic Audit)
     try:
         log_entry = AgentLog(
             id=str(uuid.uuid4()),
-            event_id=None,
+            event_id=event_id,
             agent_type="FINDER",
             tool_used="Initiation",
-            summary_outcome=f"Request Received: Search for '{request.query}' in '{request.location or 'India'}'."
+            summary_outcome=f"Intent: '{request.query}'. Created/Resumed Event: {event_id}."
         )
         db.add(log_entry)
         db.commit()
     except Exception as e:
         print(f"Agent Log Error: {e}")
+
     if not settings.serper_api_key or not settings.firecrawl_api_key:
         raise HTTPException(
-            status_code=500,
-            detail="Missing SERPER_API_KEY or FIRECRAWL_API_KEY. Live web search and scraping are unavailable."
+            status_code=500, detail="Missing Search API Keys"
         )
 
     location = request.location or "India"
     category = request.category or "all"
     
-    # Check cache first
+    # 4. Search Execution
     cache_entry = discovery_agent.check_cache(request.query, location, category, db)
-    
     if cache_entry:
-        # Return cached results
         results = [ProviderResponse(**p) for p in cache_entry.results.get("results", [])]
-        
         if not is_unlimited:
             results = results[:15]
-            
         return SearchResponse(
             results=results,
             total_results=len(results),
-            cached=True
+            cached=True,
+            event_id=event_id
         )
     
     try:
-        # No cache, perform discovery
         results_list = []
-        
         if category in ["all", "", None]:
             for role in ["PANDIT", "VENUE", "CATERING"]:
                 res = await discovery_agent.discover_providers(role, location, db)
@@ -98,9 +142,7 @@ async def search(
             results_list = [ProviderResponse(**p) for p in res]
         
         # Save to cache
-        cache_data = {
-            "results": [r.model_dump() for r in results_list]
-        }
+        cache_data = {"results": [r.model_dump() for r in results_list]}
         discovery_agent.save_to_cache(request.query, location, category or "all", cache_data, db)
         
         if not is_unlimited:
@@ -109,8 +151,11 @@ async def search(
         return SearchResponse(
             results=results_list,
             total_results=len(results_list),
-            cached=False
+            cached=False,
+            event_id=event_id
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -603,6 +648,113 @@ async def deselect_partner(
         db.commit()
         
     return {"status": "success"}
+
+
+# --- Guest & Supply Management ---
+
+@router.get("/api/events/{event_id}/guests", response_model=List[GuestResponse])
+async def list_event_guests(
+    event_id: str,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    event = db.query(Event).filter(Event.id == event_id, Event.customer_id == current_user.id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    return event.guests
+
+@router.post("/api/events/{event_id}/guests", response_model=GuestResponse)
+async def add_event_guest(
+    event_id: str,
+    guest_in: GuestCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    event = db.query(Event).filter(Event.id == event_id, Event.customer_id == current_user.id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    guest = Guest(
+        id=str(uuid.uuid4()),
+        event_id=event_id,
+        name=guest_in.name,
+        phone=guest_in.phone,
+        email=guest_in.email,
+        member_count=guest_in.member_count,
+        status=guest_in.status,
+        invited_via=guest_in.invited_via
+    )
+    db.add(guest)
+    db.commit()
+    db.refresh(guest)
+    return guest
+
+@router.delete("/api/events/{event_id}/guests/{guest_id}")
+async def remove_event_guest(
+    event_id: str,
+    guest_id: str,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    guest = db.query(Guest).filter(Guest.id == guest_id, Guest.event_id == event_id).first()
+    if not guest:
+        raise HTTPException(status_code=404, detail="Guest not found")
+    
+    db.delete(guest)
+    db.commit()
+    return {"status": "success"}
+
+@router.get("/api/events/{event_id}/supplies", response_model=List[SupplyResponse])
+async def list_event_supplies(
+    event_id: str,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    event = db.query(Event).filter(Event.id == event_id, Event.customer_id == current_user.id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    return event.supplies
+
+@router.post("/api/events/{event_id}/supplies", response_model=SupplyResponse)
+async def add_event_supply(
+    event_id: str,
+    supply_in: SupplyCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    event = db.query(Event).filter(Event.id == event_id, Event.customer_id == current_user.id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    
+    supply = Supply(
+        id=str(uuid.uuid4()),
+        event_id=event_id,
+        name=supply_in.name,
+        category=supply_in.category,
+        quantity=supply_in.quantity,
+        completed=supply_in.completed
+    )
+    db.add(supply)
+    db.commit()
+    db.refresh(supply)
+    return supply
+
+@router.patch("/api/events/{event_id}/supplies/{supply_id}", response_model=SupplyResponse)
+async def update_event_supply_status(
+    event_id: str,
+    supply_id: str,
+    completed: bool,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    supply = db.query(Supply).filter(Supply.id == supply_id, Supply.event_id == event_id).first()
+    if not supply:
+        raise HTTPException(status_code=404, detail="Supply item not found")
+    
+    supply.completed = completed
+    db.commit()
+    db.refresh(supply)
+    return supply
 
 
 # --- Agent Audit Logs (Admin) ---

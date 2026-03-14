@@ -62,19 +62,9 @@ const EventCanvas = () => {
   const [isEditingMetadata, setIsEditingMetadata] = useState(false);
   const [editForm, setEditForm] = useState({ title: "", location: "", date: "", time: "" });
   
-  // New modules state
-  const [guests, setGuests] = useState([
-    { id: "g1", name: "Anil Sharma", phone: "9876543210", memberCount: 4, status: "Coming" },
-    { id: "g2", name: "Meena Gupta", phone: "9876543211", memberCount: 2, status: "Not yet responded" },
-    { id: "g3", name: "Rahul V.", phone: "9876543212", memberCount: 1, status: "Coming" }
-  ]);
-  
-  const [supplies, setSupplies] = useState([
-    { id: "s1", name: "Puja Thali", completed: true },
-    { id: "s2", name: "Fresh Flowers", completed: false },
-    { id: "s3", name: "Coconuts (2)", completed: false },
-    { id: "s4", name: "Red Cloth", completed: true }
-  ]);
+  // New modules state (Initially empty for Blank Canvas)
+  const [guests, setGuests] = useState<any[]>([]);
+  const [supplies, setSupplies] = useState<any[]>([]);
   
   const [newGuest, setNewGuest] = useState({ id: "", name: "", phone: "", memberCount: 1 });
   const [newSupply, setNewSupply] = useState("");
@@ -89,8 +79,9 @@ const EventCanvas = () => {
     const fetchEventData = async () => {
       if (eventId) {
         try {
-          const response = await fetch(`${VITE_API_URL}/api/events`);
-          const allEvents = await response.json();
+          // 1. Fetch Event Base Details
+          const evResponse = await fetch(`${VITE_API_URL}/api/events`);
+          const allEvents = await evResponse.json();
           const currentEvent = allEvents.find((e: any) => e.id === eventId);
           if (currentEvent) {
             setEventData(currentEvent);
@@ -104,6 +95,16 @@ const EventCanvas = () => {
             setSelectedPartners(currentEvent.bookings || []);
             setIsEventActive(true);
           }
+
+          // 2. Sync Modules (Guests & Supplies)
+          const [gRes, sRes] = await Promise.all([
+            fetch(`${VITE_API_URL}/api/events/${eventId}/guests`),
+            fetch(`${VITE_API_URL}/api/events/${eventId}/supplies`)
+          ]);
+          
+          if (gRes.ok) setGuests(await gRes.json());
+          if (sRes.ok) setSupplies(await sRes.json());
+          
         } catch (error) {
           console.error("Failed to fetch event data:", error);
         }
@@ -111,6 +112,7 @@ const EventCanvas = () => {
     };
     fetchEventData();
   }, [eventId]);
+
 
   const handleUpdateMetadata = async () => {
     if (!eventId) return;
@@ -147,7 +149,11 @@ const EventCanvas = () => {
         const response = await fetch(searchUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query: intent, location: "Hyderabad" }) // Fallback location
+          body: JSON.stringify({ 
+            query: intent, 
+            location: "Hyderabad",
+            event_id: eventId // Pass existing if available
+          })
         });
         
         if (!response.ok) {
@@ -156,11 +162,18 @@ const EventCanvas = () => {
         
         const data = await response.json();
         setSearchResults(data.results || []);
+        
+        // [AGENTIC INSTANTIATION] Capture Draft Event ID and Update URL
+        if (data.event_id && data.event_id !== eventId) {
+          window.history.replaceState({}, '', `/event-orchestration?id=${data.event_id}`);
+          // Force a fresh fetch for the new event context
+          window.location.reload(); 
+        }
       } catch (error: any) {
-        console.error(`Search failed fetching from URL: ${searchUrl}`, error);
+        console.error(`Search failed:`, error);
         toast({ 
             title: "Search Error", 
-            description: error.message || "Network Error: Could not connect to the AI Agent. Please try again.", 
+            description: error.message || "Network Error: Could not connect to the AI Agent.", 
             variant: "destructive" 
         });
       } finally {
@@ -197,24 +210,46 @@ const EventCanvas = () => {
     }
   };
 
-  const addGuest = () => {
-    if (newGuest.name.trim() && newGuest.phone.trim()) {
-      if (editingGuestId) {
-        setGuests(prev => prev.map(g => g.id === editingGuestId ? { ...newGuest, id: editingGuestId } as any : g));
-        setEditingGuestId(null);
-        toast({ title: "Guest Updated", description: `${newGuest.name}'s details have been updated.` });
-      } else {
-        setGuests(prev => [...prev, { ...newGuest, id: `g${Date.now()}`, status: "Not yet responded" } as any]);
-        toast({ title: "Guest Added", description: `${newGuest.name} has been added to your planning list.` });
+  const addGuest = async () => {
+    if (newGuest.name.trim() && newGuest.phone.trim() && eventId) {
+      try {
+        const response = await fetch(`${VITE_API_URL}/api/events/${eventId}/guests`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: newGuest.name,
+            phone: newGuest.phone,
+            member_count: newGuest.memberCount,
+            status: "PENDING"
+          })
+        });
+        
+        if (response.ok) {
+          const addedGuest = await response.json();
+          setGuests(prev => [...prev, addedGuest]);
+          toast({ title: "Guest Added", description: `${newGuest.name} has been added to the database.` });
+          setNewGuest({ id: "", name: "", phone: "", memberCount: 1 });
+          setIsGuestDialogOpen(false);
+        }
+      } catch (error) {
+        console.error("Failed to add guest:", error);
       }
-      setNewGuest({ id: "", name: "", phone: "", memberCount: 1 });
-      setIsGuestDialogOpen(false);
     }
   };
 
-  const removeGuest = (id: string) => {
-    setGuests(prev => prev.filter(g => g.id !== id));
-    toast({ title: "Guest Removed", description: "The guest has been removed from your list." });
+  const removeGuest = async (id: string) => {
+    if (!eventId) return;
+    try {
+      const response = await fetch(`${VITE_API_URL}/api/events/${eventId}/guests/${id}`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        setGuests(prev => prev.filter(g => g.id !== id));
+        toast({ title: "Guest Removed", description: "The guest has been deleted from your list." });
+      }
+    } catch (error) {
+      console.error("Failed to remove guest:", error);
+    }
   };
 
   const openEditGuest = (guest: any) => {
@@ -241,14 +276,32 @@ const EventCanvas = () => {
     window.open(waUrl, "_blank");
   };
 
-  const addSupply = () => {
-    if (newSupply.trim()) {
-      setSupplies(prev => [...prev, { id: `s${Date.now()}`, name: newSupply, completed: false }]);
-      setNewSupply("");
-      setIsSupplyDialogOpen(false);
-      toast({ title: "Item Added", description: `Added ${newSupply} to your ritual supplies.` });
+  const addSupply = async () => {
+    if (newSupply.trim() && eventId) {
+      try {
+        const response = await fetch(`${VITE_API_URL}/api/events/${eventId}/supplies`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: newSupply,
+            category: "Essentials",
+            completed: false
+          })
+        });
+        
+        if (response.ok) {
+          const addedSupply = await response.json();
+          setSupplies(prev => [...prev, addedSupply]);
+          setNewSupply("");
+          setIsSupplyDialogOpen(false);
+          toast({ title: "Item Added", description: `Added ${newSupply} to your ritual checklist.` });
+        }
+      } catch (error) {
+        console.error("Failed to add supply:", error);
+      }
     }
   };
+
 
   const currentEventName = eventId ? `Planning: ${eventId}` : "New Event Planning";
   const confirmedInvitations = guests.filter(g => g.status === "Coming").length;
@@ -609,11 +662,21 @@ const EventCanvas = () => {
               <CardContent className="space-y-4">
                 {supplies.map((item) => (
                   <div key={item.id} className="flex items-center gap-4 p-4 rounded-xl border border-border bg-background/50">
-                    <Checkbox id={item.id} checked={item.completed} onCheckedChange={(checked) => {
-                      setSupplies(prev => prev.map(s => s.id === item.id ? { ...s, completed: !!checked } : s));
+                    <Checkbox id={item.id} checked={item.completed} onCheckedChange={async (checked) => {
+                      if (!eventId) return;
+                      try {
+                        const response = await fetch(`${VITE_API_URL}/api/events/${eventId}/supplies/${item.id}?completed=${!!checked}`, {
+                          method: 'PATCH'
+                        });
+                        if (response.ok) {
+                          setSupplies(prev => prev.map(s => s.id === item.id ? { ...s, completed: !!checked } : s));
+                        }
+                      } catch (error) {
+                        console.error("Failed to toggle supply:", error);
+                      }
                     }} />
                     <label htmlFor={item.id} className={`font-medium ${item.completed ? 'line-through text-muted-foreground' : ''}`}>
-                      {item.name}
+                      {item.name} {item.quantity ? `(${item.quantity})` : ""}
                     </label>
                   </div>
                 ))}

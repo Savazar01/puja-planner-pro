@@ -118,6 +118,7 @@ class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1, description="Search query")
     location: Optional[str] = Field(None, description="Location filter (city, state)")
     category: Optional[str] = Field(None, description="Category filter: pandits, venues, catering")
+    event_id: Optional[str] = Field(None, description="Existing event ID to associate search with")
 
 
 class ProviderResponse(BaseModel):
@@ -144,6 +145,8 @@ class SearchResponse(BaseModel):
     total_results: int = 0
     cached: bool = False
     timestamp: datetime = Field(default_factory=datetime.now)
+    event_id: Optional[str] = None
+    ritual_type: Optional[str] = None
 
 
 
@@ -154,6 +157,40 @@ class DiscoveryResponse(BaseModel):
     location: str
     source: str = "discovery_agent"
 
+
+class GuestBase(BaseModel):
+    name: str
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    member_count: int = 1
+    status: str = "PENDING"
+    invited_via: Optional[str] = None
+
+class GuestCreate(GuestBase):
+    pass
+
+class GuestResponse(GuestBase):
+    id: str
+    event_id: str
+    
+    class Config:
+        from_attributes = True
+
+class SupplyBase(BaseModel):
+    name: str
+    category: Optional[str] = None
+    quantity: Optional[str] = None
+    completed: bool = False
+
+class SupplyCreate(SupplyBase):
+    pass
+
+class SupplyResponse(SupplyBase):
+    id: str
+    event_id: str
+    
+    class Config:
+        from_attributes = True
 
 class BookingBase(BaseModel):
     partner_id: str
@@ -187,6 +224,8 @@ class EventResponse(EventBase):
     customer_id: str
     status: str
     bookings: List[BookingResponse] = []
+    guests: List[GuestResponse] = []
+    supplies: List[SupplyResponse] = []
     
     class Config:
         from_attributes = True

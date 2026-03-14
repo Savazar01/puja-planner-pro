@@ -53,26 +53,9 @@ export const mockTemples: Temple[] = [
   { id: "3", name: "Birla Mandir", location: "Jaipur, Rajasthan", deity: "Lord Vishnu", events: ["Ekadashi", "Ram Navami"], verified: true, image: "" },
 ];
 
-export const mockGuests: Guest[] = [
-  { id: "1", name: "Rajesh Kumar", phone: "+91 98765 43210", email: "rajesh@email.com", status: "accepted", invitedVia: "whatsapp" },
-  { id: "2", name: "Priya Sharma", phone: "+91 87654 32109", email: "priya@email.com", status: "sent", invitedVia: "whatsapp" },
-  { id: "3", name: "Amit Patel", phone: "+91 76543 21098", email: "amit@email.com", status: "pending", invitedVia: "email" },
-  { id: "4", name: "Sunita Devi", phone: "+91 65432 10987", email: "sunita@email.com", status: "declined", invitedVia: "whatsapp" },
-  { id: "5", name: "Vikram Singh", phone: "+91 54321 09876", email: "vikram@email.com", status: "accepted", invitedVia: "sms" },
-];
+export const mockGuests: Guest[] = [];
 
-export const mockChecklist: ChecklistItem[] = [
-  { id: "1", name: "Kalash (Sacred Pot)", category: "Essentials", completed: true, quantity: "1" },
-  { id: "2", name: "Coconut", category: "Essentials", completed: true, quantity: "2" },
-  { id: "3", name: "Mango Leaves", category: "Essentials", completed: false, quantity: "5" },
-  { id: "4", name: "Red Cloth", category: "Essentials", completed: false, quantity: "1 meter" },
-  { id: "5", name: "Ghee", category: "Havan Items", completed: true, quantity: "500g" },
-  { id: "6", name: "Samagri Mix", category: "Havan Items", completed: false, quantity: "1 packet" },
-  { id: "7", name: "Camphor", category: "Havan Items", completed: false, quantity: "1 box" },
-  { id: "8", name: "Incense Sticks", category: "Aarti Items", completed: true, quantity: "1 pack" },
-  { id: "9", name: "Diya (Lamp)", category: "Aarti Items", completed: false, quantity: "5" },
-  { id: "10", name: "Flowers & Garlands", category: "Decoration", completed: false, quantity: "As needed" },
-];
+export const mockChecklist: ChecklistItem[] = [];
 
 export const pricingTiers = [
   {

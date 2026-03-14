@@ -23,7 +23,7 @@ interface UserEvent {
   id: string;
   name: string;
   date: string;
-  status: "active" | "archived" | "completed";
+  status: "active" | "archived" | "completed" | "DRAFT" | "PLANNING";
   type: string;
   location: string;
 }
@@ -58,7 +58,7 @@ const CustomerDashboard = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const activeEvents = events.filter(e => e.status === "active");
+  const activeEvents = events.filter(e => ["active", "DRAFT", "PLANNING"].includes(e.status));
   const archivedEvents = events.filter(e => e.status === "archived");
 
   const handleDelete = (id: string) => {

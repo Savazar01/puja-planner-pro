@@ -207,7 +207,39 @@ class Event(Base):
     status = Column(String, default="PLANNING") # PLANNING, CONFIRMED, COMPLETED, ARCHIVED
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
-    bookings = relationship("Booking", back_populates="event")
+    bookings = relationship("Booking", back_populates="event", cascade="all, delete-orphan")
+    guests = relationship("Guest", back_populates="event", cascade="all, delete-orphan")
+    supplies = relationship("Supply", back_populates="event", cascade="all, delete-orphan")
+
+class Guest(Base):
+    """ORM model for Event Guests."""
+    __tablename__ = "guests"
+    
+    id = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    event_id = Column(String, ForeignKey("events.id"), index=True)
+    name = Column(String, nullable=False)
+    phone = Column(String)
+    email = Column(String)
+    member_count = Column(Integer, default=1)
+    status = Column(String, default="PENDING") # PENDING, ACCEPTED, DECLINED, SENT
+    invited_via = Column(String) # WHATSAPP, EMAIL, SMS
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    event = relationship("Event", back_populates="guests")
+
+class Supply(Base):
+    """ORM model for Event Supplies."""
+    __tablename__ = "supplies"
+    
+    id = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    event_id = Column(String, ForeignKey("events.id"), index=True)
+    name = Column(String, nullable=False)
+    category = Column(String) # Essentials, Havan, Aarti, Decoration, etc.
+    quantity = Column(String)
+    completed = Column(Boolean, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    event = relationship("Event", back_populates="supplies")
 
 class Booking(Base):
     """ORM model for linking Partners to Events."""

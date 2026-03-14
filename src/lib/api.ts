@@ -51,13 +51,36 @@ export async function login(email: string, password: string) {
     formData.append("username", email);
     formData.append("password", password);
 
-    const response = await fetch(`${API_URL}/api/auth/token`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: formData,
-    });
-    if (!response.ok) throw new Error("Invalid credentials");
-    return response.json();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+    const loginUrl = `${API_URL}/api/auth/token`;
+
+    try {
+        const response = await fetch(loginUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: formData,
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+            throw new Error(`Invalid credentials: ${response.status} ${response.statusText}`);
+        }
+        return response.json();
+    } catch (error: any) {
+        clearTimeout(timeoutId);
+        // Explicitly log the URL being targeted for diagnostics
+        console.error(`Login Failed to Fetch from URL: ${loginUrl}`, error);
+        
+        if (error.name === 'AbortError') {
+             throw new Error("Login request timed out after 10 seconds. Please check your network or proxy configuration.");
+        }
+        
+        // Return clear diagnostic of failed fetch
+        throw new Error(error.message || "Failed to communicate with authentication server");
+    }
 }
 
 export async function registerUser(data: any) {

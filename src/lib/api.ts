@@ -1,6 +1,6 @@
 import { Pandit, Temple } from "@/data/mockData";
 
-export const API_URL = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/$/, '') : "";
+const VITE_API_URL = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/$/, '') : "";
 
 export interface SearchResponse {
     pandits: Pandit[];
@@ -32,7 +32,7 @@ export async function searchAll(query: string, location?: string, token?: string
     };
     if (token) headers["Authorization"] = `Bearer ${token}`;
 
-    const response = await fetch(`${API_URL}/api/search`, {
+    const response = await fetch(`${VITE_API_URL}/api/search`, {
         method: "POST",
         headers,
         body: JSON.stringify(body),
@@ -54,7 +54,7 @@ export async function login(email: string, password: string) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-    const loginUrl = `${API_URL}/api/auth/token`;
+    const loginUrl = `${VITE_API_URL}/api/auth/token`;
 
     try {
         const response = await fetch(loginUrl, {
@@ -84,7 +84,7 @@ export async function login(email: string, password: string) {
 }
 
 export async function registerUser(data: any) {
-    const response = await fetch(`${API_URL}/api/auth/register`, {
+    const response = await fetch(`${VITE_API_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
@@ -97,7 +97,7 @@ export async function registerUser(data: any) {
 }
 
 export async function getMe(token: string) {
-    const response = await fetch(`${API_URL}/api/auth/me`, {
+    const response = await fetch(`${VITE_API_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
     });
     if (!response.ok) throw new Error("Unauthorized");
@@ -111,7 +111,7 @@ export async function discoverProviders(role: string, location: string): Promise
     const safeRole = encodeURIComponent(role.toLowerCase());
     const safeLocation = encodeURIComponent(location);
     const response = await fetch(
-        `${API_URL}/api/discover/${safeRole}?location=${safeLocation}`
+        `${VITE_API_URL}/api/discover/${safeRole}?location=${safeLocation}`
     );
 
     if (!response.ok) {
@@ -122,7 +122,7 @@ export async function discoverProviders(role: string, location: string): Promise
 }
 
 export async function healthCheck(): Promise<{ status: string; service: string }> {
-    const response = await fetch(`${API_URL}/health`);
+    const response = await fetch(`${VITE_API_URL}/health`);
 
     if (!response.ok) {
         throw new Error(`API Error: ${response.statusText}`);
@@ -132,7 +132,7 @@ export async function healthCheck(): Promise<{ status: string; service: string }
 }
 
 export async function getAllUsers(token: string) {
-    const response = await fetch(`${API_URL}/api/admin/users`, {
+    const response = await fetch(`${VITE_API_URL}/api/admin/users`, {
         headers: { Authorization: `Bearer ${token}` }
     });
     if (!response.ok) throw new Error("Failed to fetch users");
@@ -140,7 +140,7 @@ export async function getAllUsers(token: string) {
 }
 
 export async function approveUser(id: string, status: string, token: string) {
-    const response = await fetch(`${API_URL}/api/admin/approve/${id}`, {
+    const response = await fetch(`${VITE_API_URL}/api/admin/approve/${id}`, {
         method: "PATCH",
         headers: {
             "Content-Type": "application/json",
@@ -153,7 +153,7 @@ export async function approveUser(id: string, status: string, token: string) {
 }
 
 export async function getEmails(token: string) {
-    const response = await fetch(`${API_URL}/api/admin/emails`, {
+    const response = await fetch(`${VITE_API_URL}/api/admin/emails`, {
         headers: { Authorization: `Bearer ${token}` }
     });
     if (!response.ok) throw new Error("Failed to fetch emails");
@@ -161,7 +161,7 @@ export async function getEmails(token: string) {
 }
 
 export async function updateEmail(id: number, data: { subject?: string; body_html?: string }, token: string) {
-    const response = await fetch(`${API_URL}/api/admin/emails/${id}`, {
+    const response = await fetch(`${VITE_API_URL}/api/admin/emails/${id}`, {
         method: "PATCH",
         headers: {
             "Content-Type": "application/json",
@@ -174,7 +174,7 @@ export async function updateEmail(id: number, data: { subject?: string; body_htm
 }
 
 export async function updateProfile(data: any, token: string) {
-    const response = await fetch(`${API_URL}/api/users/me/profile`, {
+    const response = await fetch(`${VITE_API_URL}/api/users/me/profile`, {
         method: "PATCH",
         headers: {
             "Content-Type": "application/json",
@@ -197,7 +197,7 @@ export async function updateProfile(data: any, token: string) {
  * Upgrade User Subscription Tier
  */
 export async function upgradeSubscription(target_tier: string, token: string) {
-    const response = await fetch(`${API_URL}/api/users/me/upgrade`, {
+    const response = await fetch(`${VITE_API_URL}/api/users/me/upgrade`, {
         method: "PATCH",
         headers: {
             "Content-Type": "application/json",
@@ -218,7 +218,7 @@ export async function upgradeSubscription(target_tier: string, token: string) {
 }
 
 export async function requestAccountDeletion(token: string) {
-    const response = await fetch(`${API_URL}/api/users/me/request-deletion`, {
+    const response = await fetch(`${VITE_API_URL}/api/users/me/request-deletion`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` }
     });
@@ -227,7 +227,7 @@ export async function requestAccountDeletion(token: string) {
 }
 
 export async function changePassword(data: any, token: string) {
-    const response = await fetch(`${API_URL}/api/auth/change-password`, {
+    const response = await fetch(`${VITE_API_URL}/api/auth/change-password`, {
         method: "PATCH",
         headers: {
             "Content-Type": "application/json",
@@ -241,7 +241,7 @@ export async function changePassword(data: any, token: string) {
 }
 
 export async function forgotPassword(email: string) {
-    const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
+    const response = await fetch(`${VITE_API_URL}/api/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -252,7 +252,7 @@ export async function forgotPassword(email: string) {
 }
 
 export async function getSubscriptionRequests(token: string) {
-    const response = await fetch(`${API_URL}/api/admin/subscriptions`, {
+    const response = await fetch(`${VITE_API_URL}/api/admin/subscriptions`, {
         headers: { Authorization: `Bearer ${token}` }
     });
     if (!response.ok) throw new Error("Failed to fetch subscription requests");
@@ -260,7 +260,7 @@ export async function getSubscriptionRequests(token: string) {
 }
 
 export async function approveSubscriptionRequest(requestId: string, status: "APPROVED" | "REJECTED", token: string) {
-    const response = await fetch(`${API_URL}/api/admin/subscriptions/${requestId}`, {
+    const response = await fetch(`${VITE_API_URL}/api/admin/subscriptions/${requestId}`, {
         method: "PATCH",
         headers: {
             "Content-Type": "application/json",
@@ -272,7 +272,7 @@ export async function approveSubscriptionRequest(requestId: string, status: "APP
 }
 
 export async function resetPassword(token: string, new_password: string) {
-    const response = await fetch(`${API_URL}/api/auth/reset-password`, {
+    const response = await fetch(`${VITE_API_URL}/api/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, new_password }),
@@ -283,7 +283,7 @@ export async function resetPassword(token: string, new_password: string) {
 }
 
 export async function getAgentLogs(token: string) {
-    const response = await fetch(`${API_URL}/api/admin/agent-logs`, {
+    const response = await fetch(`${VITE_API_URL}/api/admin/agent-logs`, {
         headers: { Authorization: `Bearer ${token}` }
     });
     if (!response.ok) throw new Error("Failed to fetch agent logs");

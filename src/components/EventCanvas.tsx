@@ -50,7 +50,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { API_URL } from "@/lib/api";
+
+const VITE_API_URL = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/$/, '') : "";
 
 const EventCanvas = () => {
   const [searchParams] = useSearchParams();
@@ -88,7 +89,7 @@ const EventCanvas = () => {
     const fetchEventData = async () => {
       if (eventId) {
         try {
-          const response = await fetch(`${API_URL}/api/events`);
+          const response = await fetch(`${VITE_API_URL}/api/events`);
           const allEvents = await response.json();
           const currentEvent = allEvents.find((e: any) => e.id === eventId);
           if (currentEvent) {
@@ -115,7 +116,7 @@ const EventCanvas = () => {
     if (!eventId) return;
     try {
       const combinedDateTime = new Date(`${editForm.date}T${editForm.time}`);
-      const response = await fetch(`${API_URL}/api/events/${eventId}`, {
+      const response = await fetch(`${VITE_API_URL}/api/events/${eventId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -141,7 +142,7 @@ const EventCanvas = () => {
     if (intent.trim()) {
       setIsEventActive(true);
       setIsSearching(true);
-      const searchUrl = `${API_URL}/api/search`;
+      const searchUrl = `${VITE_API_URL}/api/search`;
       try {
         const response = await fetch(searchUrl, {
           method: 'POST',
@@ -175,7 +176,7 @@ const EventCanvas = () => {
     }
     
     try {
-      const response = await fetch(`${API_URL}/api/events/${eventId}/select`, {
+      const response = await fetch(`${VITE_API_URL}/api/events/${eventId}/select`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

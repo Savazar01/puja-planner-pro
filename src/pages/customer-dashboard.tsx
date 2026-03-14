@@ -16,7 +16,8 @@ import {
   AlertCircle
 } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
-import { API_URL } from "@/lib/api";
+
+const VITE_API_URL = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/$/, '') : "";
 
 interface UserEvent {
   id: string;
@@ -37,7 +38,7 @@ const CustomerDashboard = () => {
   React.useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/events`);
+        const response = await fetch(`${VITE_API_URL}/api/events`);
         if (response.ok) {
           const data = await response.json();
           setEvents(data);

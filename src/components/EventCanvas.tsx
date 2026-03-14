@@ -50,6 +50,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { API_URL } from "@/lib/api";
 
 const EventCanvas = () => {
   const [searchParams] = useSearchParams();
@@ -87,7 +88,7 @@ const EventCanvas = () => {
     const fetchEventData = async () => {
       if (eventId) {
         try {
-          const response = await fetch(`/api/events`);
+          const response = await fetch(`${API_URL}/api/events`);
           const allEvents = await response.json();
           const currentEvent = allEvents.find((e: any) => e.id === eventId);
           if (currentEvent) {
@@ -114,7 +115,7 @@ const EventCanvas = () => {
     if (!eventId) return;
     try {
       const combinedDateTime = new Date(`${editForm.date}T${editForm.time}`);
-      const response = await fetch(`/api/events/${eventId}`, {
+      const response = await fetch(`${API_URL}/api/events/${eventId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -140,17 +141,27 @@ const EventCanvas = () => {
     if (intent.trim()) {
       setIsEventActive(true);
       setIsSearching(true);
+      const searchUrl = `${API_URL}/api/search`;
       try {
-        const response = await fetch(`/api/search`, {
+        const response = await fetch(searchUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ query: intent, location: "Hyderabad" }) // Fallback location
         });
+        
+        if (!response.ok) {
+           throw new Error(`API Error: ${response.status} ${response.statusText}`);
+        }
+        
         const data = await response.json();
         setSearchResults(data.results || []);
-      } catch (error) {
-        console.error("Search failed:", error);
-        toast({ title: "Search Error", description: "Could not fetch suggestions. Please try again.", variant: "destructive" });
+      } catch (error: any) {
+        console.error(`Search failed fetching from URL: ${searchUrl}`, error);
+        toast({ 
+            title: "Search Error", 
+            description: error.message || "Network Error: Could not connect to the AI Agent. Please try again.", 
+            variant: "destructive" 
+        });
       } finally {
         setIsSearching(false);
       }
@@ -164,7 +175,7 @@ const EventCanvas = () => {
     }
     
     try {
-      const response = await fetch(`/api/events/${eventId}/select`, {
+      const response = await fetch(`${API_URL}/api/events/${eventId}/select`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -16,6 +16,7 @@ import {
   AlertCircle
 } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
+import { API_URL } from "@/lib/api";
 
 interface UserEvent {
   id: string;
@@ -36,7 +37,7 @@ const CustomerDashboard = () => {
   React.useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await fetch('/api/events');
+        const response = await fetch(`${API_URL}/api/events`);
         if (response.ok) {
           const data = await response.json();
           setEvents(data);

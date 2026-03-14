@@ -52,7 +52,7 @@ async def search(
             event_id=None,
             agent_type="FINDER",
             tool_used="Initiation",
-            summary_outcome=f"Search Initiated for '{request.query}' in '{request.location or 'India'}'."
+            summary_outcome=f"Request Received: Search for '{request.query}' in '{request.location or 'India'}'."
         )
         db.add(log_entry)
         db.commit()
@@ -133,7 +133,7 @@ async def discover_providers_endpoint(
             event_id=None,
             agent_type="FINDER",
             tool_used="Initiation",
-            summary_outcome=f"Search Initiated for role '{role.upper()}' in '{location}'."
+            summary_outcome=f"Request Received: Discover '{role.upper()}' in '{location}'."
         )
         db.add(log_entry)
         db.commit()

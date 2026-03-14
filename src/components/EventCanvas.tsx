@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,6 +57,7 @@ const VITE_API_URL = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL
 const EventCanvas = () => {
   const [searchParams] = useSearchParams();
   const eventId = searchParams.get("id");
+  const { token } = useAuth();
   const [intent, setIntent] = useState("");
   const [isEventActive, setIsEventActive] = useState(!!eventId);
   const [eventData, setEventData] = useState<any>(null);
@@ -80,7 +82,9 @@ const EventCanvas = () => {
       if (eventId) {
         try {
           // 1. Fetch Event Base Details
-          const evResponse = await fetch(`${VITE_API_URL}/api/events`);
+          const evResponse = await fetch(`${VITE_API_URL}/api/events`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
           const allEvents = await evResponse.json();
           const currentEvent = allEvents.find((e: any) => e.id === eventId);
           if (currentEvent) {
@@ -98,8 +102,12 @@ const EventCanvas = () => {
 
           // 2. Sync Modules (Guests & Supplies)
           const [gRes, sRes] = await Promise.all([
-            fetch(`${VITE_API_URL}/api/events/${eventId}/guests`),
-            fetch(`${VITE_API_URL}/api/events/${eventId}/supplies`)
+            fetch(`${VITE_API_URL}/api/events/${eventId}/guests`, {
+              headers: { Authorization: `Bearer ${token}` }
+            }),
+            fetch(`${VITE_API_URL}/api/events/${eventId}/supplies`, {
+              headers: { Authorization: `Bearer ${token}` }
+            })
           ]);
           
           if (gRes.ok) setGuests(await gRes.json());
@@ -111,7 +119,7 @@ const EventCanvas = () => {
       }
     };
     fetchEventData();
-  }, [eventId]);
+  }, [eventId, token]);
 
 
   const handleUpdateMetadata = async () => {
@@ -120,7 +128,10 @@ const EventCanvas = () => {
       const combinedDateTime = new Date(`${editForm.date}T${editForm.time}`);
       const response = await fetch(`${VITE_API_URL}/api/events/${eventId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           title: editForm.title,
           location: editForm.location,
@@ -148,7 +159,10 @@ const EventCanvas = () => {
       try {
         const response = await fetch(searchUrl, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({ 
             query: intent, 
             location: "Hyderabad",
@@ -191,7 +205,10 @@ const EventCanvas = () => {
     try {
       const response = await fetch(`${VITE_API_URL}/api/events/${eventId}/select`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           partner_id: partner.id,
           partner_type: type,
@@ -215,7 +232,10 @@ const EventCanvas = () => {
       try {
         const response = await fetch(`${VITE_API_URL}/api/events/${eventId}/guests`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({
             name: newGuest.name,
             phone: newGuest.phone,
@@ -241,7 +261,8 @@ const EventCanvas = () => {
     if (!eventId) return;
     try {
       const response = await fetch(`${VITE_API_URL}/api/events/${eventId}/guests/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
         setGuests(prev => prev.filter(g => g.id !== id));
@@ -281,7 +302,10 @@ const EventCanvas = () => {
       try {
         const response = await fetch(`${VITE_API_URL}/api/events/${eventId}/supplies`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
           body: JSON.stringify({
             name: newSupply,
             category: "Essentials",
@@ -510,7 +534,7 @@ const EventCanvas = () => {
                           </Card>
 
                           <Card className="hover:border-accent/50 transition-colors group cursor-pointer bg-card">
-                            <CardHeader className="flex flex-row items-center justify-row items-center justify-between pb-2">
+                            <CardHeader className="flex flex-row items-center justify-between pb-2">
                               <CardTitle className="text-lg font-bold">The Help</CardTitle>
                               <Search className="h-5 w-5 text-accent-foreground" />
                             </CardHeader>
@@ -666,7 +690,8 @@ const EventCanvas = () => {
                       if (!eventId) return;
                       try {
                         const response = await fetch(`${VITE_API_URL}/api/events/${eventId}/supplies/${item.id}?completed=${!!checked}`, {
-                          method: 'PATCH'
+                          method: 'PATCH',
+                          headers: { 'Authorization': `Bearer ${token}` }
                         });
                         if (response.ok) {
                           setSupplies(prev => prev.map(s => s.id === item.id ? { ...s, completed: !!checked } : s));

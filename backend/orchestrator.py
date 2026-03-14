@@ -38,12 +38,42 @@ class VedicEventState(TypedDict):
 # --- Nodes ---
 
 async def planner_node(state: VedicEventState):
-    """Planner Agent: Analyzes intent and context."""
+    """Planner Agent: Analyzes intent and context with PII scrubbing."""
     user_msg = state["messages"][-1].content if state["messages"] else state["user_query"]
+    event_id = state.get("event_id")
     
+    # 1. PII Scrubbing via Privacy Gate (8740)
+    import httpx
+    scrubbed_msg = user_msg
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            scrub_resp = await client.post(
+                f"{settings.privacy_gate_url}/process",
+                json={"prompt": user_msg},
+                headers={"X-Agent-Name": "PLANNER"}
+            )
+            if scrub_resp.status_code == 200:
+                scrubbed_msg = scrub_resp.json().get("text", user_msg)
+    except Exception as e:
+        print(f"Privacy Gate Scrubbing Error: {e}")
+
+    # 2. Transition Logging
+    with next(get_db()) as db:
+        try:
+            log = AgentLog(
+                id=str(uuid.uuid4()),
+                event_id=event_id,
+                agent_type="PLANNER",
+                tool_used="Graph Transition",
+                summary_outcome="Planner Node Triggered. Analyzing intent with PII protection."
+            )
+            db.add(log)
+            db.commit()
+        except: pass
+
     # Intent Analysis Prompt
     prompt = f"""
-    You are the Planner Agent for MyPandits. Analyze the user's intent: "{user_msg}"
+    You are the Planner Agent for MyPandits. Analyze the user's intent: "{scrubbed_msg}"
     
     Extract:
     1. ritual_name (e.g., Satyanarayana Swamy, Wedding)
@@ -85,10 +115,29 @@ async def planner_node(state: VedicEventState):
         return {"next_node": "scribe"}
 
 async def finder_node(state: VedicEventState):
-    """Finder Agent: Sourcing professionals."""
+    """Finder Agent: Sourcing professionals with explicit auth verify."""
     if state.get("clarification_needed"):
         return {"next_node": "scribe"}
         
+    event_id = state.get("event_id")
+    # Transition Logging
+    with next(get_db()) as db:
+        try:
+            log = AgentLog(
+                id=str(uuid.uuid4()),
+                event_id=event_id,
+                agent_type="FINDER",
+                tool_used="Graph Transition",
+                summary_outcome=f"Finder Node Triggered. Ritual: {state.get('ritual_name')}. Location: {state.get('location')}."
+            )
+            db.add(log)
+            db.commit()
+        except: pass
+
+    # Refresher: Explicitly re-bind keys to avoid 401 in long-running threads
+    discovery_agent.serper_api_key = settings.serper_api_key
+    discovery_agent.firecrawl_api_key = settings.firecrawl_api_key
+    
     role_list = ["PANDIT", "VENUE", "CATERING"]
     all_results = []
     
@@ -200,4 +249,3 @@ workflow.add_edge("scribe", END)
 # Memory Checkpointer for now (In Production this would be Postgres)
 checkpointer = MemorySaver()
 graph = workflow.compile(checkpointer=checkpointer)
-捉

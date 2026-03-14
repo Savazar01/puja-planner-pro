@@ -130,14 +130,7 @@ async def custom_swagger_ui_html(credentials: HTTPBasicCredentials = Depends(sec
         swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
     )
 
-# Custom middleware to force HTTPS scheme for internal links
-@app.middleware("http")
-async def force_https(request: Request, call_next):
-    request.scope["scheme"] = "https"
-    return await call_next(request)
-
 # Add ProxyHeadersMiddleware for Coolify/Traefik
-app.add_middleware(HTTPSRedirectMiddleware)
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
 
 # Configure CORS

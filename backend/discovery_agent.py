@@ -258,7 +258,11 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
         search_term = query_map.get(role_upper, f"{role} services")
         query = f"{search_term} {location}"
         
-        search_results = await self.search_with_serper(query, location)
+        try:
+            search_results = await self.search_with_serper(query, location)
+        except Exception as e:
+            print(f"External search suppressed to ensure graceful degradation: {e}")
+            search_results = []
         
         external_providers = []
         for result in search_results[:3]:  # Top 3 for web results
@@ -276,7 +280,8 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
                 provider_data = {"name": result.get("title", "Unknown"), "location": location, "website": url}
             else:
                 provider_data = self.parse_with_gemini(content, prompt_key)
-                if not provider_data: continue
+                if not provider_data or not isinstance(provider_data, dict): 
+                    continue
                 provider_data["website"] = url
             
             # Simple deduplication by phone

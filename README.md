@@ -6,13 +6,13 @@ A robust, full-stack application designed for orchestration with container-based
 This project is built with a "Pure Docker" philosophy. It is intentionally decoupled from proxy-specific labels (like Traefik or Caddy labels) to ensure it can be deployed on any infrastructure with a standard load balancer.
 
 ### Service Status
-- **Frontend:** React/Vite/Nginx (Internal Port: 8734) - **Operational on puja.fossone.app (Cloudflare Proxied)**
-- **Backend:** FastAPI/Python (Internal Port: 8735) - **Operational on pujaapi.fossone.app (Cloudflare Proxied)**
-- **Privacy Gate:** Privacy Gate (Port 8740) - **Operational**
-- **Customer Workspace:** Professional Event Canvas (RBAC enabled) - **Active**
-- **Database:** Postgres/pgvector (v17) - **Supports Local Intelligence & PII Vault**
-- **Cache/Vault:** Redis (alpine) - **Search & Agentic Memory**
-- **Sourcing Engine (Port 8735):** Parallel Discovery (Internal DB + Web)
+- **Frontend:** React/Vite/Nginx (**Internal Port: 8734**) - Operational on port 443 (HTTPS) via Cloudflare.
+- **Backend:** FastAPI/Python (**Internal Port: 8735**) - Operational on port 443 (HTTPS) via Cloudflare.
+- **Privacy Gate:** Redaction Proxy (**Port 8740**) - Operational.
+- **Customer Workspace**: Professional Event Canvas (RBAC enabled) - Active.
+- **Database**: Postgres/pgvector (v17) - Supports Local Intelligence & PII Vault.
+- **Cache/Vault**: Redis (alpine) - Search & Agentic Memory.
+- **Sourcing Engine (Port 8735)**: Parallel Discovery (Internal DB + Web).
 
 ## 🧠 Intelligence Infrastructure [STATUS: ACTIVE & VERIFIED]
 The Savaz Intelligence Stack is completely stable and operational on ports 8737-8739:

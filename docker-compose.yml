@@ -28,7 +28,7 @@ services:
       dockerfile: Dockerfile
     container_name: savaz_backend_container
     ports:
-      - "${BACKEND_PORT:-8735}:${BACKEND_PORT:-8735}"
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -63,7 +63,7 @@ services:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:8735}
     container_name: savaz_frontend_container
     ports:
-      - "${FRONTEND_PORT:-8734}:${FRONTEND_PORT:-8734}"
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
     environment:
       - FRONTEND_PORT=${FRONTEND_PORT:-8734}
     depends_on:

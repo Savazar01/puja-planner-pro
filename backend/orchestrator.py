@@ -54,7 +54,8 @@ async def concierge_node(state: VedicEventState):
                     customer_id=state.get("customer_id") or "system",
                     title=state["user_query"][:50],
                     location=state.get("location"),
-                    status="DRAFT"
+                    status="DRAFT",
+                    intent_json=state # Save initial state snapshot
                 )
                 db.add(event)
                 db.commit()
@@ -64,6 +65,7 @@ async def concierge_node(state: VedicEventState):
                 event = db.query(Event).filter(Event.id == event_id).first()
                 if event:
                     event.location = state.get("location") or event.location
+                    event.intent_json = state # Continual State Sync
                     if state.get("intent_harvested") and event.status == "DRAFT":
                         event.status = "ROLES_CONFIRMED"
                     db.commit()
@@ -145,6 +147,12 @@ async def planner_node(state: VedicEventState):
     Return JSON: {{"ritual_name": "...", "language": "...", "style": "...", "location": "...", "intent_harvested": bool, "question": "..."}}
     """
     try:
+        # Privacy Gate Handshake: Ensure LLM uses Port 8740 proxy if configured
+        import os
+        if settings.privacy_gate_url:
+            os.environ["HTTP_PROXY"] = settings.privacy_gate_url
+            os.environ["HTTPS_PROXY"] = settings.privacy_gate_url
+            
         llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=settings.gemini_api_key)
         response = await llm.ainvoke(prompt)
         data = json.loads(response.content.strip().replace("```json", "").replace("```", ""))
@@ -178,27 +186,31 @@ async def finder_node(state: VedicEventState):
     
     search_tool = SerperSearchTool()
     
-    for role in role_list:
-        # Use Tool for external search
-        search_results = await search_tool.ainvoke({
-            "query": state["user_query"],
-            "location": state.get("location") or "India",
-            "ritual_name": state.get("ritual_name", ""),
-            "role": role
-        })
-        
-        # Simple extraction for now to satisfy the structure
-        if isinstance(search_results, dict) and "organic" in search_results:
-            for item in search_results["organic"][:3]:
-                all_results.append({
-                    "id": str(uuid.uuid4()),
-                    "name": item.get("title", "Unknown"),
-                    "role": role,
-                    "location": state.get("location") or "India",
-                    "website": item.get("link"),
-                    "is_platform_member": False,
-                    "additional_info": {"snippet": item.get("snippet")}
-                })
+    try:
+        for role in role_list:
+            # Use Tool for external search
+            search_results = await search_tool.ainvoke({
+                "query": state["user_query"],
+                "location": state.get("location") or "India",
+                "ritual_name": state.get("ritual_name", ""),
+                "role": role
+            })
+            
+            # Simple extraction for now to satisfy the structure
+            if isinstance(search_results, dict) and "organic" in search_results:
+                for item in search_results["organic"][:3]:
+                    all_results.append({
+                        "id": str(uuid.uuid4()),
+                        "name": item.get("title", "Unknown"),
+                        "role": role,
+                        "location": state.get("location") or "India",
+                        "website": item.get("link"),
+                        "is_platform_member": False,
+                        "additional_info": {"snippet": item.get("snippet")}
+                    })
+    except Exception as e:
+        print(f"Finder Agent Error (Graceful Failure): {e}")
+        # Log failure but continue with empty results
             
     return {
         "providers_found": all_results,
@@ -207,9 +219,13 @@ async def finder_node(state: VedicEventState):
 
 async def supplies_node(state: VedicEventState):
     """Supplies Agent: Suggesting samagri."""
-    ritual = state.get("ritual_name", state.get("user_query"))
-    suggested = discovery_agent.suggest_ritual_supplies(ritual)
-    return {"supplies_suggested": suggested, "next_node": "scribe"}
+    try:
+        ritual = state.get("ritual_name", state.get("user_query"))
+        suggested = discovery_agent.suggest_ritual_supplies(ritual)
+        return {"supplies_suggested": suggested, "next_node": "scribe"}
+    except Exception as e:
+        print(f"Supplies Agent Error (Graceful Failure): {e}")
+        return {"supplies_suggested": [], "next_node": "scribe"}
 
 # --- Unified Graph Construction (Lazy Loaded) ---
 

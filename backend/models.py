@@ -205,6 +205,7 @@ class Event(Base):
     location = Column(String)
     event_date = Column(DateTime(timezone=True))
     status = Column(String, default="PLANNING") # PLANNING, CONFIRMED, COMPLETED, ARCHIVED
+    intent_json = Column(JSON, nullable=True) # Full LangGraph State Snapshot
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     bookings = relationship("Booking", back_populates="event", cascade="all, delete-orphan")

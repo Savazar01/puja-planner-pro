@@ -6,8 +6,8 @@ A robust, full-stack application designed for orchestration with container-based
 This project is built with a "Pure Docker" philosophy. It is intentionally decoupled from proxy-specific labels (like Traefik or Caddy labels) to ensure it can be deployed on any infrastructure with a standard load balancer.
 
 ### Service Status
-- **Frontend:** React/Vite/Nginx (Internal Port: 8734) - **Operational**
-- **Backend:** FastAPI/Python (Internal Port: 8735) - **Operational**
+- **Frontend:** React/Vite/Nginx (Internal Port: 8734) - **Operational on puja.fossone.app (Cloudflare Proxied)**
+- **Backend:** FastAPI/Python (Internal Port: 8735) - **Operational on pujaapi.fossone.app (Cloudflare Proxied)**
 - **Privacy Gate:** Privacy Gate (Port 8740) - **Operational**
 - **Customer Workspace:** Professional Event Canvas (RBAC enabled) - **Active**
 - **Database:** Postgres/pgvector (v17) - **Supports Local Intelligence & PII Vault**
@@ -135,7 +135,7 @@ puja-planner-pro/
   - **Planning**: Agent-driven sourcing for Pandits and services.
   - **Guests**: Simple RSVP and guest list management.
   - **Supplies**: Friendly checklists for ritual items.
-- **My Dashboard**: Warm, centralized hub at `/customer-dashboard` for tracking upcoming rituals.
+- **My Events**: Warm, centralized hub at `/customer-dashboard` for tracking upcoming rituals.
 - **Agentic Sourcing Engine**: Fully activated parallel discovery.
   - **Live Web Research**: Real-time results via SerpAPI and Firecrawl.
   - **Internal Prioritization**: Automatic flagging of registered "Verified Members".

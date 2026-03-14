@@ -222,3 +222,14 @@ class Booking(Base):
     partner_data = Column(JSON) # Snapshot of external partner data if not internal
     
     event = relationship("Event", back_populates="bookings")
+
+class AgentLog(Base):
+    """ORM model for tracking Agent actions."""
+    __tablename__ = "agent_logs"
+    
+    id = Column(String, primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
+    event_id = Column(String, index=True, nullable=True) # Linked to event if applicable
+    agent_type = Column(String, index=True) # e.g. 'PLANNER', 'FINDER', 'SCRIBE'
+    tool_used = Column(String) # e.g. 'SerpAPI', 'Firecrawl', 'VectorDB'
+    summary_outcome = Column(Text) # Outcome with NO PII
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

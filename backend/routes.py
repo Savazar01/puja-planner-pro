@@ -10,11 +10,13 @@ from schemas import (
     UserCreate, UserResponse, Token, PasswordChange, UserUpdateStatus,
     EmailTemplateResponse, EmailTemplateUpdate, ProfileUpdate,
     ForgotPasswordRequest, ResetPasswordRequest, SubscriptionUpgrade,
-    EventCreate, EventResponse, SelectionRequest, EventUpdate
+    EventCreate, EventResponse, SelectionRequest, EventUpdate,
+    AgentLogCreate, AgentLogResponse
 )
 from models import (
     Pandit, Venue, Catering, User, Profile, UserStatus, UserRole, 
-    EmailTemplate, EmailEventType, Event, Booking
+    Pandit, Venue, Catering, User, Profile, UserStatus, UserRole, 
+    EmailTemplate, EmailEventType, Event, Booking, AgentLog
 )
 from discovery_agent import discovery_agent
 from config import settings
@@ -632,4 +634,36 @@ async def deselect_partner(
         db.commit()
         
     return {"status": "success"}
+
+
+# --- Agent Audit Logs (Admin) ---
+
+@router.get("/api/admin/agent-logs", response_model=List[AgentLogResponse])
+async def get_agent_logs(
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin)
+):
+    """Fetch all agent logs (Admin only)"""
+    logs = db.query(AgentLog).order_by(AgentLog.created_at.desc()).all()
+    return logs
+
+@router.post("/api/admin/agent-logs", response_model=AgentLogResponse)
+async def create_agent_log(
+    log_in: AgentLogCreate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(get_current_admin)
+):
+    """Create an agent log entry"""
+    new_log = AgentLog(
+        id=str(uuid.uuid4()),
+        event_id=log_in.event_id,
+        agent_type=log_in.agent_type.upper(),
+        tool_used=log_in.tool_used,
+        summary_outcome=log_in.summary_outcome
+    )
+    db.add(new_log)
+    db.commit()
+    db.refresh(new_log)
+    return new_log
+
 

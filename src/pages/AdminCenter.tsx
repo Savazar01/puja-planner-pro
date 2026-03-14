@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getAllUsers, approveUser, getEmails, updateEmail, getSubscriptionRequests, approveSubscriptionRequest } from "@/lib/api";
+import { getAllUsers, approveUser, getEmails, updateEmail, getSubscriptionRequests, approveSubscriptionRequest, getAgentLogs } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +20,7 @@ export default function AdminCenter() {
     const [loading, setLoading] = useState(true);
 
     const [subscriptions, setSubscriptions] = useState<any[]>([]);
+    const [agentLogs, setAgentLogs] = useState<any[]>([]);
 
     useEffect(() => {
         if (isLoading) return;
@@ -32,6 +33,7 @@ export default function AdminCenter() {
             loadUsers();
             loadEmails();
             loadSubscriptions();
+            loadAgentLogs();
         }
     }, [user, navigate, token]);
 
@@ -41,6 +43,15 @@ export default function AdminCenter() {
             setSubscriptions(data);
         } catch (e: any) {
             console.error(e);
+        }
+    };
+
+    const loadAgentLogs = async () => {
+        try {
+            const data = await getAgentLogs(token!);
+            setAgentLogs(data);
+        } catch (e: any) {
+            console.error("Failed to load agent logs:", e);
         }
     };
 
@@ -106,6 +117,7 @@ export default function AdminCenter() {
                     <TabsTrigger value="requests" className="rounded-lg px-6 py-2.5">User Management</TabsTrigger>
                     <TabsTrigger value="subscriptions" className="rounded-lg px-6 py-2.5">Subscriptions</TabsTrigger>
                     <TabsTrigger value="emails" className="rounded-lg px-6 py-2.5">Email Templates</TabsTrigger>
+                    <TabsTrigger value="agent-logs" className="rounded-lg px-6 py-2.5">Agent Logs</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="requests">
@@ -175,6 +187,11 @@ export default function AdminCenter() {
                             />
                         ))}
                     </div>
+                </TabsContent>
+
+                <TabsContent value="agent-logs">
+                    <h2 className="text-xl font-medium mb-4">Agent System Logs</h2>
+                    <AgentLogsTable logs={agentLogs} />
                 </TabsContent>
             </Tabs>
         </div>
@@ -444,6 +461,86 @@ export function SubscriptionCard({ subscription: s, onUpdate }: { subscription: 
                 >
                     Approve
                 </Button>
+            </div>
+        </div>
+    );
+}
+
+function AgentLogsTable({ logs }: { logs: any[] }) {
+    const [filter, setFilter] = useState("");
+    const [page, setPage] = useState(1);
+    const ITEMS_PER_PAGE = 10;
+    
+    const filteredLogs = logs.filter(log => {
+        const query = filter.toLowerCase();
+        const type = (log.agent_type || "").toLowerCase();
+        const tool = (log.tool_used || "").toLowerCase();
+        const summary = (log.summary_outcome || "").toLowerCase();
+        return type.includes(query) || tool.includes(query) || summary.includes(query);
+    });
+    
+    const totalPages = Math.ceil(filteredLogs.length / ITEMS_PER_PAGE) || 1;
+    const paginatedLogs = filteredLogs.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+
+    return (
+        <div className="space-y-4">
+            <div className="flex justify-between items-center bg-muted/20 p-4 rounded-xl border">
+                <Input
+                    placeholder="Search by agent, tool, or summary..."
+                    value={filter}
+                    onChange={e => { setFilter(e.target.value); setPage(1); }}
+                    className="max-w-md bg-background"
+                />
+            </div>
+            <div className="border rounded-xl shadow-sm bg-card overflow-hidden">
+                <Table>
+                    <TableHeader>
+                        <TableRow className="bg-muted/50">
+                            <TableHead className="w-[180px]">Timestamp</TableHead>
+                            <TableHead className="w-[150px]">Agent</TableHead>
+                            <TableHead className="w-[150px]">Tool Used</TableHead>
+                            <TableHead>Outcome Summary</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {paginatedLogs.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                                    No logs found.
+                                </TableCell>
+                            </TableRow>
+                        ) : paginatedLogs.map((log: any) => (
+                            <TableRow key={log.id}>
+                                <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                                    {new Date(log.created_at).toLocaleString()}
+                                </TableCell>
+                                <TableCell>
+                                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                        {log.agent_type}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell className="font-mono text-xs text-muted-foreground">
+                                    {log.tool_used || "Direct API"}
+                                </TableCell>
+                                <TableCell className="text-sm">
+                                    {log.summary_outcome}
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+            
+            <div className="flex justify-between items-center pt-2">
+                <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
+                <div className="flex gap-2">
+                    <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(page - 1)}>
+                        Previous
+                    </Button>
+                    <Button variant="outline" size="sm" disabled={page === totalPages} onClick={() => setPage(page + 1)}>
+                        Next
+                    </Button>
+                </div>
             </div>
         </div>
     );

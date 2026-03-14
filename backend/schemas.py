@@ -245,3 +245,19 @@ class SelectionRequest(BaseModel):
     partner_type: str
     is_external: bool = False
     partner_data: Optional[Dict[str, Any]] = None
+
+class AgentLogBase(BaseModel):
+    event_id: Optional[str] = None
+    agent_type: str
+    tool_used: Optional[str] = None
+    summary_outcome: str
+
+class AgentLogCreate(AgentLogBase):
+    pass
+
+class AgentLogResponse(AgentLogBase):
+    id: str
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True

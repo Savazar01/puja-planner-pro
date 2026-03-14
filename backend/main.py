@@ -56,10 +56,22 @@ try:
                     target_tier VARCHAR NOT NULL,
                     status VARCHAR DEFAULT 'PENDING',
                     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-                    updated_at TIMESTAMP WITH TIME ZONE
                 )
             """))
             print("Successfully migrated subscription_requests schema for EPIC-5")
+            
+            # AGENT LOGS
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS agent_logs (
+                    id VARCHAR PRIMARY KEY,
+                    event_id VARCHAR,
+                    agent_type VARCHAR,
+                    tool_used VARCHAR,
+                    summary_outcome TEXT,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+                )
+            """))
+            print("Successfully migrated agent_logs schema")
         except Exception as e:
             print(f"Migration notice: {e}")
             

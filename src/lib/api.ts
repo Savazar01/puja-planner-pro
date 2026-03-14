@@ -286,3 +286,11 @@ export async function resetPassword(token: string, new_password: string) {
     if (!response.ok) throw new Error(result.detail || "Failed to reset password");
     return result;
 }
+
+export async function getAgentLogs(token: string) {
+    const response = await fetch(`${API_URL}/api/admin/agent-logs`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!response.ok) throw new Error("Failed to fetch agent logs");
+    return response.json();
+}

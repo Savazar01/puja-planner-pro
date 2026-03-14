@@ -48,155 +48,47 @@ async def search(
     Creates a DRAFT event if event_id is missing.
     Populates supplies based on ritual intent.
     """
-    event_id = request.event_id
-    ritual_type = None
-    
-    # 1. Start/Resume Event Lifecycle: [SCRIBE] Silent Save
-    if not event_id:
-        new_event = Event(
-            id=str(uuid.uuid4()),
-            customer_id=current_user.id,
-            title=request.query[:50] + ("..." if len(request.query) > 50 else ""),
-            status="DRAFT"
-        )
-        db.add(new_event)
-        db.commit()
-        db.refresh(new_event)
-        event_id = new_event.id
+    # 1. Invoke LangGraph Orchestrator
+    async def run_orchestration():
+        from orchestrator import graph
         
-        # [NEW] [TURN-1] Dialogue Gate: Strictly Planner Only
-        try:
-            planner_log = AgentLog(
-                id=str(uuid.uuid4()),
-                event_id=event_id,
-                agent_type="PLANNER",
-                tool_used="Dialogue Gate",
-                summary_outcome="Turn 1 Initiation. Finder locked. Implementing 'Blank Canvas' protocol."
-            )
-            db.add(planner_log)
-            db.commit()
-        except: pass
+        # Prepare state
+        initial_state = {
+            "messages": [("user", request.query)],
+            "user_query": request.query,
+            "event_id": request.event_id,
+            "customer_id": current_user.id,
+            "location": request.location or "India",
+            "roles_needed": [], # Will be populated by planner
+            "providers_found": [],
+            "supplies_suggested": [],
+            "status": "PLANNING",
+            "next_node": "",
+            "clarification_needed": False
+        }
+        
+        # Use session-based thread_id for checkpointing
+        # If event_id exists, we resume that thread
+        config = {"configurable": {"thread_id": request.event_id or str(uuid.uuid4())}}
+        
+        final_state = await graph.ainvoke(initial_state, config=config)
+        return final_state
+
+    try:
+        final_state = await run_orchestration()
         
         return SearchResponse(
-            results=[],
-            total_results=0,
+            results=[ProviderResponse(**p) for p in final_state.get("providers_found", [])],
+            total_results=len(final_state.get("providers_found", [])),
             cached=False,
-            event_id=event_id,
-            clarification_needed=True,
-            clarification_message="Warm welcome! I've saved your intent. To help me find the perfect ritual professionals for you, could you tell me a bit more about your tradition or any specific language preferences?"
-        )
-
-    # 2. Existing Event Flow
-    event = db.query(Event).filter(Event.id == event_id).first()
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-
-    # [WAIT PROTOCOL] Intent Analysis for Status Transition
-    intent_analysis_prompt = f"""
-    Analyze the user's intent: "{request.query}"
-    Identify if the following 'Traditional Context' is present:
-    1. Language/Tradition (e.g., Telugu, Bengali, Vedic)
-    2. Specific Ritual Style (e.g., Sattvik, Grand, Simple)
-    
-    Return JSON: 
-    {{
-        "context_complete": true/false,
-        "ritual_name": "Satyanarayana Swamy",
-        "language": "Telugu",
-        "style": "Sattvik",
-        "question": "Warm question if context_complete is false"
-    }}
-    """
-    
-    try:
-        import httpx
-        scrub_url = f"{settings.privacy_gate_url}/process"
-        scrubbed_prompt = intent_analysis_prompt
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                scrub_resp = await client.post(scrub_url, json={"prompt": intent_analysis_prompt}, headers={"X-Agent-Name": "PLANNER"})
-                if scrub_resp.status_code == 200:
-                    scrubbed_prompt = scrub_resp.json().get("text", intent_analysis_prompt)
-        except: pass
-
-        from google.generativeai import GenerativeModel
-        model = GenerativeModel('gemini-1.5-flash')
-        analysis_resp = model.generate_content(scrubbed_prompt)
-        analysis = json.loads(analysis_resp.text.strip().replace("```json", "").replace("```", ""))
-        
-        # Status Transition Logic
-        if analysis.get("context_complete") and event.status == "DRAFT":
-            event.status = "ROLES_CONFIRMED"
-            db.commit()
-        
-        if event.status == "DRAFT":
-             return SearchResponse(
-                results=[],
-                total_results=0,
-                cached=False,
-                event_id=event_id,
-                ritual_type=analysis.get("ritual_name"),
-                clarification_needed=True,
-                clarification_message=analysis.get("question", "Could you share a bit more about your traditions or specific requirements for this ritual?")
-            )
-            
-        ritual_name = analysis.get("ritual_name", request.query)
-        pref_language = analysis.get("language")
-        pref_style = analysis.get("style", "Traditional")
-    except Exception as e:
-        print(f"Orchestration Error: {e}")
-        ritual_name = request.query
-        pref_language = None
-        pref_style = None
-
-    # 3. [FINDER] Professional Search: Only if state is ROLES_CONFIRMED/PLANNING
-    if event.status not in ["ROLES_CONFIRMED", "PLANNING"]:
-        return SearchResponse(results=[], total_results=0, event_id=event_id)
-
-    location = request.location or "India"
-    category = request.category or "all"
-    
-    try:
-        results_list = []
-        if category in ["all", "", None]:
-            for role in ["PANDIT", "VENUE", "CATERING"]:
-                res = await discovery_agent.discover_providers(
-                    role, 
-                    location, 
-                    db, 
-                    ritual_name=ritual_name,
-                    language=pref_language,
-                    style=pref_style
-                )
-                results_list.extend([ProviderResponse(**p) for p in res])
-        else:
-            cat_map = {"pandits": "PANDIT", "venues": "VENUE", "catering": "CATERING"}
-            role = cat_map.get(category.lower(), category.upper())
-            res = await discovery_agent.discover_providers(
-                role, 
-                location, 
-                db,
-                ritual_name=ritual_name,
-                language=pref_language,
-                style=pref_style
-            )
-            results_list = [ProviderResponse(**p) for p in res]
-        
-        # Save to cache
-        cache_data = {"results": [r.model_dump() for r in results_list]}
-        discovery_agent.save_to_cache(request.query, location, category or "all", cache_data, db)
-        
-        if not is_unlimited:
-            results_list = results_list[:15]
-        
-        return SearchResponse(
-            results=results_list,
-            total_results=len(results_list),
-            cached=False,
-            event_id=event_id
+            event_id=final_state.get("event_id"),
+            ritual_type=final_state.get("ritual_name"),
+            clarification_needed=final_state.get("clarification_needed", False),
+            clarification_message=final_state.get("clarification_message")
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+        print(f"LangGraph Orchestration Failure: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/api/discover/{role}", response_model=List[ProviderResponse])

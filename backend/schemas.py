@@ -147,6 +147,8 @@ class SearchResponse(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.now)
     event_id: Optional[str] = None
     ritual_type: Optional[str] = None
+    clarification_needed: bool = False
+    clarification_message: Optional[str] = None
 
 
 

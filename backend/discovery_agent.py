@@ -20,31 +20,51 @@ class DiscoveryAgent:
             "all://": self.privacy_gate_url
         }
     
-    async def search_with_serper(self, query: str, location: str = "") -> List[Dict[str, Any]]:
-        """Search using Serper.dev API for local businesses."""
-        url = "https://google.serper.dev/search"
+    async def search_with_serper(self, query: str, ritual_name: str = "", language: str = "", role: str = "", location: str = "") -> List[Dict[str, Any]]:
+        """Search using Serper.dev via Privacy Gate /outbound."""
+        # [ADVANCED HEURISTICS] Construct Long-Tail queries: [Ritual] + [Language] + [Role] + [Location]
+        search_query_parts = []
+        if ritual_name: search_query_parts.append(ritual_name)
+        if language: search_query_parts.append(language)
+        if role: search_query_parts.append(role)
+        if location: search_query_parts.append(location)
         
-        search_query = f"{query} in {location}" if location else query
+        if not search_query_parts:
+            search_query = f"{query} {location}".strip()
+        else:
+            search_query = " ".join(search_query_parts)
+
+        if len(search_query) < 5:
+            search_query = f"{query} in {location}" if location else query
         
-        headers = {
-            "X-API-KEY": settings.serper_api_key,
-            "Content-Type": "application/json"
-        }
-        
+        # Privacy Gate Forwarding
+        gate_url = f"{self.privacy_gate_url}/outbound"
         payload = {
-            "q": search_query,
-            "num": 10,
-            "gl": "in",  # Country: India
-            "hl": "en"
+            "url": "https://google.serper.dev/search",
+            "method": "POST",
+            "headers": {
+                "X-API-KEY": settings.serper_api_key,
+                "Content-Type": "application/json"
+            },
+            "payload": {
+                "q": search_query,
+                "num": 10,
+                "gl": "in",
+                "hl": "en"
+            }
         }
         
         try:
-            async with httpx.AsyncClient(proxies=self.proxies, timeout=30.0) as client:
-                response = await client.post(url, json=payload, headers=headers)
+            async with httpx.AsyncClient(timeout=35.0) as client:
+                response = await client.post(gate_url, json=payload)
+                
+                if response.status_code == 401:
+                    print(f"Auth Failure (401) via Privacy Gate. Logging and falling back to Internal.")
+                    return []
+                
                 response.raise_for_status()
                 data = response.json()
                 
-                # Extract organic results
                 results = []
                 if "organic" in data:
                     for item in data["organic"]:
@@ -54,42 +74,41 @@ class DiscoveryAgent:
                             "snippet": item.get("snippet", ""),
                             "position": item.get("position", 0)
                         })
-                
                 return results
         except Exception as e:
-            print(f"Serper API error: {e}")
-            raise RuntimeError(f"Serper API search failed: {str(e)}")
-    
+            print(f"Privacy Gate Outbound Error (Serper): {e}")
+            return []
+
     async def scrape_with_firecrawl(self, url: str) -> str:
-        """Scrape website content using Firecrawl API."""
-        api_url = "https://api.firecrawl.dev/v0/scrape"
-        
-        headers = {
-            "Authorization": f"Bearer {settings.firecrawl_api_key}",
-            "Content-Type": "application/json"
-        }
-        
+        """Scrape via Privacy Gate /outbound."""
+        gate_url = f"{self.privacy_gate_url}/outbound"
         payload = {
-            "url": url,
-            "formats": ["markdown", "html"]
+            "url": "https://api.firecrawl.dev/v0/scrape",
+            "method": "POST",
+            "headers": {
+                "Authorization": f"Bearer {settings.firecrawl_api_key}",
+                "Content-Type": "application/json"
+            },
+            "payload": {
+                "url": url,
+                "formats": ["markdown", "html"]
+            }
         }
         
         try:
-            async with httpx.AsyncClient(proxies=self.proxies, timeout=60.0) as client:
-                response = await client.post(api_url, json=payload, headers=headers)
+            async with httpx.AsyncClient(timeout=65.0) as client:
+                response = await client.post(gate_url, json=payload)
                 response.raise_for_status()
                 data = response.json()
                 
-                # Extract content
                 if data.get("success"):
                     content = data.get("data", {}).get("markdown", "")
                     if not content:
                         content = data.get("data", {}).get("html", "")
                     return content
-                
                 return ""
         except Exception as e:
-            print(f"Firecrawl API error for {url}: {e}")
+            print(f"Privacy Gate Outbound Error (Firecrawl): {e}")
             return ""
     
     def parse_with_gemini(self, content: str, entity_type: str) -> Optional[Dict[str, Any]]:
@@ -198,7 +217,7 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
             print(f"Gemini parsing error: {e}")
             return None
     
-    async def discover_providers(self, role: str, location: str, db: Session, include_web: bool = True) -> List[Dict[str, Any]]:
+    async def discover_providers(self, role: str, location: str, db: Session, include_web: bool = True, ritual_name: str = "", language: str = "", style: str = "") -> List[Dict[str, Any]]:
         """Discovery for Providers: Merges internal DB and external web results dynamically."""
         from models import User, Profile, UserRole, UserStatus, AgentLog
         
@@ -250,16 +269,14 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
             return internal_providers
 
         # 2. External Web Search
-        query_map = {
-            "PANDIT": "pandits priests hindu ceremonies",
-            "VENUE": "wedding halls marriage venues banquet halls",
-            "CATERING": "catering services satvik food wedding catering"
-        }
-        search_term = query_map.get(role_upper, f"{role} services")
-        query = f"{search_term} {location}"
-        
         try:
-            search_results = await self.search_with_serper(query, location)
+            search_results = await self.search_with_serper(
+                query=f"{role_upper} {location}", 
+                ritual_name=ritual_name,
+                language=language,
+                role=role_upper,
+                location=location
+            )
         except Exception as e:
             print(f"External search suppressed to ensure graceful degradation: {e}")
             search_results = []

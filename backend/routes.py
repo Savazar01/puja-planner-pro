@@ -116,7 +116,53 @@ async def search(
     location = request.location or "India"
     category = request.category or "all"
     
-    # 4. Search Execution
+    # 4. Hierarchical Orchestration: The 'Wait' Protocol (Turn 2)
+    # Extract traditional context using Gemini
+    intent_analysis_prompt = f"""
+    Analyze the user's intent: "{request.query}"
+    Identify if the following 'Traditional Context' is present:
+    1. Language/Tradition (e.g., Telugu, Bengali, Vedic)
+    2. Specific Ritual Style (e.g., Sattvik, Grand, Simple)
+    3. Hierarchy/Roles needed (e.g., Pandit, Caterer)
+    
+    If context for Language or Ritual Style is missing, generate a warm REFLECTIVE question to ask the user.
+    Also, extract the 'specific_ritual' name if found.
+    
+    Return JSON: 
+    {{
+        "context_complete": true/false,
+        "ritual_name": "Satyanarayana Swamy Vratham",
+        "language": "Telugu",
+        "style": "Sattvik",
+        "question": "Warm question if context_complete is false"
+    }}
+    """
+    try:
+        from google.generativeai import GenerativeModel
+        model = GenerativeModel('gemini-1.5-flash')
+        analysis_resp = model.generate_content(intent_analysis_prompt)
+        analysis = json.loads(analysis_resp.text.strip().replace("```json", "").replace("```", ""))
+        
+        if not analysis.get("context_complete") and not request.event_id: # Only wait for new intents
+             return SearchResponse(
+                results=[],
+                total_results=0,
+                cached=False,
+                event_id=event_id,
+                ritual_type=analysis.get("ritual_name"),
+                clarification_needed=True,
+                clarification_message=analysis.get("question", "Could you share a bit more about your traditions or specific requirements for this ritual?")
+            )
+        ritual_name = analysis.get("ritual_name", request.query)
+        pref_language = analysis.get("language")
+        pref_style = analysis.get("style", "Traditional")
+    except Exception as e:
+        print(f"Intent Analysis Error: {e}")
+        ritual_name = request.query
+        pref_language = None
+        pref_style = None
+
+    # 5. Search Execution
     cache_entry = discovery_agent.check_cache(request.query, location, category, db)
     if cache_entry:
         results = [ProviderResponse(**p) for p in cache_entry.results.get("results", [])]
@@ -133,12 +179,26 @@ async def search(
         results_list = []
         if category in ["all", "", None]:
             for role in ["PANDIT", "VENUE", "CATERING"]:
-                res = await discovery_agent.discover_providers(role, location, db)
+                res = await discovery_agent.discover_providers(
+                    role, 
+                    location, 
+                    db, 
+                    ritual_name=ritual_name,
+                    language=pref_language,
+                    style=pref_style
+                )
                 results_list.extend([ProviderResponse(**p) for p in res])
         else:
             cat_map = {"pandits": "PANDIT", "venues": "VENUE", "catering": "CATERING"}
             role = cat_map.get(category.lower(), category.upper())
-            res = await discovery_agent.discover_providers(role, location, db)
+            res = await discovery_agent.discover_providers(
+                role, 
+                location, 
+                db,
+                ritual_name=ritual_name,
+                language=pref_language,
+                style=pref_style
+            )
             results_list = [ProviderResponse(**p) for p in res]
         
         # Save to cache

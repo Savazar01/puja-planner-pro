@@ -239,6 +239,8 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
             
             for user in users_in_role:
                 profile = user.profile
+                if not profile:
+                    continue
                 internal_providers.append({
                     "id": user.id,
                     "name": profile.full_name or "Unnamed Member",

@@ -47,19 +47,18 @@ async def concierge_node(state: VedicEventState):
     }
 
 async def scribe_node(state: VedicEventState):
-    """Scribe Agent: Database Persistence (Silent Save)."""
+    """Scribe Agent: Database Persistence."""
     db = SessionLocal()
     try:
         event_id = state.get("event_id")
-        
-        # 1. Persistence Logic
+        # Ensure event exists or create it
         if not event_id:
             event = Event(
                 id=str(uuid.uuid4()),
                 customer_id=state.get("customer_id") or "system",
                 title=state["user_query"][:50],
                 location=state.get("location"),
-                status="DRAFT",
+                status="PLANNING",
                 intent_json=state 
             )
             db.add(event)
@@ -69,29 +68,21 @@ async def scribe_node(state: VedicEventState):
         else:
             event = db.query(Event).filter(Event.id == event_id).first()
             if event:
-                event.location = state.get("location") or event.location
                 event.intent_json = state
-                if state.get("intent_harvested") and event.status == "DRAFT":
-                    event.status = "ROLES_CONFIRMED"
                 db.commit()
-        
-        # 2. Routing Decision (CRITICAL: Fix Infinite Loop & End-of-Sourcing)
+
+        # Routing: Concierge -> Scribe -> Planner
         if state.get("last_node") == "concierge":
             return {"event_id": event_id, "next_node": "planner", "last_node": "scribe"}
         
-        if state.get("clarification_needed"):
-            return {"event_id": event_id, "next_node": "END", "last_node": "scribe"}
-        
-        if state.get("last_node") == "supplies":
-            return {"event_id": event_id, "next_node": "END", "last_node": "scribe"}
-
+        # Terminal Path
         return {"event_id": event_id, "next_node": "END", "last_node": "scribe"}
     except Exception as e:
-        print(f"Warning: Persistence Failed: {e}")
+        print(f"Scribe Error (Graceful): {e}")
         return {"next_node": "END", "last_node": "scribe"}
     finally:
         db.close()
-
+捉
 def get_planner_greeting():
     """Extract Turn 1 greeting from planner_agent.md."""
     try:
@@ -157,17 +148,31 @@ async def planner_node(state: VedicEventState):
             raw_content = raw_content.split("```")[1].strip()
         
         data = json.loads(raw_content)
-        harvested = data.get("intent_harvested", False)
+        raw_json = response.content.strip().replace("```json", "").replace("```", "")
+        data = json.loads(raw_json)
         
-        # CONSENSUS GATE: Always ask before discovery, even if harvested in one turn
-        customer_approved = state.get("customer_approval", False)
+        # State Sync
         ritual = data.get("ritual_name") or state.get("ritual_name")
+        harvested = data.get("intent_harvested", False)
+        customer_approved = state.get("customer_approval", False)
+        is_first_interaction = not state.get("event_id")
+
+        # 3. SUPERVISOR LOGIC: The Human-Approval Gate
+        # Case A: Details missing -> Ask questions
+        if not harvested:
+            return {
+                "ritual_name": ritual,
+                "language": data.get("language") or state.get("language"),
+                "style": data.get("style") or state.get("style"),
+                "location": data.get("location") or state.get("location"),
+                "clarification_needed": True,
+                "clarification_message": data.get("feedback") + " " + data.get("missing_details_question"),
+                "next_node": "scribe",
+                "last_node": "planner"
+            }
         
-        # [NEW] HARD RULE: If intent was JUST harvested, OR it's a new event -> MANDATORY GREETING/QUESTION.
-        # This prevents immediate API triggering on the first user message.
-        is_new_event = not state.get("event_id")
-        
-        if harvested and (is_new_event or not customer_approved):
+        # Case B: Details COMPLETE but no approval / First Interaction -> MANDATORY SUMMARY & CONSENSUS
+        if harvested and (not customer_approved or is_first_interaction):
             return {
                 "ritual_name": ritual,
                 "language": data.get("language") or state.get("language"),
@@ -175,38 +180,32 @@ async def planner_node(state: VedicEventState):
                 "location": data.get("location") or state.get("location"),
                 "intent_harvested": True,
                 "clarification_needed": True,
-                "clarification_message": f"I have the initial details for your {ritual}. Would you like me to proceed and find a Pandit and Caterer for you?",
+                "clarification_message": f"**PLAN SUMMARY:**\n- **Ritual:** {ritual}\n- **Location:** {data.get('location') or state.get('location')}\n- **Style:** {data.get('style') or state.get('style')}\n\nI have everything I need. Shall I proceed to find a Pandit and Caterer for you?",
                 "next_node": "scribe",
                 "last_node": "planner"
             }
-
+        
+        # Case C: Approved -> HAND OFF TO TOOLS
         return {
             "ritual_name": ritual,
-            "language": data.get("language") or state.get("language"),
-            "style": data.get("style") or state.get("style"),
-            "location": data.get("location") or state.get("location"),
-            "intent_harvested": harvested,
-            "clarification_needed": not harvested,
-            "clarification_message": data.get("question") if not harvested else None,
-            "next_node": "finder" if (harvested and customer_approved) else "scribe",
+            "next_node": "finder",
             "last_node": "planner"
         }
+        
     except Exception as e:
-        print(f"Planner Error (Graceful Fallback): {e}")
+        print(f"Planner Error: {e}")
         return {
             "clarification_needed": True,
-            "clarification_message": "I've saved your draft. Could you tell me more about the ritual style (e.g., Traditional) or preferred language?",
+            "clarification_message": "I've encountered a small snag, but your plan is safe. Could you tell me more about your ritual requirements?",
             "next_node": "scribe",
-            "last_node": "planner",
-            "status": "DRAFT_SAVED"
+            "last_node": "planner"
         }
 
 from tools import SerperSearchTool, FirecrawlScrapeTool
 async def finder_node(state: VedicEventState):
-    """Finder Agent: PROFESSIONAL DISCOVERY (HARD GATED)."""
+    """Finder Agent: PROFESSIONAL DISCOVERY (Supervisor Gated)."""
     db = SessionLocal()
     try:
-        # Only reachable if intent_harvested is True
         role_list = ["PANDIT", "VENUE", "CATERING"]
         all_results = []
         
@@ -230,15 +229,16 @@ async def finder_node(state: VedicEventState):
             "last_node": "finder"
         }
     except Exception as e:
-        print(f"Finder Node Error (Crash Suppression): {e}")
+        print(f"Finder Error: {e}")
         return {
-            "providers_found": [],
             "next_node": "supplies",
-            "last_node": "finder"
+            "last_node": "finder",
+            "clarification_message": "I've started searching for your providers, but the external web search is taking longer than expected. I will continue to work on this in the background.",
+            "clarification_needed": True
         }
     finally:
         db.close()
-
+捉
 async def supplies_node(state: VedicEventState):
     """Supplies Agent: Suggesting samagri."""
     try:

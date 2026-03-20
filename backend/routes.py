@@ -91,8 +91,13 @@ async def search(
             clarification_message=final_state.get("clarification_message")
         )
     except Exception as e:
-        print(f"LangGraph Orchestration Failure: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"Orchestration Error (Shielded): {e}")
+        return SearchResponse(
+            results=[],
+            total_results=0,
+            clarification_needed=True,
+            clarification_message="I'm having a little trouble connecting to my discovery tools right now. However, I've saved your event details. Feel free to try again in a moment!"
+        )
 
 
 @router.get("/api/discover/{role}", response_model=List[ProviderResponse])

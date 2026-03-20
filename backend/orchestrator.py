@@ -36,15 +36,37 @@ class VedicEventState(TypedDict):
     customer_approval: bool # NEW: Hard Gate for Sourcing
     last_node: str # For stable routing
 
+# --- Helpers ---
+
+def log_agent_action(db, agent: str, tool: str, outcome: str, event_id: str = None):
+    """Standardized audit logging for administrative visibility."""
+    try:
+        log = AgentLog(
+            id=str(uuid.uuid4()),
+            event_id=event_id,
+            agent_type=agent.upper(),
+            tool_used=tool,
+            summary_outcome=outcome[:500] 
+        )
+        db.add(log)
+        db.commit()
+    except Exception as e:
+        print(f"Logging Failure: {e}")
+
 # --- 5-Agent Node Registry ---
 
 async def concierge_node(state: VedicEventState):
     """Concierge Agent: Initial greeting and triage."""
-    return {
-        "next_node": "scribe",
-        "last_node": "concierge",
-        "status": state.get("status") or "DRAFT"
-    }
+    db = SessionLocal()
+    try:
+        log_agent_action(db, "CONCIERGE", "Triage", f"Request received: {state.get('user_query')[:100]}", state.get("event_id"))
+        return {
+            "next_node": "scribe",
+            "last_node": "concierge",
+            "status": state.get("status") or "PLANNING"
+        }
+    finally:
+        db.close()
 
 async def scribe_node(state: VedicEventState):
     """Scribe Agent: Database Persistence."""
@@ -65,11 +87,13 @@ async def scribe_node(state: VedicEventState):
             db.commit()
             db.refresh(event)
             event_id = event.id
+            log_agent_action(db, "SCRIBE", "DB Persistence", f"Created new event: {event_id}", event_id)
         else:
             event = db.query(Event).filter(Event.id == event_id).first()
             if event:
                 event.intent_json = state
                 db.commit()
+                log_agent_action(db, "SCRIBE", "DB Persistence", f"Updated event state: {event_id}", event_id)
 
         # Routing: Concierge -> Scribe -> Planner
         if state.get("last_node") == "concierge":
@@ -82,7 +106,7 @@ async def scribe_node(state: VedicEventState):
         return {"next_node": "END", "last_node": "scribe"}
     finally:
         db.close()
-捉
+
 def get_planner_greeting():
     """Extract Turn 1 greeting from planner_agent.md."""
     try:
@@ -100,62 +124,66 @@ def get_planner_greeting():
     return "Hello! I am your AI Event Manager. I’m here to help you coordinate and bring your vision to life. To get started, what is the name or occasion of the ritual you are planning?"
 
 async def planner_node(state: VedicEventState):
-    """Planner Agent: Intent Harvesting & Hard Gating."""
-    user_msg = state["messages"][-1].content if state["messages"] else state["user_query"]
-    
-    # 0. Check for Empty/Start Intent (Turn 1 Greeting)
-    if not user_msg or user_msg.lower() in ["hi", "hello", "start", "begin", "plan"]:
-        return {
-            "clarification_needed": True,
-            "clarification_message": get_planner_greeting(),
-            "next_node": "scribe",
-            "last_node": "planner",
-            "intent_harvested": False
-        }
+    """Supervisor (Planner) Agent: Intent Harvesting, Feedback & Consensus Gating."""
+    db = SessionLocal()
+    try:
+        user_msg = state["messages"][-1].content if state["messages"] else state["user_query"]
+        event_id = state.get("event_id")
+        
+        # 1. Turn 1 Check (Direct dialogue if empty or generic)
+        if not user_msg or user_msg.lower() in ["hi", "hello", "start"]:
+            log_agent_action(db, "PLANNER", "Dialogue", "Returning Turn 1 Greeting", event_id)
+            return {
+                "clarification_needed": True,
+                "clarification_message": get_planner_greeting(),
+                "next_node": "scribe",
+                "last_node": "planner"
+            }
 
-    # 1. PII Scrubbing (Mandatory)
-    import httpx
-    scrubbed_msg = user_msg
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            scrub_resp = await client.post(
-                f"{settings.privacy_gate_url}/process",
-                json={"prompt": user_msg},
-                headers={"X-Agent-Name": "PLANNER"}
-            )
-            if scrub_resp.status_code == 200:
-                scrubbed_msg = scrub_resp.json().get("text", user_msg)
-    except: pass    # 2. Intent Analysis
-    prompt = f"""
-    Analyze the intent: "{scrubbed_msg}"
-    Current state: Ritual: {state.get('ritual_name')}, Language: {state.get('language')}, Style: {state.get('style')}.
-    
-    Extract: ritual_name, language, style, location.
-    Set intent_harvested=True only if ritual_name, language, AND style (Vedic, Modern, etc.) are all now known (combine with current state).
-    
-    Return ONLY valid JSON: {{"ritual_name": "...", "language": "...", "style": "...", "location": "...", "intent_harvested": bool, "question": "..."}}
-    """
-    try:
-        # Bypassing Privacy Gate for direct API handshake
+        # 2. Intent Analysis & Feedback Generation
+        prompt = f"""
+        Analyze intent: "{user_msg}"
+        Current State: Ritual: {state.get('ritual_name')}, Lang: {state.get('language')}, Style: {state.get('style')}, Loc: {state.get('location')}.
+        
+        Requirements:
+        1. Summarize what you understood (e.g., "I see you're planning a Satyanarayana Puja in Hyderabad...").
+        2. Identify missing core details (Date, Time, Style, Language).
+        3. Set intent_harvested=True only if Ritual, Language, Style, and Location are all set.
+        4. Provide a empathetic feedback message.
+        
+        Return ONLY valid JSON: 
+        {{
+            "ritual_name": "...", 
+            "language": "...", 
+            "style": "...", 
+            "location": "...", 
+            "intent_harvested": bool, 
+            "feedback": "Your summary and feedback here...",
+            "missing_details_question": "Questions for missing info..."
+        }}
+        """
+        
         llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=settings.gemini_api_key)
         response = await llm.ainvoke(prompt)
         
         # Robust JSON extraction
-        raw_content = response.content.strip()
-        if "```json" in raw_content:
-            raw_content = raw_content.split("```json")[1].split("```")[0].strip()
-        elif "```" in raw_content:
-            raw_content = raw_content.split("```")[1].strip()
+        raw_text = response.content.strip()
+        if "```json" in raw_text:
+            raw_text = raw_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in raw_text:
+            raw_text = raw_text.split("```")[1].split("```")[0].strip()
         
-        data = json.loads(raw_content)
-        raw_json = response.content.strip().replace("```json", "").replace("```", "")
-        data = json.loads(raw_json)
+        data = json.loads(raw_text)
         
         # State Sync
         ritual = data.get("ritual_name") or state.get("ritual_name")
         harvested = data.get("intent_harvested", False)
         customer_approved = state.get("customer_approval", False)
-        is_first_interaction = not state.get("event_id")
+        
+        # Reliable Turn-0 Detection (Check if we JUST came from Concierge->Scribe sequence)
+        is_first_interaction = state.get("last_node") == "scribe" and not state.get("intent_harvested", False)
+
+        log_agent_action(db, "PLANNER", "Intent Analysis", f"Harvested: {harvested}, Ritual: {ritual}", event_id)
 
         # 3. SUPERVISOR LOGIC: The Human-Approval Gate
         # Case A: Details missing -> Ask questions
@@ -180,12 +208,13 @@ async def planner_node(state: VedicEventState):
                 "location": data.get("location") or state.get("location"),
                 "intent_harvested": True,
                 "clarification_needed": True,
-                "clarification_message": f"**PLAN SUMMARY:**\n- **Ritual:** {ritual}\n- **Location:** {data.get('location') or state.get('location')}\n- **Style:** {data.get('style') or state.get('style')}\n\nI have everything I need. Shall I proceed to find a Pandit and Caterer for you?",
+                "clarification_message": f"**PLAN SUMMARY:**\n- **Ritual:** {ritual}\n- **Location:** {data.get('location') or state.get('location')}\n- **Style:** {data.get('style') or state.get('style')}\n\nI have everything I need to help you find a Pandit, Venue, and Caterer for your {ritual}. Shall I proceed to get everything ready for you?",
                 "next_node": "scribe",
                 "last_node": "planner"
             }
         
         # Case C: Approved -> HAND OFF TO TOOLS
+        log_agent_action(db, "PLANNER", "Supervisor", "Handing off to Finder/Discovery", event_id)
         return {
             "ritual_name": ritual,
             "next_node": "finder",
@@ -200,6 +229,8 @@ async def planner_node(state: VedicEventState):
             "next_node": "scribe",
             "last_node": "planner"
         }
+    finally:
+        db.close()
 
 from tools import SerperSearchTool, FirecrawlScrapeTool
 async def finder_node(state: VedicEventState):

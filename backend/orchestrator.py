@@ -45,6 +45,8 @@ async def concierge_node(state: VedicEventState):
         "status": state.get("status") or "DRAFT"
     }
 
+async def scribe_node(state: VedicEventState):
+    """Scribe Agent: Database Persistence (Silent Save)."""
     try:
         with next(get_db()) as db:
             event_id = state.get("event_id")
@@ -90,7 +92,7 @@ async def concierge_node(state: VedicEventState):
                 
         return {"event_id": event_id, "next_node": next_n}
     except Exception as e:
-        print(f"Scribe Error: {e}")
+        print(f"Warning: Persistence Failed (Scribe Error): {e}")
         # Graceful fallback: Don't crash the graph if persistence fails, but log it
         return {"next_node": "planner"}
 
@@ -108,7 +110,7 @@ def get_planner_greeting():
                 parts = content.split("### Turn 1: The Blank Canvas Opening")[1].split("> \"")[1].split("\"")[0]
                 return parts
     except: pass
-    return "Hello! I am your AI Event Manager. I’m here to help you coordinate and bring your vision to life."
+    return "Hello! I am your AI Event Manager. I’m here to help you coordinate and bring your vision to life. To get started, what is the name or occasion of the ritual you are planning?"
 
 async def planner_node(state: VedicEventState):
     """Planner Agent: Intent Harvesting & Hard Gating."""

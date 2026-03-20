@@ -55,7 +55,7 @@ import {
 const VITE_API_URL = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/$/, '') : "";
 
 const EventCanvas = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const eventId = searchParams.get("id");
   const { token } = useAuth();
   const [intent, setIntent] = useState("");
@@ -194,12 +194,10 @@ const EventCanvas = () => {
           setAgentDialogue(data.clarification_message);
         }
 
-        // [AGENTIC INSTANTIATION] Capture Draft Event ID and Update URL
+        // [AGENTIC INSTANTIATION] Capture Draft Event ID and Update URL smoothly
         if (data.event_id && data.event_id !== eventId) {
-          window.history.replaceState({}, '', `/event-orchestration?id=${data.event_id}`);
-          // Don't reload if we can just update the ID and keep the state
-          // but for now history.replaceState + reload is safer for syncing all components
-          window.location.reload();
+          setSearchParams({ id: data.event_id });
+          setIsEventActive(true);
         }
       } catch (error: any) {
         console.error(`Search failed:`, error);

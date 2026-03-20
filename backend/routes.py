@@ -3,6 +3,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict
 import uuid
+import json
 from database import get_db
 from schemas import (
     SearchRequest, SearchResponse, ProviderResponse,

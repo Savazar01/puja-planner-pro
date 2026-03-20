@@ -135,31 +135,37 @@ async def planner_node(state: VedicEventState):
             )
             if scrub_resp.status_code == 200:
                 scrubbed_msg = scrub_resp.json().get("text", user_msg)
-    except: pass
-
-    # 2. Intent Analysis
+    except: pass    # 2. Intent Analysis
     prompt = f"""
     Analyze the intent: "{scrubbed_msg}"
     Current state: Ritual: {state.get('ritual_name')}, Language: {state.get('language')}, Style: {state.get('style')}.
     
     Extract: ritual_name, language, style, location.
-    Set intent_harvested=True only if ritual_name, language, AND style are all now known (combine with current state).
+    Set intent_harvested=True only if ritual_name, language, AND style (Vedic, Modern, etc.) are all now known (combine with current state).
     
-    Return JSON: {{"ritual_name": "...", "language": "...", "style": "...", "location": "...", "intent_harvested": bool, "question": "..."}}
+    Return ONLY valid JSON: {{"ritual_name": "...", "language": "...", "style": "...", "location": "...", "intent_harvested": bool, "question": "..."}}
     """
     try:
-        # Bypassing Privacy Gate as per directive for direct API handshake
+        # Bypassing Privacy Gate for direct API handshake
         llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=settings.gemini_api_key)
         response = await llm.ainvoke(prompt)
-        data = json.loads(response.content.strip().replace("```json", "").replace("```", ""))
+        
+        # Robust JSON extraction
+        raw_content = response.content.strip()
+        if "```json" in raw_content:
+            raw_content = raw_content.split("```json")[1].split("```")[0].strip()
+        elif "```" in raw_content:
+            raw_content = raw_content.split("```")[1].strip()
+        
+        data = json.loads(raw_content)
         harvested = data.get("intent_harvested", False)
         
-        # CONSENSUS GATE: Hard block on discovery until approval
+        # CONSENSUS GATE: Always ask before discovery, even if harvested in one turn
         customer_approved = state.get("customer_approval", False)
         ritual = data.get("ritual_name") or state.get("ritual_name")
         
+        # [NEW] HARD RULE: If intent just became harvested, OR we don't have approval -> ASK.
         if harvested and not customer_approved:
-            # Enforce Turn 1-3 Consensus Protocol
             return {
                 "ritual_name": ritual,
                 "language": data.get("language") or state.get("language"),
@@ -167,7 +173,7 @@ async def planner_node(state: VedicEventState):
                 "location": data.get("location") or state.get("location"),
                 "intent_harvested": True,
                 "clarification_needed": True,
-                "clarification_message": f"I have the initial details for your {ritual}. Shall I proceed to find a Pandit and Caterer for you?",
+                "clarification_message": f"I have the initial details for your {ritual}. Would you like me to proceed and find a Pandit and Caterer for you?",
                 "next_node": "scribe",
                 "last_node": "planner"
             }
@@ -184,10 +190,10 @@ async def planner_node(state: VedicEventState):
             "last_node": "planner"
         }
     except Exception as e:
-        print(f"Planner Error: {e}")
+        print(f"Planner Error (Graceful Fallback): {e}")
         return {
             "clarification_needed": True,
-            "clarification_message": "I've saved your draft. Could you tell me more about the ritual style or language you prefer?",
+            "clarification_message": "I've saved your draft. Could you tell me more about the ritual style (e.g., Traditional) or preferred language?",
             "next_node": "scribe",
             "last_node": "planner",
             "status": "DRAFT_SAVED"

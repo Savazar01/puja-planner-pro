@@ -119,7 +119,7 @@ class SearchRequest(BaseModel):
     location: Optional[str] = Field(None, description="Location filter (city, state)")
     category: Optional[str] = Field(None, description="Category filter: pandits, venues, catering")
     event_id: Optional[str] = Field(None, description="Existing event ID to associate search with")
-
+    customer_approval: bool = Field(False, description="Whether the customer has approved discovery")
 
 class ProviderResponse(BaseModel):
     """Generic response schema for any discovered provider."""

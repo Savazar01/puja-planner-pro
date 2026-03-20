@@ -164,7 +164,9 @@ async def planner_node(state: VedicEventState):
         """
         
         llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=settings.gemini_api_key)
+        print(f"DEBUG: Calling LLM for intent: {user_msg[:50]}")
         response = await llm.ainvoke(prompt)
+        print(f"DEBUG: LLM Response received: {response.content[:100]}")
         
         # Robust JSON extraction
         raw_text = response.content.strip()

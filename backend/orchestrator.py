@@ -11,7 +11,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.checkpoint.memory import MemorySaver
 
 from config import settings
-from database import get_db
+from database import SessionLocal
 from models import Event, AgentLog
 from discovery_agent import discovery_agent
 
@@ -48,50 +48,49 @@ async def concierge_node(state: VedicEventState):
 
 async def scribe_node(state: VedicEventState):
     """Scribe Agent: Database Persistence (Silent Save)."""
+    db = SessionLocal()
     try:
-        with next(get_db()) as db:
-            event_id = state.get("event_id")
-            
-            # 1. Persistence Logic
-            if not event_id:
-                event = Event(
-                    id=str(uuid.uuid4()),
-                    customer_id=state.get("customer_id") or "system",
-                    title=state["user_query"][:50],
-                    location=state.get("location"),
-                    status="DRAFT",
-                    intent_json=state 
-                )
-                db.add(event)
+        event_id = state.get("event_id")
+        
+        # 1. Persistence Logic
+        if not event_id:
+            event = Event(
+                id=str(uuid.uuid4()),
+                customer_id=state.get("customer_id") or "system",
+                title=state["user_query"][:50],
+                location=state.get("location"),
+                status="DRAFT",
+                intent_json=state 
+            )
+            db.add(event)
+            db.commit()
+            db.refresh(event)
+            event_id = event.id
+        else:
+            event = db.query(Event).filter(Event.id == event_id).first()
+            if event:
+                event.location = state.get("location") or event.location
+                event.intent_json = state
+                if state.get("intent_harvested") and event.status == "DRAFT":
+                    event.status = "ROLES_CONFIRMED"
                 db.commit()
-                db.refresh(event)
-                event_id = event.id
-            else:
-                event = db.query(Event).filter(Event.id == event_id).first()
-                if event:
-                    event.location = state.get("location") or event.location
-                    event.intent_json = state
-                    if state.get("intent_harvested") and event.status == "DRAFT":
-                        event.status = "ROLES_CONFIRMED"
-                    db.commit()
-            
-            # 2. Routing Decision (CRITICAL: Fix Infinite Loop)
-            # If we just arrived from concierge, go to planner
-            if state.get("last_node") == "concierge":
-                return {"event_id": event_id, "next_node": "planner", "last_node": "scribe"}
-            
-            # If we were in a loop for clarification, we should hit END
-            if state.get("clarification_needed"):
-                return {"event_id": event_id, "next_node": "END", "last_node": "scribe"}
-            
-            # If we came from supplies (end of sourcing), we should hit END
-            if state.get("last_node") == "supplies":
-                return {"event_id": event_id, "next_node": "END", "last_node": "scribe"}
+        
+        # 2. Routing Decision (CRITICAL: Fix Infinite Loop & End-of-Sourcing)
+        if state.get("last_node") == "concierge":
+            return {"event_id": event_id, "next_node": "planner", "last_node": "scribe"}
+        
+        if state.get("clarification_needed"):
+            return {"event_id": event_id, "next_node": "END", "last_node": "scribe"}
+        
+        if state.get("last_node") == "supplies":
+            return {"event_id": event_id, "next_node": "END", "last_node": "scribe"}
 
         return {"event_id": event_id, "next_node": "END", "last_node": "scribe"}
     except Exception as e:
         print(f"Warning: Persistence Failed: {e}")
         return {"next_node": "END", "last_node": "scribe"}
+    finally:
+        db.close()
 
 def get_planner_greeting():
     """Extract Turn 1 greeting from planner_agent.md."""
@@ -164,8 +163,11 @@ async def planner_node(state: VedicEventState):
         customer_approved = state.get("customer_approval", False)
         ritual = data.get("ritual_name") or state.get("ritual_name")
         
-        # [NEW] HARD RULE: If intent just became harvested, OR we don't have approval -> ASK.
-        if harvested and not customer_approved:
+        # [NEW] HARD RULE: If intent was JUST harvested, OR it's a new event -> MANDATORY GREETING/QUESTION.
+        # This prevents immediate API triggering on the first user message.
+        is_new_event = not state.get("event_id")
+        
+        if harvested and (is_new_event or not customer_approved):
             return {
                 "ritual_name": ritual,
                 "language": data.get("language") or state.get("language"),
@@ -200,46 +202,42 @@ async def planner_node(state: VedicEventState):
         }
 
 from tools import SerperSearchTool, FirecrawlScrapeTool
-
 async def finder_node(state: VedicEventState):
     """Finder Agent: PROFESSIONAL DISCOVERY (HARD GATED)."""
-    # Only reachable if intent_harvested is True
-    role_list = ["PANDIT", "VENUE", "CATERING"]
-    all_results = []
-    
-    search_tool = SerperSearchTool()
-    
+    db = SessionLocal()
     try:
+        # Only reachable if intent_harvested is True
+        role_list = ["PANDIT", "VENUE", "CATERING"]
+        all_results = []
+        
+        location = state.get("location", "India")
+        ritual = state.get("ritual_name", "")
+        language = state.get("language", "")
+        style = state.get("style", "")
+
         for role in role_list:
-            # Use Tool for external search
-            search_results = await search_tool.ainvoke({
-                "query": state["user_query"],
-                "location": state.get("location") or "India",
-                "ritual_name": state.get("ritual_name", ""),
-                "role": role
-            })
-            
-            # Simple extraction for now to satisfy the structure
-            if isinstance(search_results, dict) and "organic" in search_results:
-                for item in search_results["organic"][:3]:
-                    all_results.append({
-                        "id": str(uuid.uuid4()),
-                        "name": item.get("title", "Unknown"),
-                        "role": role,
-                        "location": state.get("location") or "India",
-                        "website": item.get("link"),
-                        "is_platform_member": False,
-                        "additional_info": {"snippet": item.get("snippet")}
-                    })
+            providers = await discovery_agent.discover_providers(
+                role, location, db, 
+                ritual_name=ritual, 
+                language=language, 
+                style=style
+            )
+            all_results.extend(providers)
+                
+        return {
+            "providers_found": all_results,
+            "next_node": "supplies",
+            "last_node": "finder"
+        }
     except Exception as e:
-        print(f"Finder Agent Error (Graceful Failure): {e}")
-        # Log failure but continue with empty results
-            
-    return {
-        "providers_found": all_results,
-        "next_node": "supplies",
-        "last_node": "finder"
-    }
+        print(f"Finder Node Error (Crash Suppression): {e}")
+        return {
+            "providers_found": [],
+            "next_node": "supplies",
+            "last_node": "finder"
+        }
+    finally:
+        db.close()
 
 async def supplies_node(state: VedicEventState):
     """Supplies Agent: Suggesting samagri."""

@@ -205,8 +205,17 @@ async def planner_node(state: VedicEventState):
         }}
         """
         
-        llm = ChatGoogleGenerativeAI(model=settings.agent_planner_llm, google_api_key=settings.gemini_api_key)
-        response = await llm.ainvoke(prompt)
+        # [AGENTIC] Fallback Logic for Model Names
+        try:
+            llm = ChatGoogleGenerativeAI(model=settings.agent_planner_llm, google_api_key=settings.gemini_api_key)
+            response = await llm.ainvoke(prompt)
+        except Exception as e:
+            if "404" in str(e) or "not found" in str(e).lower():
+                log_agent_action(db, "PLANNER", "Model Fallback", f"Model {settings.agent_planner_llm} not found. Falling back to gemini-1.5-flash.", event_id)
+                llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=settings.gemini_api_key)
+                response = await llm.ainvoke(prompt)
+            else:
+                raise e
         
         # Robust JSON extraction
         raw_text = response.content.strip()

@@ -2,6 +2,7 @@ import uuid
 import json
 import os
 from datetime import datetime
+import traceback
 from typing import Annotated, List, Dict, Optional, Any
 from typing_extensions import TypedDict
 
@@ -89,13 +90,13 @@ async def scribe_node(state: VedicEventState):
         ritual = state.get("ritual_name")
         approval = state.get("customer_approval", False)
 
-        if not event_id and (harvested or ritual or approval):
-            # Create NEW event record only when we have enough data (Draft)
+        # [Supervisor Rule] Proactively create Event Record (Draft) as soon as we have a query
+        if not event_id and user_query:
             event_id = str(uuid.uuid4())
             new_event = Event(
                 id=event_id,
                 customer_id=customer_id,
-                title=f"Ritual: {ritual or user_query[:30]}",
+                title=user_query[:50],
                 location=state.get("location"),
                 status="PLANNING",
                 intent_json=state 
@@ -103,7 +104,7 @@ async def scribe_node(state: VedicEventState):
             db.add(new_event)
             db.commit()
             db.refresh(new_event)
-            log_agent_action(db, "SCRIBE", "DB Persistence", f"Created new event record: {event_id}", event_id)
+            log_agent_action(db, "SCRIBE", "DB Persistence", f"Proactively created draft event: {event_id}", event_id)
         elif event_id:
             event = db.query(Event).filter(Event.id == event_id).first()
             if event:
@@ -206,12 +207,25 @@ async def planner_node(state: VedicEventState):
         
         # Robust JSON extraction
         raw_text = response.content.strip()
-        if "```json" in raw_text:
-            raw_text = raw_text.split("```json")[1].split("```")[0].strip()
-        elif "```" in raw_text:
-            raw_text = raw_text.split("```")[1].split("```")[0].strip()
+        json_str = ""
         
-        data = json.loads(raw_text)
+        if "```json" in raw_text:
+            json_str = raw_text.split("```json")[1].split("```")[0].strip()
+        elif "```" in raw_text:
+            json_str = raw_text.split("```")[1].split("```")[0].strip()
+        elif "{" in raw_text and "}" in raw_text:
+            # Fallback: extract substring between first { and last }
+            start = raw_text.find("{")
+            end = raw_text.rfind("}") + 1
+            json_str = raw_text[start:end]
+        else:
+            json_str = raw_text
+
+        try:
+            data = json.loads(json_str)
+        except json.JSONDecodeError as je:
+            log_agent_action(db, "PLANNER", "ERROR", f"JSON Decode Error. Raw: {raw_text[:100]}", event_id)
+            raise je
         
         # State Sync
         ritual = data.get("ritual_name") or state.get("ritual_name")
@@ -250,10 +264,12 @@ async def planner_node(state: VedicEventState):
         }
         
     except Exception as e:
-        print(f"Planner Error: {e}")
+        err_msg = traceback.format_exc()
+        print(f"Planner Critical Failure: {err_msg}")
+        log_agent_action(db, "PLANNER", "ERROR", f"Crash in supervisor: {str(e)[:200]}", event_id)
         return {
             "clarification_needed": True,
-            "clarification_message": "I've encountered a small snag, but your plan is safe. Could you tell me more about your ritual requirements?",
+            "clarification_message": f"I've encountered a small snag, but your plan is safe. Could you tell me more about your ritual requirements?",
             "next_node": "scribe",
             "last_node": "planner"
         }

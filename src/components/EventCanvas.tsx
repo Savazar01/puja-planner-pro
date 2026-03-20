@@ -520,9 +520,31 @@ const EventCanvas = () => {
                             <div className="text-foreground leading-relaxed whitespace-pre-wrap">
                               {agentDialogue}
                             </div>
+                            
+                            {/* Interactive Response Input */}
+                            <form 
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                handleIntentSubmit(undefined);
+                                setIntent(""); // Clear after sending
+                              }} 
+                              className="flex gap-2 p-1 bg-muted/30 rounded-lg border border-primary/10 focus-within:border-primary/30 transition-all"
+                            >
+                              <Input 
+                                placeholder="Reply to supervisor..." 
+                                className="border-none bg-transparent focus-visible:ring-0 h-9"
+                                value={intent}
+                                onChange={(e) => setIntent(e.target.value)}
+                              />
+                              <Button type="submit" size="sm" variant="ghost" className="h-9 px-3 hover:text-primary">
+                                <MessageCircle className="h-4 w-4" />
+                              </Button>
+                            </form>
+
                             {agentDialogue.includes("Shall I proceed") && (
                               <div className="flex gap-2 pt-2">
                                 <Button size="sm" className="gap-2" onClick={() => handleIntentSubmit(undefined, true)}>
+                                  <CheckCircle2 className="h-4 w-4" />
                                   Approve & Proceed
                                 </Button>
                                 <Button size="sm" variant="outline" onClick={() => setAgentDialogue(null)}>

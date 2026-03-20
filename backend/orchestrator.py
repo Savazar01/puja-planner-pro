@@ -34,14 +34,15 @@ class VedicEventState(TypedDict):
     clarification_needed: bool
     clarification_message: Optional[str]
     customer_approval: bool # NEW: Hard Gate for Sourcing
+    last_node: str # For stable routing
 
 # --- 5-Agent Node Registry ---
 
 async def concierge_node(state: VedicEventState):
     """Concierge Agent: Initial greeting and triage."""
-    # Logic: Triage the user and hand off to the Scribe for initial save.
     return {
         "next_node": "scribe",
+        "last_node": "concierge",
         "status": state.get("status") or "DRAFT"
     }
 
@@ -51,6 +52,7 @@ async def scribe_node(state: VedicEventState):
         with next(get_db()) as db:
             event_id = state.get("event_id")
             
+            # 1. Persistence Logic
             if not event_id:
                 event = Event(
                     id=str(uuid.uuid4()),
@@ -58,7 +60,7 @@ async def scribe_node(state: VedicEventState):
                     title=state["user_query"][:50],
                     location=state.get("location"),
                     status="DRAFT",
-                    intent_json=state # Save initial state snapshot
+                    intent_json=state 
                 )
                 db.add(event)
                 db.commit()
@@ -68,33 +70,28 @@ async def scribe_node(state: VedicEventState):
                 event = db.query(Event).filter(Event.id == event_id).first()
                 if event:
                     event.location = state.get("location") or event.location
-                    event.intent_json = state # Continual State Sync
+                    event.intent_json = state
                     if state.get("intent_harvested") and event.status == "DRAFT":
                         event.status = "ROLES_CONFIRMED"
                     db.commit()
             
-            # Persistence for logs
-            log = AgentLog(
-                id=str(uuid.uuid4()),
-                event_id=event_id,
-                agent_type="SCRIBE",
-                tool_used="LangGraph Persistence",
-                summary_outcome=f"State synced for Event {event_id}. Intent Harvested: {state.get('intent_harvested')}."
-            )
-            db.add(log)
-            db.commit()
+            # 2. Routing Decision (CRITICAL: Fix Infinite Loop)
+            # If we just arrived from concierge, go to planner
+            if state.get("last_node") == "concierge":
+                return {"event_id": event_id, "next_node": "planner", "last_node": "scribe"}
             
-            # Determine where to go next
-            prev_node = state.get("next_node")
-            next_n = "planner" if prev_node == "scribe" or not prev_node else "END"
-            if prev_node == "supplies":
-                next_n = "END"
-                
-        return {"event_id": event_id, "next_node": next_n}
+            # If we were in a loop for clarification, we should hit END
+            if state.get("clarification_needed"):
+                return {"event_id": event_id, "next_node": "END", "last_node": "scribe"}
+            
+            # If we came from supplies (end of sourcing), we should hit END
+            if state.get("last_node") == "supplies":
+                return {"event_id": event_id, "next_node": "END", "last_node": "scribe"}
+
+        return {"event_id": event_id, "next_node": "END", "last_node": "scribe"}
     except Exception as e:
-        print(f"Warning: Persistence Failed (Scribe Error): {e}")
-        # Graceful fallback: Don't crash the graph if persistence fails, but log it
-        return {"next_node": "planner"}
+        print(f"Warning: Persistence Failed: {e}")
+        return {"next_node": "END", "last_node": "scribe"}
 
 def get_planner_greeting():
     """Extract Turn 1 greeting from planner_agent.md."""
@@ -122,6 +119,7 @@ async def planner_node(state: VedicEventState):
             "clarification_needed": True,
             "clarification_message": get_planner_greeting(),
             "next_node": "scribe",
+            "last_node": "planner",
             "intent_harvested": False
         }
 
@@ -170,7 +168,8 @@ async def planner_node(state: VedicEventState):
                 "intent_harvested": True,
                 "clarification_needed": True,
                 "clarification_message": f"I have the initial details for your {ritual}. Shall I proceed to find a Pandit and Caterer for you?",
-                "next_node": "scribe" # Loop back to user via scribe persistence
+                "next_node": "scribe",
+                "last_node": "planner"
             }
 
         return {
@@ -181,7 +180,8 @@ async def planner_node(state: VedicEventState):
             "intent_harvested": harvested,
             "clarification_needed": not harvested,
             "clarification_message": data.get("question") if not harvested else None,
-            "next_node": "finder" if (harvested and customer_approved) else "scribe"
+            "next_node": "finder" if (harvested and customer_approved) else "scribe",
+            "last_node": "planner"
         }
     except Exception as e:
         print(f"Planner Error: {e}")
@@ -189,6 +189,7 @@ async def planner_node(state: VedicEventState):
             "clarification_needed": True,
             "clarification_message": "I've saved your draft. Could you tell me more about the ritual style or language you prefer?",
             "next_node": "scribe",
+            "last_node": "planner",
             "status": "DRAFT_SAVED"
         }
 
@@ -230,7 +231,8 @@ async def finder_node(state: VedicEventState):
             
     return {
         "providers_found": all_results,
-        "next_node": "supplies"
+        "next_node": "supplies",
+        "last_node": "finder"
     }
 
 async def supplies_node(state: VedicEventState):
@@ -238,10 +240,10 @@ async def supplies_node(state: VedicEventState):
     try:
         ritual = state.get("ritual_name", state.get("user_query"))
         suggested = discovery_agent.suggest_ritual_supplies(ritual)
-        return {"supplies_suggested": suggested, "next_node": "scribe"}
+        return {"supplies_suggested": suggested, "next_node": "scribe", "last_node": "supplies"}
     except Exception as e:
         print(f"Supplies Agent Error (Graceful Failure): {e}")
-        return {"supplies_suggested": [], "next_node": "scribe"}
+        return {"supplies_suggested": [], "next_node": "scribe", "last_node": "supplies"}
 
 # --- Unified Graph Construction (Lazy Loaded) ---
 

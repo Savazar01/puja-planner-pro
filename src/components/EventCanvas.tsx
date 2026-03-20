@@ -464,13 +464,25 @@ const EventCanvas = () => {
                   </div>
 
                   <div className="relative pl-12">
-                    <div className="absolute left-0 mt-1 h-10 w-10 rounded-full bg-accent/20 flex items-center justify-center border-2 border-accent ring-4 ring-background">
-                      <Search className="h-6 w-6 text-accent-foreground" />
+                    <div className={cn(
+                      "absolute left-0 mt-1 h-10 w-10 rounded-full flex items-center justify-center border-2 ring-4 ring-background transition-colors",
+                      selectedPartners.length > 0 ? "bg-green-100 border-green-500" : "bg-accent/20 border-accent"
+                    )}>
+                      {isSearching ? (
+                        <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Search className={cn("h-6 w-6 font-bold", selectedPartners.length > 0 ? "text-green-600" : "text-accent-foreground")} />
+                      )}
                     </div>
-                    <div className="p-4 rounded-xl border border-accent/20 bg-accent/5 shadow-sm">
+                    <div className={cn(
+                      "p-4 rounded-xl border shadow-sm transition-colors",
+                      selectedPartners.length > 0 ? "border-green-200 bg-green-50" : "border-accent/20 bg-accent/5"
+                    )}>
                       <h4 className="font-semibold text-foreground">Sourcing Helpers</h4>
                       <p className="text-sm text-muted-foreground">
-                        {selectedPartners.length > 0 ? `${selectedPartners.length} partner(s) aligned.` : "Finding the right people for your ceremony."}
+                        {selectedPartners.length > 0 
+                          ? `${selectedPartners.length} partner(s) aligned.` 
+                          : isSearching ? "Agents are scouring the web and internal database..." : "Finding the right people for your ceremony."}
                       </p>
                     </div>
                   </div>

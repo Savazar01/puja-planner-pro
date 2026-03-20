@@ -111,12 +111,38 @@ async def scribe_node(state: VedicEventState):
         elif event_id:
             event = db.query(Event).filter(Event.id == event_id).first()
             if event:
-                # Sync volatile state to DB
+                # [FIX] Hard commit of captured details to top-level columns
                 event.intent_json = serializable_state
                 if ritual: event.title = f"Ritual: {ritual}"
-                if state.get("location"): event.location = state.get("location")
+                
+                # Sync Location
+                loc = state.get("location")
+                if loc: event.location = loc
+                
+                # Sync Event Date/Time with robust parsing
+                raw_date = state.get("event_date")
+                raw_time = state.get("event_time")
+                if raw_date and raw_date != "null":
+                    try:
+                        # Combine date and time for full timestamp
+                        dt_str = raw_date
+                        if raw_time and raw_time != "null":
+                            if " " not in dt_str: dt_str += f" {raw_time}"
+                        
+                        # Handle common formats
+                        if "T" in dt_str:
+                            event.event_date = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
+                        else:
+                            # Try simple combined format or just date
+                            try:
+                                event.event_date = datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
+                            except:
+                                event.event_date = datetime.strptime(raw_date, "%Y-%m-%d")
+                    except Exception as date_err:
+                        print(f"Date Parsing Warning: {date_err}")
+
                 db.commit()
-                log_agent_action(db, "SCRIBE", "DB Persistence", f"Updated event state for: {event_id}", event_id)
+                log_agent_action(db, "SCRIBE", "DB Persistence", f"Hard committed event state for: {event_id}", event_id)
 
         # Static Routing Pattern
         last = state.get("last_node")
@@ -199,8 +225,8 @@ async def planner_node(state: VedicEventState):
             "feedback": "Step-by-step confirmation of what you received...",
             "missing_details_question": "Polite request for any missing fields from the list above...",
             "agent_commands": {{
-                "finder": "Command for finding pandits/venues/catering based on style and location",
-                "supplies": "Ritual name for samagri suggestion"
+                "finder": "A LONG-FORM, HIGH-INTENT search query for finding specific providers. Example: 'Search for Telugu-speaking Satyanarayana Puja Pandits in West Maredpally, Secunderabad'",
+                "supplies": "Specific ritual name for samagri Suggestion"
             }}
         }}
         """

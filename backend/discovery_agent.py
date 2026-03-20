@@ -29,7 +29,10 @@ class DiscoveryAgent:
         if role: search_query_parts.append(role)
         if location: search_query_parts.append(location)
         
-        if not search_query_parts:
+        # [FIX] Prioritize the Supervisor's high-intent query if substantial
+        if query and len(query) > 15:
+            search_query = query
+        elif not search_query_parts:
             search_query = f"{query} {location}".strip()
         else:
             search_query = " ".join(search_query_parts)
@@ -402,11 +405,16 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
             model = genai.GenerativeModel('gemini-1.5-flash')
             response = model.generate_content(prompt)
             text = response.text.strip()
-            # Clean up potential markdown formatting
+            
+            # [FIX] Robust JSON extraction for supplies
             if "```json" in text:
                 text = text.split("```json")[1].split("```")[0].strip()
             elif "```" in text:
                 text = text.split("```")[1].split("```")[0].strip()
+            elif "[" in text and "]" in text:
+                start = text.find("[")
+                end = text.rfind("]") + 1
+                text = text[start:end]
             
             supplies = json.loads(text)
             if isinstance(supplies, list):

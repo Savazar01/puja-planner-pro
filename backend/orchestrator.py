@@ -205,7 +205,7 @@ async def planner_node(state: VedicEventState):
         }}
         """
         
-        llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=settings.gemini_api_key)
+        llm = ChatGoogleGenerativeAI(model=settings.agent_planner_llm, google_api_key=settings.gemini_api_key)
         response = await llm.ainvoke(prompt)
         
         # Robust JSON extraction

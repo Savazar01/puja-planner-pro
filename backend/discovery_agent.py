@@ -187,12 +187,12 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
             prompt = prompts.get(entity_type, prompts["pandit"])
             full_prompt = f"{prompt}\n\nContent to parse:\n{content[:4000]}"  # Limit content length
             
-            # Intelligent Model Fallback
+            # Intelligent Model Configuration from Environment
             try:
-                gemini_model = genai.GenerativeModel('gemini-1.5-pro')
+                gemini_model = genai.GenerativeModel(settings.agent_finder_llm)
                 response = gemini_model.generate_content(full_prompt)
-            except Exception as pro_error:
-                print(f"Gemini Pro inference failed: {pro_error}. Triggering Fallback to Flash.")
+            except Exception as model_error:
+                print(f"Primary model {settings.agent_finder_llm} failed: {model_error}. Triggering Fallback to Flash.")
                 gemini_model = genai.GenerativeModel('gemini-1.5-flash')
                 response = gemini_model.generate_content(full_prompt)
             

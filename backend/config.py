@@ -16,6 +16,13 @@ class Settings(BaseSettings):
     resend_api_key: str = Field("", alias="RESEND_API_KEY")
     privacy_gate_url: str = "http://localhost:8740"
     
+    # Agent Models (Configurable via Coolify)
+    agent_planner_llm: str = Field("gemini-1.5-flash", alias="AGENT_PLANNER_LLM")
+    agent_concierge_llm: str = Field("gemini-1.5-flash", alias="AGENT_CONCIERGE_LLM")
+    agent_finder_llm: str = Field("gemini-1.5-flash", alias="AGENT_FINDER_LLM")
+    agent_scribe_llm: str = Field("gemini-1.5-flash", alias="AGENT_SCRIBE_LLM")
+    agent_supplies_llm: str = Field("gemini-1.5-flash", alias="AGENT_SUPPLIES_LLM")
+    
     # Application
     environment: str = "development"
     debug: bool = True

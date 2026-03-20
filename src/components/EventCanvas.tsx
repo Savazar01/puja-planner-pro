@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Plus, 
-  Search, 
-  Clock, 
+import {
+  Plus,
+  Search,
+  Clock,
   AlertCircle,
   ChevronRight,
   FileText,
@@ -21,25 +21,25 @@ import {
   Trash2,
   Users
 } from "lucide-react";
-import { 
-  Sheet, 
-  SheetContent, 
-  SheetHeader, 
-  SheetTitle, 
-  SheetTrigger 
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger
 } from "@/components/ui/sheet";
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
 } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
   DialogFooter
 } from "@/components/ui/dialog";
@@ -63,11 +63,11 @@ const EventCanvas = () => {
   const [eventData, setEventData] = useState<any>(null);
   const [isEditingMetadata, setIsEditingMetadata] = useState(false);
   const [editForm, setEditForm] = useState({ title: "", location: "", date: "", time: "" });
-  
+
   // New modules state (Initially empty for Blank Canvas)
   const [guests, setGuests] = useState<any[]>([]);
   const [supplies, setSupplies] = useState<any[]>([]);
-  
+
   const [newGuest, setNewGuest] = useState({ id: "", name: "", phone: "", memberCount: 1 });
   const [newSupply, setNewSupply] = useState("");
   const [isGuestDialogOpen, setIsGuestDialogOpen] = useState(false);
@@ -99,7 +99,7 @@ const EventCanvas = () => {
             });
             setSelectedPartners(currentEvent.bookings || []);
             setIsEventActive(true);
-            
+
             // Extract Agent Dialogue from intent_json if available
             if (currentEvent.intent_json?.clarification_message) {
               setAgentDialogue(currentEvent.intent_json.clarification_message);
@@ -115,10 +115,10 @@ const EventCanvas = () => {
               headers: { Authorization: `Bearer ${token}` }
             })
           ]);
-          
+
           if (gRes.ok) setGuests(await gRes.json());
           if (sRes.ok) setSupplies(await sRes.json());
-          
+
         } catch (error) {
           console.error("Failed to fetch event data:", error);
         }
@@ -134,7 +134,7 @@ const EventCanvas = () => {
       const combinedDateTime = new Date(`${editForm.date}T${editForm.time}`);
       const response = await fetch(`${VITE_API_URL}/api/events/${eventId}`, {
         method: 'PATCH',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
@@ -158,10 +158,10 @@ const EventCanvas = () => {
 
   const handleIntentSubmit = async (e?: React.FormEvent, isApproval: boolean = false) => {
     if (e) e.preventDefault();
-    
+
     // If it's an approval, we use a fixed confirmation message if intent is empty
     const queryText = isApproval ? (intent || "Yes, proceed with discovery") : intent;
-    
+
     if (queryText.trim()) {
       setIsEventActive(true);
       setIsSearching(true);
@@ -169,44 +169,44 @@ const EventCanvas = () => {
       try {
         const response = await fetch(searchUrl, {
           method: 'POST',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({ 
-            query: queryText, 
+          body: JSON.stringify({
+            query: queryText,
             location: editForm.location || "Hyderabad",
             event_id: eventId,
             customer_approval: isApproval
           })
         });
-        
+
         if (!response.ok) {
-           throw new Error(`API Error: ${response.status} ${response.statusText}`);
+          throw new Error(`API Error: ${response.status} ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         setSearchResults(data.results || []);
-        
+
         // Reset dialogue and then set if new one exists
         setAgentDialogue(null);
         if (data.clarification_message) {
           setAgentDialogue(data.clarification_message);
         }
-        
+
         // [AGENTIC INSTANTIATION] Capture Draft Event ID and Update URL
         if (data.event_id && data.event_id !== eventId) {
           window.history.replaceState({}, '', `/event-orchestration?id=${data.event_id}`);
           // Don't reload if we can just update the ID and keep the state
           // but for now history.replaceState + reload is safer for syncing all components
-          window.location.reload(); 
+          window.location.reload();
         }
       } catch (error: any) {
         console.error(`Search failed:`, error);
-        toast({ 
-            title: "Search Error", 
-            description: error.message || "Network Error: Could not connect to the AI Agent.", 
-            variant: "destructive" 
+        toast({
+          title: "Search Error",
+          description: error.message || "Network Error: Could not connect to the AI Agent.",
+          variant: "destructive"
         });
       } finally {
         setIsSearching(false);
@@ -219,11 +219,11 @@ const EventCanvas = () => {
       toast({ title: "No Event", description: "Please create an event first." });
       return;
     }
-    
+
     try {
       const response = await fetch(`${VITE_API_URL}/api/events/${eventId}/select`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
@@ -234,7 +234,7 @@ const EventCanvas = () => {
           partner_data: partner.is_internal ? null : partner
         })
       });
-      
+
       if (response.ok) {
         const updatedEvent = await response.json();
         setSelectedPartners(updatedEvent.bookings);
@@ -250,7 +250,7 @@ const EventCanvas = () => {
       try {
         const response = await fetch(`${VITE_API_URL}/api/events/${eventId}/guests`, {
           method: 'POST',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
@@ -261,7 +261,7 @@ const EventCanvas = () => {
             status: "PENDING"
           })
         });
-        
+
         if (response.ok) {
           const addedGuest = await response.json();
           setGuests(prev => [...prev, addedGuest]);
@@ -320,7 +320,7 @@ const EventCanvas = () => {
       try {
         const response = await fetch(`${VITE_API_URL}/api/events/${eventId}/supplies`, {
           method: 'POST',
-          headers: { 
+          headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
@@ -330,7 +330,7 @@ const EventCanvas = () => {
             completed: false
           })
         });
-        
+
         if (response.ok) {
           const addedSupply = await response.json();
           setSupplies(prev => [...prev, addedSupply]);
@@ -357,8 +357,8 @@ const EventCanvas = () => {
           <h2 className="text-3xl font-bold tracking-tight text-foreground">What's the next chapter of your event?</h2>
           <p className="text-muted-foreground">The AI agents are listening. Type your intent to harvest new event anchors.</p>
           <form onSubmit={handleIntentSubmit} className="flex gap-2 p-2 bg-background/80 backdrop-blur rounded-full border border-primary/20 shadow-sm focus-within:ring-2 ring-primary/20 transition-all">
-            <Input 
-              placeholder="e.g., 'I want to add a Sattvik caterer for 50 guests in Hyderabad'" 
+            <Input
+              placeholder="e.g., 'I want to add a Sattvik caterer for 50 guests in Hyderabad'"
               className="flex-1 border-none bg-transparent focus-visible:ring-0 text-lg py-6"
               value={intent}
               onChange={(e) => setIntent(e.target.value)}
@@ -382,11 +382,11 @@ const EventCanvas = () => {
             </p>
           </div>
           <div className="flex flex-wrap justify-center gap-3 pt-4">
-             {["Plan a Mundan", "Hire a Pandit", "Sattvik Catering"].map((tag) => (
-               <Badge key={tag} variant="secondary" className="cursor-pointer hover:bg-primary/10 transition-colors" onClick={() => setIntent(tag)}>
-                 {tag}
-               </Badge>
-             ))}
+            {["Plan a Mundan", "Hire a Pandit", "Sattvik Catering"].map((tag) => (
+              <Badge key={tag} variant="secondary" className="cursor-pointer hover:bg-primary/10 transition-colors" onClick={() => setIntent(tag)}>
+                {tag}
+              </Badge>
+            ))}
           </div>
         </section>
       ) : (
@@ -408,7 +408,7 @@ const EventCanvas = () => {
                   </h3>
                   <Badge variant="outline" className="text-xs">Preparing</Badge>
                 </div>
-                
+
                 <div className="relative space-y-8 before:absolute before:inset-0 before:ml-5 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-primary/50 before:via-border/50 before:to-transparent">
                   <div className="relative pl-12">
                     <div className="absolute left-0 mt-1 h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center border-2 border-primary ring-4 ring-background">
@@ -420,9 +420,9 @@ const EventCanvas = () => {
                           <h4 className="font-semibold text-foreground">{eventData?.title || currentEventName}</h4>
                           <p className="text-sm text-muted-foreground uppercase">{intent || "Family Context"}</p>
                           {eventData?.event_date && (
-                             <p className="text-xs text-primary/70 mt-1">
-                               {new Date(eventData.event_date).toLocaleString()} • {eventData.location}
-                             </p>
+                            <p className="text-xs text-primary/70 mt-1">
+                              {new Date(eventData.event_date).toLocaleString()} • {eventData.location}
+                            </p>
                           )}
                         </div>
                         <Dialog open={isEditingMetadata} onOpenChange={setIsEditingMetadata}>
@@ -439,20 +439,20 @@ const EventCanvas = () => {
                             <div className="grid gap-4 py-4">
                               <div className="grid gap-2">
                                 <Label>Ritual Title</Label>
-                                <Input value={editForm.title} onChange={e => setEditForm({...editForm, title: e.target.value})} />
+                                <Input value={editForm.title} onChange={e => setEditForm({ ...editForm, title: e.target.value })} />
                               </div>
                               <div className="grid gap-2">
                                 <Label>Location</Label>
-                                <Input value={editForm.location} onChange={e => setEditForm({...editForm, location: e.target.value})} />
+                                <Input value={editForm.location} onChange={e => setEditForm({ ...editForm, location: e.target.value })} />
                               </div>
                               <div className="grid grid-cols-2 gap-4">
                                 <div className="grid gap-2">
                                   <Label>Date</Label>
-                                  <Input type="date" value={editForm.date} onChange={e => setEditForm({...editForm, date: e.target.value})} />
+                                  <Input type="date" value={editForm.date} onChange={e => setEditForm({ ...editForm, date: e.target.value })} />
                                 </div>
                                 <div className="grid gap-2">
                                   <Label>Time</Label>
-                                  <Input type="time" value={editForm.time} onChange={e => setEditForm({...editForm, time: e.target.value})} />
+                                  <Input type="time" value={editForm.time} onChange={e => setEditForm({ ...editForm, time: e.target.value })} />
                                 </div>
                               </div>
                             </div>
@@ -509,29 +509,29 @@ const EventCanvas = () => {
                       {agentDialogue && (
                         <Card className="col-span-full border-primary/40 bg-primary/5 shadow-md animate-in fade-in zoom-in duration-300">
                           <CardHeader className="flex flex-row items-center gap-3 pb-2">
-                             <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
-                               <MessageCircle className="h-5 w-5 text-primary" />
-                             </div>
-                             <div>
-                               <CardTitle className="text-sm font-bold uppercase tracking-wider text-primary/80">Supervisor Dialogue</CardTitle>
-                             </div>
+                            <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
+                              <MessageCircle className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <CardTitle className="text-sm font-bold uppercase tracking-wider text-primary/80">Supervisor Dialogue</CardTitle>
+                            </div>
                           </CardHeader>
                           <CardContent className="space-y-4">
                             <div className="text-foreground leading-relaxed whitespace-pre-wrap">
                               {agentDialogue}
                             </div>
-                            
+
                             {/* Interactive Response Input */}
-                            <form 
+                            <form
                               onSubmit={(e) => {
                                 e.preventDefault();
                                 handleIntentSubmit(undefined);
                                 setIntent(""); // Clear after sending
-                              }} 
+                              }}
                               className="flex gap-2 p-1 bg-muted/30 rounded-lg border border-primary/10 focus-within:border-primary/30 transition-all"
                             >
-                              <Input 
-                                placeholder="Reply to supervisor..." 
+                              <Input
+                                placeholder="Reply to supervisor..."
                                 className="border-none bg-transparent focus-visible:ring-0 h-9"
                                 value={intent}
                                 onChange={(e) => setIntent(e.target.value)}
@@ -578,8 +578,8 @@ const EventCanvas = () => {
                               <p className="text-sm text-muted-foreground line-clamp-2">
                                 {partner.additional_info?.specialization || partner.additional_info?.venue_type || partner.additional_info?.cuisine_types?.join(", ") || "Available for your ceremony."}
                               </p>
-                              <Button 
-                                className="w-full gap-2" 
+                              <Button
+                                className="w-full gap-2"
                                 variant={selectedPartners.some(b => b.partner_id === partner.id) ? "secondary" : "default"}
                                 onClick={() => selectPartner(partner, partner.role || 'SUPPLIER')}
                                 disabled={selectedPartners.some(b => b.partner_id === partner.id)}
@@ -629,7 +629,7 @@ const EventCanvas = () => {
                     {confirmedInvitations} invitations accepted ({totalGuestsComing} total guests)
                   </CardDescription>
                 </div>
-                
+
                 <Dialog open={isGuestDialogOpen} onOpenChange={(open) => {
                   setIsGuestDialogOpen(open);
                   if (!open) {
@@ -651,15 +651,15 @@ const EventCanvas = () => {
                     <div className="grid gap-4 py-4">
                       <div className="grid gap-2">
                         <Label htmlFor="name">Full Name</Label>
-                        <Input id="name" value={newGuest.name} onChange={(e) => setNewGuest({...newGuest, name: e.target.value})} placeholder="e.g. Anil Sharma" />
+                        <Input id="name" value={newGuest.name} onChange={(e) => setNewGuest({ ...newGuest, name: e.target.value })} placeholder="e.g. Anil Sharma" />
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="phone">WhatsApp Number</Label>
-                        <Input id="phone" value={newGuest.phone} onChange={(e) => setNewGuest({...newGuest, phone: e.target.value})} placeholder="e.g. 919876543210" />
+                        <Input id="phone" value={newGuest.phone} onChange={(e) => setNewGuest({ ...newGuest, phone: e.target.value })} placeholder="e.g. 919876543210" />
                       </div>
                       <div className="grid gap-2">
                         <Label htmlFor="members">Members in Family</Label>
-                        <Input id="members" type="number" min="1" value={newGuest.memberCount} onChange={(e) => setNewGuest({...newGuest, memberCount: parseInt(e.target.value) || 1})} />
+                        <Input id="members" type="number" min="1" value={newGuest.memberCount} onChange={(e) => setNewGuest({ ...newGuest, memberCount: parseInt(e.target.value) || 1 })} />
                       </div>
                     </div>
                     <DialogFooter>
@@ -689,8 +689,8 @@ const EventCanvas = () => {
                       <Button variant="ghost" size="icon" className="h-9 w-9 text-green-600 hover:bg-green-50" onClick={() => sendWhatsAppInvite(guest)}>
                         <MessageCircle className="h-5 w-5" />
                       </Button>
-                      
-                      <Badge 
+
+                      <Badge
                         variant={guest.status === "Coming" ? "default" : guest.status === "Declined" ? "destructive" : "secondary"}
                         className="cursor-pointer hover:opacity-80 transition-all px-3 py-1 min-w-[100px] text-center justify-center"
                         onClick={() => toggleGuestStatus(guest.id)}
@@ -727,7 +727,7 @@ const EventCanvas = () => {
                   <CardTitle className="text-2xl font-bold">Ritual Supplies</CardTitle>
                   <CardDescription>Items needed for your ceremony</CardDescription>
                 </div>
-                
+
                 <Dialog open={isSupplyDialogOpen} onOpenChange={setIsSupplyDialogOpen}>
                   <DialogTrigger asChild>
                     <Button variant="outline" className="gap-2">

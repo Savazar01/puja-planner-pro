@@ -58,7 +58,7 @@ class DiscoveryAgent:
         }
         
         try:
-            async with httpx.AsyncClient(timeout=35.0) as client:
+            async with httpx.AsyncClient(timeout=20.0) as client:
                 response = await client.post(gate_url, json=payload)
                 
                 if response.status_code == 401:
@@ -215,58 +215,61 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
             print(f"Gemini parsing error: {e}")
             return None
     
-    async def discover_providers(self, role: str, location: str, db: Session, include_web: bool = True, ritual_name: str = "", language: str = "", style: str = "", agent_command: str = "") -> List[Dict[str, Any]]:
+    async def discover_providers(self, role: str, location: str, db: Optional[Session] = None, include_web: bool = True, ritual_name: str = "", language: str = "", style: str = "", agent_command: str = "") -> List[Dict[str, Any]]:
         """Discovery for Providers: Merges internal DB and external web results dynamically."""
         from models import User, Profile, UserRole, UserStatus, AgentLog
+        from database import SessionLocal
         
-        # Use agent_command if provided to override or enhance the search query
-        effective_query = agent_command if agent_command else f"{role} in {location}"
-        
-        role_upper = role.upper()
-        target_role = None
-        try:
-            target_role = UserRole[role_upper]
-        except KeyError:
-            pass
-            
+        # [FIX] Logic to ensure we don't hold a pool connection during long-running awaits
+        use_internal_db = True
         internal_providers = []
-        if target_role:
-            # 1. Internal Search
-            users_in_role = db.query(User).join(Profile).filter(
-                User.role == target_role,
-                User.status == UserStatus.APPROVED,
-                (Profile.location.ilike(f"%{location}%") | Profile.address_city.ilike(f"%{location}%"))
-            ).all()
-            
-            for user in users_in_role:
-                profile = user.profile
-                if not profile:
-                    continue
-                internal_providers.append({
-                    "id": user.id,
-                    "name": profile.full_name or "Unnamed Member",
-                    "role": role_upper,
-                    "location": profile.location or profile.address_city or location,
-                    "rating": 5.0,
-                    "reviews": 1,
-                    "is_platform_member": True,
-                    "phone": profile.phone or profile.whatsapp,
-                    "email": user.email,
-                    "additional_info": profile.role_metadata or {}
-                })
         
-        # Log internal discovery
+        # 1. Internal Search (Short-lived session)
+        _internal_db = db or SessionLocal()
         try:
+            role_upper = role.upper()
+            target_role = None
+            try:
+                target_role = UserRole[role_upper]
+            except KeyError:
+                pass
+                
+            if target_role:
+                users_in_role = _internal_db.query(User).join(Profile).filter(
+                    User.role == target_role,
+                    User.status == UserStatus.APPROVED,
+                    (Profile.location.ilike(f"%{location}%") | Profile.address_city.ilike(f"%{location}%"))
+                ).all()
+                
+                for user in users_in_role:
+                    profile = user.profile
+                    if not profile: continue
+                    internal_providers.append({
+                        "id": user.id,
+                        "name": profile.full_name or "Unnamed Member",
+                        "role": role_upper,
+                        "location": profile.location or profile.address_city or location,
+                        "rating": 5.0,
+                        "reviews": 1,
+                        "is_platform_member": True,
+                        "phone": profile.phone or profile.whatsapp,
+                        "email": user.email,
+                        "additional_info": profile.role_metadata or {}
+                    })
+            
+            # Log internal discovery
             log_entry = AgentLog(
                 id=str(uuid.uuid4()),
                 agent_type="FINDER",
                 tool_used="Internal DB Lookups",
-                summary_outcome=f"Internal search performed for role {role_upper} in location {location}. Found {len(internal_providers)} member(s)."
+                summary_outcome=f"Internal search performed for role {role.upper()} in {location}. Found {len(internal_providers)} member(s)."
             )
-            db.add(log_entry)
-            db.commit()
-        except:
-            pass
+            _internal_db.add(log_entry)
+            _internal_db.commit()
+        except Exception as e:
+            print(f"Internal Search Warning: {e}")
+        finally:
+            if not db: _internal_db.close() # ONLY close if we created it privately
 
         if not include_web:
             return internal_providers

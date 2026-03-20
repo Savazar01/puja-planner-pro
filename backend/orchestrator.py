@@ -312,7 +312,8 @@ async def planner_node(state: VedicEventState):
 
 async def finder_node(state: VedicEventState):
     """Finder Agent: PROFESSIONAL DISCOVERY (Supervisor Gated)."""
-    db = SessionLocal()
+    # [FIX] Do NOT hold a DB connection here while awaiting long web searches.
+    # discovery_agent.discover_providers will now handle its own short-lived sessions.
     try:
         # Use supervisor-generated roles or commands
         commands = state.get("agent_commands", {})
@@ -332,11 +333,11 @@ async def finder_node(state: VedicEventState):
 
         for role in role_list:
             providers = await discovery_agent.discover_providers(
-                role, location, db, 
+                role, location, db=None, # Pass None so discovery_agent creates short-lived sessions
                 ritual_name=ritual, 
                 language=state.get("language", ""), 
                 style=state.get("style", ""),
-                agent_command=finder_prompt # Pass the prompt
+                agent_command=finder_prompt
             )
             all_results.extend(providers)
                 

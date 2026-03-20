@@ -76,6 +76,7 @@ const EventCanvas = () => {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedPartners, setSelectedPartners] = useState<any[]>([]);
+  const [agentDialogue, setAgentDialogue] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchEventData = async () => {
@@ -98,6 +99,11 @@ const EventCanvas = () => {
             });
             setSelectedPartners(currentEvent.bookings || []);
             setIsEventActive(true);
+            
+            // Extract Agent Dialogue from intent_json if available
+            if (currentEvent.intent_json?.clarification_message) {
+              setAgentDialogue(currentEvent.intent_json.clarification_message);
+            }
           }
 
           // 2. Sync Modules (Guests & Supplies)
@@ -176,6 +182,9 @@ const EventCanvas = () => {
         
         const data = await response.json();
         setSearchResults(data.results || []);
+        if (data.clarification_message) {
+          setAgentDialogue(data.clarification_message);
+        }
         
         // [AGENTIC INSTANTIATION] Capture Draft Event ID and Update URL
         if (data.event_id && data.event_id !== eventId) {
@@ -487,6 +496,38 @@ const EventCanvas = () => {
                     </div>
                   ) : (
                     <>
+                      {/* Supervisor Dialogue / Clarification */}
+                      {agentDialogue && (
+                        <Card className="col-span-full border-primary/40 bg-primary/5 shadow-md animate-in fade-in zoom-in duration-300">
+                          <CardHeader className="flex flex-row items-center gap-3 pb-2">
+                             <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
+                               <MessageCircle className="h-5 w-5 text-primary" />
+                             </div>
+                             <div>
+                               <CardTitle className="text-sm font-bold uppercase tracking-wider text-primary/80">Supervisor Dialogue</CardTitle>
+                             </div>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <div className="text-foreground leading-relaxed whitespace-pre-wrap">
+                              {agentDialogue}
+                            </div>
+                            {agentDialogue.includes("Shall I proceed") && (
+                              <div className="flex gap-2 pt-2">
+                                <Button size="sm" className="gap-2" onClick={() => {
+                                  setIntent("Yes, please proceed with finding a Pandit and Caterer.");
+                                  // This will trigger handleIntentSubmit with the approval code
+                                }}>
+                                  Approve & Proceed
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={() => setAgentDialogue(null)}>
+                                  I need to change something
+                                </Button>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      )}
+
                       {/* Search Results Display */}
                       {searchResults.length > 0 ? (
                         searchResults.map((partner, idx) => (

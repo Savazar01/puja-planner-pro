@@ -73,53 +73,77 @@ async def scribe_node(state: VedicEventState):
     db = SessionLocal()
     try:
         event_id = state.get("event_id")
-        # Ensure event exists or create it
-        if not event_id:
-            event = Event(
-                id=str(uuid.uuid4()),
-                customer_id=state.get("customer_id") or "system",
-                title=state["user_query"][:50],
+        user_query = state.get("user_query", "")
+        customer_id = state.get("customer_id") or "system"
+        
+        # [Supervisor Rule] Only create Event Record if we have a Ritual Name or explicit Approval
+        harvested = state.get("intent_harvested", False)
+        ritual = state.get("ritual_name")
+        approval = state.get("customer_approval", False)
+
+        if not event_id and (harvested or ritual or approval):
+            # Create NEW event record only when we have enough data (Draft)
+            event_id = str(uuid.uuid4())
+            new_event = Event(
+                id=event_id,
+                customer_id=customer_id,
+                title=f"Ritual: {ritual or user_query[:30]}",
                 location=state.get("location"),
-                status="PLANNING", # Initial status is PLANNING
+                status="PLANNING",
                 intent_json=state 
             )
-            db.add(event)
+            db.add(new_event)
             db.commit()
-            db.refresh(event)
-            event_id = event.id
-            log_agent_action(db, "SCRIBE", "DB Persistence", f"Created new event: {event_id}", event_id)
-        else:
+            db.refresh(new_event)
+            log_agent_action(db, "SCRIBE", "DB Persistence", f"Created new event record: {event_id}", event_id)
+        elif event_id:
             event = db.query(Event).filter(Event.id == event_id).first()
             if event:
+                # Sync volatile state to DB
                 event.intent_json = state
+                if ritual: event.title = f"Ritual: {ritual}"
+                if state.get("location"): event.location = state.get("location")
                 db.commit()
-                log_agent_action(db, "SCRIBE", "DB Persistence", f"Updated event state: {event_id}", event_id)
+                log_agent_action(db, "SCRIBE", "DB Persistence", f"Updated event state for: {event_id}", event_id)
 
-        # Routing: Concierge -> Scribe -> Planner
-        if state.get("last_node") == "concierge":
-            return {"event_id": event_id, "next_node": "planner", "last_node": "scribe"}
-        
-        # Terminal Path
-        return {"event_id": event_id, "next_node": "END", "last_node": "scribe"}
+        # Static Routing Pattern
+        last = state.get("last_node")
+        if last == "concierge":
+            target = "planner"
+        elif last in ["finder", "supplies"]:
+            target = "END" # Hand back to user after tools
+        else:
+            target = "END"
+
+        return {"event_id": event_id, "next_node": target, "last_node": "scribe"}
     except Exception as e:
-        print(f"Scribe Error (Graceful): {e}")
+        print(f"Scribe Error: {e}")
         return {"next_node": "END", "last_node": "scribe"}
     finally:
         db.close()
 
 def get_planner_greeting():
-    """Mandatory 'Blank Canvas' greeting for Turn 1."""
+    """Mandatory Turn 1 Greeting."""
     return "Hello! I am your AI Event Manager. I’m here to help you coordinate and bring your vision to life. To get started, what is the name or occasion of the ritual you are planning?"
 
 async def planner_node(state: VedicEventState):
-    """Supervisor (Planner) Agent: Intent Harvesting, Feedback & Consensus Gating."""
+    """Supervisor Agent: Intent Harvesting & Gatekeeper."""
     db = SessionLocal()
     try:
-        user_msg = state["messages"][-1].content if state["messages"] else state["user_query"]
+        # Robust Message Retrieval
+        messages = state.get("messages", [])
+        if messages:
+            last_msg = messages[-1]
+            # Handle both BaseMessage objects and tuples
+            user_msg = last_msg.content if hasattr(last_msg, "content") else (last_msg[1] if isinstance(last_msg, tuple) else str(last_msg))
+        else:
+            user_msg = state.get("user_query", "")
+
         event_id = state.get("event_id")
+        log_agent_action(db, "PLANNER", "Processing", f"Analyzing intent: {user_msg[:50]}...", event_id)
         
-        # 1. Turn 1 Check (Direct dialogue if empty or generic)
-        if not user_msg or user_msg.lower() in ["hi", "hello", "start"]:
+        # 1. Blank Canvas Greeting (Empty/Generic)
+        if not user_msg or user_msg.lower() in ["hi", "hello", "start", "welcome"]:
             log_agent_action(db, "PLANNER", "Dialogue", "Returning Turn 1 Greeting", event_id)
             return {
                 "clarification_needed": True,

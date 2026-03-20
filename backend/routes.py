@@ -52,11 +52,12 @@ async def search(
     # 1. Invoke LangGraph Orchestrator
     async def run_orchestration():
         from orchestrator import get_orchestrator_graph
+        from langchain_core.messages import HumanMessage
         graph = get_orchestrator_graph()
         
         # 1. Prepare base state
         initial_state = {
-            "messages": [("user", request.query)],
+            "messages": [HumanMessage(content=request.query)],
             "user_query": request.query,
             "event_id": request.event_id,
             "customer_id": current_user.id,
@@ -76,8 +77,6 @@ async def search(
         if request.event_id:
             event = db.query(Event).filter(Event.id == request.event_id).first()
             if event and event.intent_json:
-                # Merge existing state into initial_state
-                # Only keep the new query and approval from the request
                 saved_state = event.intent_json
                 if isinstance(saved_state, str):
                     try:
@@ -88,11 +87,12 @@ async def search(
                 # Update initial_state with saved values
                 for key in ["ritual_name", "language", "style", "location", "intent_harvested", "roles_needed", "status"]:
                     if key in saved_state:
-                        initial_state[key] = saved_state[key]
+                         initial_state[key] = saved_state[key]
                 
-                # Carry over messages if available (optional, LangGraph checkpoint might handle this better, but explicit is safer here)
-                if "messages" in saved_state:
-                     initial_state["messages"] = saved_state["messages"] + [("user", request.query)]
+                # Merge messages history if exists
+                if "messages" in saved_state and isinstance(saved_state["messages"], list):
+                     # Construct history using HumanMessage/AIMessage if possible, but LangGraph add_messages handles this
+                     initial_state["messages"] = saved_state["messages"] + [HumanMessage(content=request.query)]
         
         # Use session-based thread_id for checkpointing
         # If event_id exists, we resume that thread

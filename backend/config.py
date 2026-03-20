@@ -17,11 +17,11 @@ class Settings(BaseSettings):
     privacy_gate_url: str = "http://localhost:8740"
     
     # Agent Models (Configurable via Coolify)
-    agent_planner_llm: str = Field("gemini-3-flash", alias="AGENT_PLANNER_LLM")
-    agent_concierge_llm: str = Field("gemini-3-flash", alias="AGENT_CONCIERGE_LLM")
-    agent_finder_llm: str = Field("gemini-3-flash", alias="AGENT_FINDER_LLM")
-    agent_scribe_llm: str = Field("gemini-3-flash", alias="AGENT_SCRIBE_LLM")
-    agent_supplies_llm: str = Field("gemini-3-flash", alias="AGENT_SUPPLIES_LLM")
+    agent_planner_llm: str = Field("gemini-3-flash-preview", alias="AGENT_PLANNER_LLM")
+    agent_concierge_llm: str = Field("gemini-3-flash-preview", alias="AGENT_CONCIERGE_LLM")
+    agent_finder_llm: str = Field("gemini-3-flash-preview", alias="AGENT_FINDER_LLM")
+    agent_scribe_llm: str = Field("gemini-3-flash-preview", alias="AGENT_SCRIBE_LLM")
+    agent_supplies_llm: str = Field("gemini-3-flash-preview", alias="AGENT_SUPPLIES_LLM")
     
     # Application
     environment: str = "development"

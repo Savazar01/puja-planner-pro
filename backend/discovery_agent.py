@@ -187,7 +187,7 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
             prompt = prompts.get(entity_type, prompts["pandit"])
             full_prompt = f"{prompt}\n\nContent to parse:\n{content[:4000]}"  # Limit content length
             
-            # [UPGRADE] Using gemini-3-flash for structured parsing
+            # [UPGRADE] Using gemini-3-flash-preview for structured parsing
             gemini_model = genai.GenerativeModel(settings.agent_finder_llm)
             response = gemini_model.generate_content(full_prompt)
             

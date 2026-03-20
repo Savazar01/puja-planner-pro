@@ -205,11 +205,11 @@ async def planner_node(state: VedicEventState):
         }}
         """
         
-        # [UPGRADE] Using gemini-3-flash with forced v1 API version
+        # [UPGRADE] Using gemini-3-flash-preview with forced v1beta API version
         llm = ChatGoogleGenerativeAI(
             model=settings.agent_planner_llm, 
             google_api_key=settings.gemini_api_key,
-            version="v1" 
+            version="v1beta" 
         )
         response = await llm.ainvoke(prompt)
         

@@ -90,6 +90,9 @@ async def scribe_node(state: VedicEventState):
         ritual = state.get("ritual_name")
         approval = state.get("customer_approval", False)
 
+        # [Supervisor Rule] Only save serializable fields to DB
+        serializable_state = {k: v for k, v in state.items() if k not in ["messages"]}
+
         # [Supervisor Rule] Proactively create Event Record (Draft) as soon as we have a query
         if not event_id and user_query:
             event_id = str(uuid.uuid4())
@@ -99,7 +102,7 @@ async def scribe_node(state: VedicEventState):
                 title=user_query[:50],
                 location=state.get("location"),
                 status="PLANNING",
-                intent_json=state 
+                intent_json=serializable_state 
             )
             db.add(new_event)
             db.commit()
@@ -109,7 +112,7 @@ async def scribe_node(state: VedicEventState):
             event = db.query(Event).filter(Event.id == event_id).first()
             if event:
                 # Sync volatile state to DB
-                event.intent_json = state
+                event.intent_json = serializable_state
                 if ritual: event.title = f"Ritual: {ritual}"
                 if state.get("location"): event.location = state.get("location")
                 db.commit()

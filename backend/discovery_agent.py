@@ -217,9 +217,12 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
             print(f"Gemini parsing error: {e}")
             return None
     
-    async def discover_providers(self, role: str, location: str, db: Session, include_web: bool = True, ritual_name: str = "", language: str = "", style: str = "") -> List[Dict[str, Any]]:
+    async def discover_providers(self, role: str, location: str, db: Session, include_web: bool = True, ritual_name: str = "", language: str = "", style: str = "", agent_command: str = "") -> List[Dict[str, Any]]:
         """Discovery for Providers: Merges internal DB and external web results dynamically."""
         from models import User, Profile, UserRole, UserStatus, AgentLog
+        
+        # Use agent_command if provided to override or enhance the search query
+        effective_query = agent_command if agent_command else f"{role} in {location}"
         
         role_upper = role.upper()
         target_role = None

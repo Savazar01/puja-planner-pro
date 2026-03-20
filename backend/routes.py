@@ -62,6 +62,14 @@ async def search(
             "event_id": request.event_id,
             "customer_id": current_user.id,
             "location": request.location or "India",
+            "event_date": None,
+            "event_time": None,
+            "guest_count": 0,
+            "needs_pandit": True, # Default to True
+            "needs_caterer": False,
+            "needs_venue": False,
+            "cuisine_type": None,
+            "agent_commands": {},
             "roles_needed": [],
             "providers_found": [],
             "supplies_suggested": [],
@@ -85,7 +93,14 @@ async def search(
                         saved_state = {}
                 
                 # Update initial_state with saved values
-                for key in ["ritual_name", "language", "style", "location", "intent_harvested", "roles_needed", "status"]:
+                fields_to_resume = [
+                    "ritual_name", "language", "style", "location", 
+                    "event_date", "event_time", "guest_count", 
+                    "needs_pandit", "needs_caterer", "needs_venue", 
+                    "cuisine_type", "agent_commands",
+                    "intent_harvested", "roles_needed", "status"
+                ]
+                for key in fields_to_resume:
                     if key in saved_state:
                          initial_state[key] = saved_state[key]
                 

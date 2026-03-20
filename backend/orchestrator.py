@@ -25,16 +25,24 @@ class VedicEventState(TypedDict):
     language: Optional[str]
     style: Optional[str]
     location: Optional[str]
+    event_date: Optional[str]
+    event_time: Optional[str]
+    guest_count: Optional[int]
+    needs_pandit: bool
+    needs_caterer: bool
+    needs_venue: bool
+    cuisine_type: Optional[str]
     intent_harvested: bool
     roles_needed: List[str]
     providers_found: List[Dict]
     supplies_suggested: List[Dict]
+    agent_commands: Dict[str, str] # Instructions for other agents
     status: str
     next_node: str
     clarification_needed: bool
     clarification_message: Optional[str]
-    customer_approval: bool # NEW: Hard Gate for Sourcing
-    last_node: str # For stable routing
+    customer_approval: bool 
+    last_node: str 
 
 # --- Helpers ---
 
@@ -150,35 +158,51 @@ async def planner_node(state: VedicEventState):
                 "clarification_message": get_planner_greeting(),
                 "next_node": "scribe",
                 "last_node": "planner"
-            }
-
-        # 2. Intent Analysis & Feedback Generation
+            }        # 2. Intent Analysis & Feedback Generation
         prompt = f"""
-        Analyze intent: "{user_msg}"
-        Current State: Ritual: {state.get('ritual_name')}, Lang: {state.get('language')}, Style: {state.get('style')}, Loc: {state.get('location')}.
+        Analyze current intent: "{user_msg}"
+        Current State: {json.dumps({k: v for k, v in state.items() if k not in ["messages", "providers_found", "supplies_suggested"]})}
+
+        You are the SUPERVISOR of this event. Your goal is to capture:
+        1. Ritual Name (Required)
+        2. Location (Required)
+        3. Event Date (Required)
+        4. Event Time (Required)
+        5. Guest Count (Integer, Required)
+        6. Services Needed: Pandit? Caterer? Venue? (Boolean)
+        7. Cuisine Type (If Caterer needed)
         
-        Requirements:
-        1. Summarize what you understood (e.g., "I see you're planning a Satyanarayana Puja in Hyderabad...").
-        2. Identify missing core details (Date, Time, Style, Language).
-        3. Set intent_harvested=True only if Ritual, Language, Style, and Location are all set.
-        4. Provide a empathetic feedback message.
-        
+        Rules:
+        - summarize strictly what was provided.
+        - intent_harvested = True ONLY if 1, 2, 3, 4, 5, and 6 are all resolved.
+        - Generate a specific "agent_command" for the Finder Agent describing exactly who to look for.
+        - Generate a specific "agent_command" for the Supplies Agent describing the ritual type.
+
         Return ONLY valid JSON: 
         {{
             "ritual_name": "...", 
+            "location": "...",
+            "event_date": "...",
+            "event_time": "...",
+            "guest_count": 0,
+            "needs_pandit": bool,
+            "needs_caterer": bool,
+            "needs_venue": bool,
+            "cuisine_type": "...",
             "language": "...", 
             "style": "...", 
-            "location": "...", 
             "intent_harvested": bool, 
-            "feedback": "Your summary and feedback here...",
-            "missing_details_question": "Questions for missing info..."
+            "feedback": "Step-by-step confirmation of what you received...",
+            "missing_details_question": "Polite request for any missing fields from the list above...",
+            "agent_commands": {{
+                "finder": "Command for finding pandits/venues/catering based on style and location",
+                "supplies": "Ritual name for samagri suggestion"
+            }}
         }}
         """
         
         llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=settings.gemini_api_key)
-        print(f"DEBUG: Calling LLM for intent: {user_msg[:50]}")
         response = await llm.ainvoke(prompt)
-        print(f"DEBUG: LLM Response received: {response.content[:100]}")
         
         # Robust JSON extraction
         raw_text = response.content.strip()
@@ -194,43 +218,33 @@ async def planner_node(state: VedicEventState):
         harvested = data.get("intent_harvested", False)
         customer_approved = state.get("customer_approval", False)
         
-        # Reliable Turn-0 Detection (Check if we JUST came from Concierge->Scribe sequence)
         is_first_interaction = state.get("last_node") == "scribe" and not state.get("intent_harvested", False)
 
-        log_agent_action(db, "PLANNER", "Intent Analysis", f"Harvested: {harvested}, Ritual: {ritual}", event_id)
+        log_agent_action(db, "PLANNER", "Supervisor Analysis", f"Harvested: {harvested}, Data: {data.get('feedback', '')[:100]}", event_id)
 
         # 3. SUPERVISOR LOGIC: The Human-Approval Gate
-        # Case A: Details missing -> Ask questions
         if not harvested:
             return {
-                "ritual_name": ritual,
-                "language": data.get("language") or state.get("language"),
-                "style": data.get("style") or state.get("style"),
-                "location": data.get("location") or state.get("location"),
+                **data,
                 "clarification_needed": True,
-                "clarification_message": data.get("feedback") + " " + data.get("missing_details_question"),
+                "clarification_message": data.get("feedback") + "\n\n" + data.get("missing_details_question"),
                 "next_node": "scribe",
                 "last_node": "planner"
             }
         
-        # Case B: Details COMPLETE but no approval / First Interaction -> MANDATORY SUMMARY & CONSENSUS
         if harvested and (not customer_approved or is_first_interaction):
             return {
-                "ritual_name": ritual,
-                "language": data.get("language") or state.get("language"),
-                "style": data.get("style") or state.get("style"),
-                "location": data.get("location") or state.get("location"),
-                "intent_harvested": True,
+                **data,
                 "clarification_needed": True,
-                "clarification_message": f"**PLAN SUMMARY:**\n- **Ritual:** {ritual}\n- **Location:** {data.get('location') or state.get('location')}\n- **Style:** {data.get('style') or state.get('style')}\n\nI have everything I need to help you find a Pandit, Venue, and Caterer for your {ritual}. Shall I proceed to get everything ready for you?",
+                "clarification_message": f"**PLAN SUMMARY:**\n- **Ritual:** {ritual}\n- **Date/Time:** {data.get('event_date')} at {data.get('event_time')}\n- **Location:** {data.get('location')}\n- **Guests:** {data.get('guest_count')}\n- **Services:** {'Pandit, ' if data.get('needs_pandit') else ''}{'Catering, ' if data.get('needs_caterer') else ''}{'Venue' if data.get('needs_venue') else ''}\n\nShall I proceed to source these providers for you?",
                 "next_node": "scribe",
                 "last_node": "planner"
             }
         
         # Case C: Approved -> HAND OFF TO TOOLS
-        log_agent_action(db, "PLANNER", "Supervisor", "Handing off to Finder/Discovery", event_id)
+        log_agent_action(db, "PLANNER", "Supervisor", "Handing off to Discovery Agents", event_id)
         return {
-            "ritual_name": ritual,
+            **data,
             "next_node": "finder",
             "last_node": "planner"
         }
@@ -250,20 +264,29 @@ async def finder_node(state: VedicEventState):
     """Finder Agent: PROFESSIONAL DISCOVERY (Supervisor Gated)."""
     db = SessionLocal()
     try:
-        role_list = ["PANDIT", "VENUE", "CATERING"]
-        all_results = []
+        # Use supervisor-generated roles or commands
+        commands = state.get("agent_commands", {})
+        finder_prompt = commands.get("finder", "")
         
+        role_list = []
+        if state.get("needs_pandit"): role_list.append("PANDIT")
+        if state.get("needs_venue"): role_list.append("VENUE")
+        if state.get("needs_caterer"): role_list.append("CATERING")
+        
+        if not role_list:
+            role_list = ["PANDIT"] # Default fallback
+
+        all_results = []
         location = state.get("location", "India")
         ritual = state.get("ritual_name", "")
-        language = state.get("language", "")
-        style = state.get("style", "")
 
         for role in role_list:
             providers = await discovery_agent.discover_providers(
                 role, location, db, 
                 ritual_name=ritual, 
-                language=language, 
-                style=style
+                language=state.get("language", ""), 
+                style=state.get("style", ""),
+                agent_command=finder_prompt # Pass the prompt
             )
             all_results.extend(providers)
                 
@@ -277,7 +300,7 @@ async def finder_node(state: VedicEventState):
         return {
             "next_node": "supplies",
             "last_node": "finder",
-            "clarification_message": "I've started searching for your providers, but the external web search is taking longer than expected. I will continue to work on this in the background.",
+            "clarification_message": "I've started searching for your providers, but the external web search is taking longer than expected.",
             "clarification_needed": True
         }
     finally:
@@ -286,11 +309,12 @@ async def finder_node(state: VedicEventState):
 async def supplies_node(state: VedicEventState):
     """Supplies Agent: Suggesting samagri."""
     try:
-        ritual = state.get("ritual_name", state.get("user_query"))
-        suggested = discovery_agent.suggest_ritual_supplies(ritual)
+        commands = state.get("agent_commands", {})
+        ritual_hint = commands.get("supplies") or state.get("ritual_name") or state.get("user_query")
+        suggested = discovery_agent.suggest_ritual_supplies(ritual_hint)
         return {"supplies_suggested": suggested, "next_node": "scribe", "last_node": "supplies"}
     except Exception as e:
-        print(f"Supplies Agent Error (Graceful Failure): {e}")
+        print(f"Supplies Agent Error: {e}")
         return {"supplies_suggested": [], "next_node": "scribe", "last_node": "supplies"}
 
 # --- Unified Graph Construction (Lazy Loaded) ---

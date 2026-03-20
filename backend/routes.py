@@ -53,14 +53,14 @@ async def search(
         from orchestrator import get_orchestrator_graph
         graph = get_orchestrator_graph()
         
-        # Prepare state
+        # 1. Prepare base state
         initial_state = {
             "messages": [("user", request.query)],
             "user_query": request.query,
             "event_id": request.event_id,
             "customer_id": current_user.id,
             "location": request.location or "India",
-            "roles_needed": [], # Will be populated by planner
+            "roles_needed": [],
             "providers_found": [],
             "supplies_suggested": [],
             "status": "PLANNING",
@@ -70,6 +70,28 @@ async def search(
             "customer_approval": request.customer_approval,
             "last_node": ""
         }
+
+        # 2. Resiliency: Resume from DB if event exists
+        if request.event_id:
+            event = db.query(Event).filter(Event.id == request.event_id).first()
+            if event and event.intent_json:
+                # Merge existing state into initial_state
+                # Only keep the new query and approval from the request
+                saved_state = event.intent_json
+                if isinstance(saved_state, str):
+                    try:
+                        saved_state = json.loads(saved_state)
+                    except:
+                        saved_state = {}
+                
+                # Update initial_state with saved values
+                for key in ["ritual_name", "language", "style", "location", "intent_harvested", "roles_needed", "status"]:
+                    if key in saved_state:
+                        initial_state[key] = saved_state[key]
+                
+                # Carry over messages if available (optional, LangGraph checkpoint might handle this better, but explicit is safer here)
+                if "messages" in saved_state:
+                     initial_state["messages"] = saved_state["messages"] + [("user", request.query)]
         
         # Use session-based thread_id for checkpointing
         # If event_id exists, we resume that thread

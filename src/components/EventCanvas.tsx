@@ -156,9 +156,13 @@ const EventCanvas = () => {
     }
   };
 
-  const handleIntentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (intent.trim()) {
+  const handleIntentSubmit = async (e?: React.FormEvent, isApproval: boolean = false) => {
+    if (e) e.preventDefault();
+    
+    // If it's an approval, we use a fixed confirmation message if intent is empty
+    const queryText = isApproval ? (intent || "Yes, proceed with discovery") : intent;
+    
+    if (queryText.trim()) {
       setIsEventActive(true);
       setIsSearching(true);
       const searchUrl = `${VITE_API_URL}/api/search`;
@@ -170,9 +174,10 @@ const EventCanvas = () => {
             'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({ 
-            query: intent, 
-            location: "Hyderabad",
-            event_id: eventId // Pass existing if available
+            query: queryText, 
+            location: editForm.location || "Hyderabad",
+            event_id: eventId,
+            customer_approval: isApproval
           })
         });
         
@@ -182,6 +187,9 @@ const EventCanvas = () => {
         
         const data = await response.json();
         setSearchResults(data.results || []);
+        
+        // Reset dialogue and then set if new one exists
+        setAgentDialogue(null);
         if (data.clarification_message) {
           setAgentDialogue(data.clarification_message);
         }
@@ -189,7 +197,8 @@ const EventCanvas = () => {
         // [AGENTIC INSTANTIATION] Capture Draft Event ID and Update URL
         if (data.event_id && data.event_id !== eventId) {
           window.history.replaceState({}, '', `/event-orchestration?id=${data.event_id}`);
-          // Force a fresh fetch for the new event context
+          // Don't reload if we can just update the ID and keep the state
+          // but for now history.replaceState + reload is safer for syncing all components
           window.location.reload(); 
         }
       } catch (error: any) {
@@ -513,10 +522,7 @@ const EventCanvas = () => {
                             </div>
                             {agentDialogue.includes("Shall I proceed") && (
                               <div className="flex gap-2 pt-2">
-                                <Button size="sm" className="gap-2" onClick={() => {
-                                  setIntent("Yes, please proceed with finding a Pandit and Caterer.");
-                                  // This will trigger handleIntentSubmit with the approval code
-                                }}>
+                                <Button size="sm" className="gap-2" onClick={() => handleIntentSubmit(undefined, true)}>
                                   Approve & Proceed
                                 </Button>
                                 <Button size="sm" variant="outline" onClick={() => setAgentDialogue(null)}>

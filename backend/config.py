@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings
+from pydantic import Field, AliasChoices
 from typing import List
 
 
@@ -8,11 +9,11 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "postgresql://puja_user:puja_password@localhost:5432/puja_planner"
     
-    # API Keys
-    serper_api_key: str = ""
-    firecrawl_api_key: str = ""
-    gemini_api_key: str = ""
-    resend_api_key: str = ""
+    # API Keys (Aliased for VPS environment compatibility)
+    serper_api_key: str = Field("", alias="SERPAPI_KEY", validation_alias=AliasChoices("SERPAPI_KEY", "SERPER_API_KEY"))
+    firecrawl_api_key: str = Field("", alias="FIRECRAWL_API_KEY")
+    gemini_api_key: str = Field("", alias="GOOGLE_API_KEY", validation_alias=AliasChoices("GOOGLE_API_KEY", "GEMINI_API_KEY"))
+    resend_api_key: str = Field("", alias="RESEND_API_KEY")
     privacy_gate_url: str = "http://localhost:8740"
     
     # Application

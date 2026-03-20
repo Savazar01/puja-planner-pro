@@ -46,6 +46,7 @@ class SerperSearchTool(BaseTool):
                 return response.json()
         except Exception as e:
             return f"Search Error: {str(e)}"
+
 class ScrapeInput(BaseModel):
     url: str = Field(description="The URL to scrape.")
 
@@ -79,4 +80,3 @@ class FirecrawlScrapeTool(BaseTool):
                 return response.json()
         except Exception as e:
             return f"Scrape Error: {str(e)}"
-捉

@@ -108,19 +108,7 @@ async def scribe_node(state: VedicEventState):
         db.close()
 
 def get_planner_greeting():
-    """Extract Turn 1 greeting from planner_agent.md."""
-    try:
-        path = "roles/agents/planner_agent.md"
-        if not os.path.exists(path):
-            return "Hello! I am your AI Event Manager. How can I help you plan your ritual today?"
-        
-        with open(path, "r") as f:
-            content = f.read()
-            if "### Turn 1: The Blank Canvas Opening" in content:
-                # Simple extraction of the blocked quote
-                parts = content.split("### Turn 1: The Blank Canvas Opening")[1].split("> \"")[1].split("\"")[0]
-                return parts
-    except: pass
+    """Mandatory 'Blank Canvas' greeting for Turn 1."""
     return "Hello! I am your AI Event Manager. I’m here to help you coordinate and bring your vision to life. To get started, what is the name or occasion of the ritual you are planning?"
 
 async def planner_node(state: VedicEventState):
@@ -234,7 +222,6 @@ async def planner_node(state: VedicEventState):
     finally:
         db.close()
 
-from tools import SerperSearchTool, FirecrawlScrapeTool
 async def finder_node(state: VedicEventState):
     """Finder Agent: PROFESSIONAL DISCOVERY (Supervisor Gated)."""
     db = SessionLocal()
@@ -271,7 +258,7 @@ async def finder_node(state: VedicEventState):
         }
     finally:
         db.close()
-捉
+
 async def supplies_node(state: VedicEventState):
     """Supplies Agent: Suggesting samagri."""
     try:

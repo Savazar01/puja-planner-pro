@@ -1,15 +1,13 @@
 import os
-from urllib.parse import quote_plus
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from config import settings
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-print(f"DEBUG: Connecting to host: {DATABASE_URL.split('@')[1] if DATABASE_URL else 'None'}")
-
-# Create database engine
+# Create database engine using centralized settings
+# Use pool_pre_ping for resilience against disconnected connections in Docker
 engine = create_engine(
-    DATABASE_URL,
+    settings.database_url,
     pool_pre_ping=True,
     pool_size=10,
     max_overflow=20

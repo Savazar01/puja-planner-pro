@@ -6,8 +6,8 @@ from typing import List
 class Settings(BaseSettings):
     """Application configuration settings loaded from environment variables."""
     
-    # Database
-    database_url: str = "postgresql://puja_user:puja_password@localhost:5432/puja_planner"
+    # Database (Primary Source: DATABASE_URL env var)
+    database_url: str = Field("postgresql://puja_user:puja_password@localhost:5432/puja_planner", alias="DATABASE_URL")
     
     # API Keys (Aliased for maximum VPS environment compatibility)
     serper_api_key: str = Field("", alias="SERPER_API_KEY", validation_alias=AliasChoices("SERPER_API_KEY", "SERPAPI_KEY"))
@@ -21,10 +21,10 @@ class Settings(BaseSettings):
     debug: bool = True
     cors_origins: str = "http://localhost:5173,http://localhost:3000,https://puja.fossone.app,https://www.mypandits.com"
     
-    # Auth
-    admin_user: str = "savazar01@gmail.com"
-    admin_password: str = "Changeme"
-    secret_key: str = "fallback_secret_key_changeme_in_prod"
+    # Auth (Primary Sources: ADMIN_USER, ADMIN_PASSWORD env vars)
+    admin_user: str = Field("savazar01@gmail.com", alias="ADMIN_USER")
+    admin_password: str = Field("Changeme", alias="ADMIN_PASSWORD")
+    secret_key: str = Field("fallback_secret_key_changeme_in_prod", alias="SECRET_KEY")
     access_token_expire_minutes: int = 1440 # 24 hours
     
     # Cache
@@ -38,30 +38,6 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> List[str]:
         """Parse CORS origins string into a list."""
         return [origin.strip() for origin in self.cors_origins.split(",")]
-        
-    @property
-    def resolved_db_url(self) -> str:
-        """Resolve database URL with fallback IP for Coolify network mapping."""
-        url = self.database_url
-        if self.environment == "production":
-            import socket
-            from urllib.parse import urlparse
-            
-            try:
-                # Try primary coolify container host
-                target = "postgres-wkkkc44k0wkw4g04c0ck8skg-090457243218"
-                socket.gethostbyname(target)
-                host = target
-            except Exception:
-                # Fallback to internal IP from network
-                host = "10.0.5.2"
-                
-            p = urlparse(url)
-            if "@" in p.netloc:
-                creds = p.netloc.split("@")[0]
-                url = url.replace(p.netloc, f"{creds}@{host}:5432")
-        return url
 
 
 settings = Settings()
-捉

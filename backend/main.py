@@ -1,38 +1,39 @@
 import os
+import secrets
+import logging
 from contextlib import asynccontextmanager
-from urllib.parse import quote_plus
-
-DATABASE_URL = os.getenv("DATABASE_URL")
-print(f"DEBUG: Connecting to host: {DATABASE_URL.split('@')[1] if DATABASE_URL else 'None'}")
-
-from fastapi import FastAPI, Request, Depends, HTTPException, status, Query
+from fastapi import FastAPI, Request, Depends, HTTPException, status
 from fastapi.responses import RedirectResponse
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
-from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
-import secrets
+
 from config import settings
-from routes import router
-from database import engine, Base, get_db
+from database import engine, get_db
 from sqlalchemy.orm import Session
 from auth import verify_password
 from models import User, UserRole
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create database tables resiliently in a background context
+    """Lifecycle manager for the FastAPI application."""
+    logger.info("Starting up application lifecycle...")
     try:
         from database import engine, Base
         from sqlalchemy import text
         from initial_data import init_db
         
+        # 1. Create tables if they don't exist
         Base.metadata.create_all(bind=engine)
-        print("Database connection and tables initialized successfully.")
+        logger.info("Database tables verified.")
         
-        # Run inline table alterations
+        # 2. Run manual migrations (resiliently)
         with engine.begin() as conn:
             try:
                 conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_tier VARCHAR(50) DEFAULT 'FREE'"))
@@ -47,58 +48,35 @@ async def lifespan(app: FastAPI):
                 conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS profile_picture_url VARCHAR"))
                 conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS bio TEXT"))
                 
-                # EPIC-5: Subscription Requests
-                conn.execute(text("""
-                    CREATE TABLE IF NOT EXISTS subscription_requests (
-                        id VARCHAR PRIMARY KEY,
-                        user_id VARCHAR REFERENCES users(id),
-                        target_tier VARCHAR NOT NULL,
-                        status VARCHAR DEFAULT 'PENDING',
-                        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-                    )
-                """))
-                
-                # AGENT LOGS
-                conn.execute(text("""
-                    CREATE TABLE IF NOT EXISTS agent_logs (
-                        id VARCHAR PRIMARY KEY,
-                        event_id VARCHAR,
-                        agent_type VARCHAR,
-                        tool_used VARCHAR,
-                        summary_outcome TEXT,
-                        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-                    )
-                """))
+                # Subscription & Logs
+                conn.execute(text("""CREATE TABLE IF NOT EXISTS subscription_requests (id VARCHAR PRIMARY KEY, user_id VARCHAR, target_tier VARCHAR, status VARCHAR, created_at TIMESTAMP)"""))
+                conn.execute(text("""CREATE TABLE IF NOT EXISTS agent_logs (id VARCHAR PRIMARY KEY, event_id VARCHAR, agent_type VARCHAR, tool_used VARCHAR, summary_outcome TEXT, created_at TIMESTAMP)"""))
             except Exception as e:
-                print(f"Migration notice: {e}")
+                logger.warning(f"Migration notice (Non-fatal): {e}")
                 
-        # Upgrade types
-        with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
-            try:
-                conn.execute(text("ALTER TYPE emaileventtype ADD VALUE IF NOT EXISTS 'RESET_PASSWORD'"))
-            except Exception:
-                pass
-                
+        # 3. Synchronize initial data (Admin Credentials)
         init_db()
+        logger.info("Initialization sequence completed.")
+        
     except Exception as e:
-        print(f"Warning: Database initialization failed on startup: {e}")
+        logger.error(f"CRITICAL: Application failed to initialize: {e}")
+        # We don't raise here to allow the process to at least start and serve basic health checks
+        # but the app will likely be in a degraded state.
     
     yield
+    logger.info("Shutting down application lifecycle...")
 
-# Initialize FastAPI app
 app = FastAPI(
     title="Puja Planner Pro API",
-    description="Backend API with Discovery Agent for finding Pandits, Venues, and Catering services",
+    description="Backend API with Discovery Agent",
     version="1.0.0",
     docs_url=None,
     openapi_url="/openapi.json",
-    root_path="",
     lifespan=lifespan,
 )
 
 security = HTTPBasic()
 
-# Custom Swagger UI route requiring Admin via Basic Auth popup
 @app.get("/docs", include_in_schema=False)
 @app.get("/docs/", include_in_schema=False)
 async def custom_swagger_ui_html(credentials: HTTPBasicCredentials = Depends(security), db: Session = Depends(get_db)):
@@ -107,52 +85,26 @@ async def custom_swagger_ui_html(credentials: HTTPBasicCredentials = Depends(sec
         detail="Incorrect email or password",
         headers={"WWW-Authenticate": "Basic"},
     )
-    
     user = db.query(User).filter(User.email == credentials.username).first()
-    if not user or not verify_password(credentials.password, user.hashed_password):
+    if not user or not verify_password(credentials.password, user.hashed_password) or user.role != UserRole.ADMIN:
         raise unauthorized_exc
-        
-    if user.role != UserRole.ADMIN:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN, 
-            detail="Only Admins can view the API Documentation"
-        )
+    return get_swagger_ui_html(openapi_url="/openapi.json", title=app.title + " - Swagger UI")
 
-    return get_swagger_ui_html(
-        openapi_url="/openapi.json",
-        title=app.title + " - Swagger UI",
-        oauth2_redirect_url=app.swagger_ui_oauth2_redirect_url,
-        swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
-        swagger_css_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css",
-    )
-
-# Add ProxyHeadersMiddleware for Coolify/Traefik
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
-
-# Configure CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Add TrustedHostMiddleware
+app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins_list, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
 
-# Include routes
+from routes import router
 app.include_router(router)
-
-
 
 @app.get("/")
 async def root():
-    """Root endpoint. Redirects to /docs"""
     return RedirectResponse(url="/docs")
 
+@app.get("/health")
+async def health():
+    return {"status": "ok", "timestamp": str(logging.datetime.now())}
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("BACKEND_PORT"))
-    uvicorn.run("main:app", host="0.0.0.0", port=port, reload=settings.debug, proxy_headers=True, forwarded_allow_ips="*", headers=[("X-Forwarded-Proto", "https")])
+    uvicorn.run("main:app", host="0.0.0.0", port=int(os.environ.get("BACKEND_PORT", 8735)), proxy_headers=True, forwarded_allow_ips="*")

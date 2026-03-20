@@ -33,6 +33,7 @@ class VedicEventState(TypedDict):
     next_node: str
     clarification_needed: bool
     clarification_message: Optional[str]
+    customer_approval: bool # NEW: Hard Gate for Sourcing
 
 # --- 5-Agent Node Registry ---
 
@@ -147,25 +148,38 @@ async def planner_node(state: VedicEventState):
     Return JSON: {{"ritual_name": "...", "language": "...", "style": "...", "location": "...", "intent_harvested": bool, "question": "..."}}
     """
     try:
-        # Privacy Gate Handshake: Ensure LLM uses Port 8740 proxy if configured
-        import os
-        if settings.privacy_gate_url:
-            os.environ["HTTP_PROXY"] = settings.privacy_gate_url
-            os.environ["HTTPS_PROXY"] = settings.privacy_gate_url
-            
+        # Bypassing Privacy Gate as per directive for direct API handshake
         llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=settings.gemini_api_key)
         response = await llm.ainvoke(prompt)
         data = json.loads(response.content.strip().replace("```json", "").replace("```", ""))
         harvested = data.get("intent_harvested", False)
+        
+        # CONSENSUS GATE: Hard block on discovery until approval
+        customer_approved = state.get("customer_approval", False)
+        ritual = data.get("ritual_name") or state.get("ritual_name")
+        
+        if harvested and not customer_approved:
+            # Enforce Turn 1-3 Consensus Protocol
+            return {
+                "ritual_name": ritual,
+                "language": data.get("language") or state.get("language"),
+                "style": data.get("style") or state.get("style"),
+                "location": data.get("location") or state.get("location"),
+                "intent_harvested": True,
+                "clarification_needed": True,
+                "clarification_message": f"I have the initial details for your {ritual}. Shall I proceed to find a Pandit and Caterer for you?",
+                "next_node": "scribe" # Loop back to user via scribe persistence
+            }
+
         return {
-            "ritual_name": data.get("ritual_name") or state.get("ritual_name"),
+            "ritual_name": ritual,
             "language": data.get("language") or state.get("language"),
             "style": data.get("style") or state.get("style"),
             "location": data.get("location") or state.get("location"),
             "intent_harvested": harvested,
             "clarification_needed": not harvested,
             "clarification_message": data.get("question") if not harvested else None,
-            "next_node": "finder" if harvested else "scribe"
+            "next_node": "finder" if (harvested and customer_approved) else "scribe"
         }
     except Exception as e:
         print(f"Planner Error: {e}")

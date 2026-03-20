@@ -66,7 +66,8 @@ async def search(
             "status": "PLANNING",
             "next_node": "",
             "clarification_needed": False,
-            "intent_harvested": False
+            "intent_harvested": False,
+            "customer_approval": request.customer_approval
         }
         
         # Use session-based thread_id for checkpointing

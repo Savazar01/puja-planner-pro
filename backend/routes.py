@@ -92,11 +92,23 @@ async def search(
         )
     except Exception as e:
         print(f"Orchestration Error (Shielded): {e}")
+        
+        # Best effort: find recent event for this user if event_id was missing
+        err_event_id = request.event_id
+        if not err_event_id:
+            try:
+                latest_event = db.query(Event).filter(Event.customer_id == current_user.id).order_by(Event.created_at.desc()).first()
+                if latest_event:
+                    err_event_id = latest_event.id
+            except:
+                pass
+
         return SearchResponse(
             results=[],
             total_results=0,
+            event_id=err_event_id,
             clarification_needed=True,
-            clarification_message="I'm having a little trouble connecting to my discovery tools right now. However, I've saved your event details. Feel free to try again in a moment!"
+            clarification_message="I'm having a little trouble connecting to my discovery tools right now. However, your event details are being saved. Feel free to try again in a moment!"
         )
 
 

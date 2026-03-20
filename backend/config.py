@@ -9,8 +9,8 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "postgresql://puja_user:puja_password@localhost:5432/puja_planner"
     
-    # API Keys (Aliased for VPS environment compatibility)
-    serper_api_key: str = Field("", alias="SERPAPI_KEY", validation_alias=AliasChoices("SERPAPI_KEY", "SERPER_API_KEY"))
+    # API Keys (Aliased for maximum VPS environment compatibility)
+    serper_api_key: str = Field("", alias="SERPER_API_KEY", validation_alias=AliasChoices("SERPER_API_KEY", "SERPAPI_KEY"))
     firecrawl_api_key: str = Field("", alias="FIRECRAWL_API_KEY")
     gemini_api_key: str = Field("", alias="GOOGLE_API_KEY", validation_alias=AliasChoices("GOOGLE_API_KEY", "GEMINI_API_KEY"))
     resend_api_key: str = Field("", alias="RESEND_API_KEY")
@@ -64,3 +64,4 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+捉

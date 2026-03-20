@@ -80,7 +80,7 @@ async def scribe_node(state: VedicEventState):
                 customer_id=state.get("customer_id") or "system",
                 title=state["user_query"][:50],
                 location=state.get("location"),
-                status="PLANNING",
+                status="PLANNING", # Initial status is PLANNING
                 intent_json=state 
             )
             db.add(event)

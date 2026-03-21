@@ -364,12 +364,16 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
             
         # 3. Handle Zero-Result Broadening (Locality -> City -> Region)
         if not all_results and include_web and "," in location:
-            parent_location = location.split(",", 1)[1].strip()
-            print(f"Broadening search from {location} to {parent_location}...")
-            # Recursive call with broader location
-            return await self.discover_providers(
-                role, parent_location, db, include_web, ritual_name, language, style, agent_command
-            )
+            # Broaden from "Locality, City, State" -> "City, State" -> "State"
+            parts = [p.strip() for p in location.split(",")]
+            if len(parts) > 1:
+                parent_location = ", ".join(parts[1:])
+                print(f"Broadening search from {location} to {parent_location}...")
+                
+                # Recursive call with broader location
+                return await self.discover_providers(
+                    role, parent_location, db, include_web, ritual_name, language, style, agent_command
+                )
             
         return all_results
     

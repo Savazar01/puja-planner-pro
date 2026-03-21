@@ -58,6 +58,8 @@ class VedicEventState(TypedDict):
     clarification_message: Optional[str]
     customer_approval: bool 
     last_node: str 
+    event_title: Optional[str] # New: Dynamic title for persistence
+    today_date: Optional[str] 
 
 # --- Helpers ---
 
@@ -113,7 +115,7 @@ async def scribe_node(state: VedicEventState):
             new_event = Event(
                 id=event_id,
                 customer_id=customer_id,
-                title=user_query[:50],
+                title=state.get("event_title") or user_query[:50],
                 location=state.get("location"),
                 status="PLANNING",
                 intent_json=serializable_state 
@@ -122,16 +124,20 @@ async def scribe_node(state: VedicEventState):
             db.commit()
             db.refresh(new_event)
             log_agent_action(db, "SCRIBE", "DB Persistence", f"Proactively created draft event: {event_id}", event_id)
-        # [Silent Save Protocol] Force commit to DB if intent is harvested or if it's a new draft
-        if harvested or (not event_id and user_query):
+        # [Silent Save Protocol] Force commit to DB if intent is harvested or if it's a new draft or if we have a title
+        if harvested or (not event_id and user_query) or state.get("event_title"):
             if not event_id: event_id = str(uuid.uuid4())
             event = db.query(Event).filter(Event.id == event_id).first()
             if not event:
-                event = Event(id=event_id, customer_id=customer_id, title=user_query[:50], status="PLANNING")
+                event = Event(id=event_id, customer_id=customer_id, title=state.get("event_title") or user_query[:50], status="PLANNING")
                 db.add(event)
             
             event.intent_json = serializable_state
-            if ritual: event.title = f"Ritual: {ritual}"
+            if state.get("event_title"):
+                event.title = state.get("event_title")
+            elif ritual:
+                event.title = f"Ritual: {ritual}"
+            
             if state.get("location"): event.location = state.get("location")
             
             # Sync Event Date/Time with robust parsing
@@ -209,8 +215,17 @@ async def planner_node(state: VedicEventState):
                 "next_node": "scribe",
                 "last_node": "planner"
             }        # 2. Intent Analysis & Feedback Generation
+        today = "March 21, 2026"
         prompt = f"""
         {system_prompt}
+        
+        CRITICAL CONTEXT:
+        - Today's Date: {today}
+        - Current Year: 2026
+        - Rules: 
+          1. If the user provides a month/day without a year (e.g., "March 29th"), you MUST assume the year is 2026.
+          2. Validate that the event date is at least 24 hours from today ({today}).
+          3. Generate a concise "event_title" in the format: "[Ritual Name] on [Simplified Date]" (e.g., "Satyanarayana Puja on March 29th").
         
         Current State for Analysis:
         - Ritual: {state.get('ritual_name') or 'Unknown'}
@@ -222,15 +237,9 @@ async def planner_node(state: VedicEventState):
         
         User input: "{user_msg}"
         
-        Rules:
-        - summarize strictly what was provided.
-        - intent_harvested = True ONLY if 1, 2, 3, 4, 5, and 6 are all resolved.
-        - Date Parsing: Convert conversational dates like "March 27th" to YYYY-MM-DD.
-        - Time Parsing: Convert conversational times like "6 PM" to 18:00 (HH:MM).
-        - Generate a specific "agent_commands" for the Finder Agent describing exactly who to look for.
-        
         Return ONLY valid JSON:
         {{
+            "event_title": "string",
             "ritual_name": "string or null", 
             "location": "string or null",
             "event_date": "YYYY-MM-DD or null",

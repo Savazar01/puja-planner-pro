@@ -107,7 +107,17 @@ async def scribe_node(state: VedicEventState):
         approval = state.get("customer_approval", False)
 
         # [Supervisor Rule] Only save serializable fields to DB
+        # Also persist message history for context retention
+        serializable_messages = []
+        for msg in state.get("messages", []):
+            if hasattr(msg, "content"):
+                m_type = "human" if "HumanMessage" in str(type(msg)) else "ai"
+                serializable_messages.append({"type": m_type, "content": str(msg.content)})
+            elif isinstance(msg, dict):
+                serializable_messages.append(msg)
+        
         serializable_state = {k: v for k, v in state.items() if k not in ["messages"]}
+        serializable_state["messages"] = serializable_messages
 
         # [Supervisor Rule] Proactively create Event Record (Draft) as soon as we have a query
         if not event_id and user_query:

@@ -95,22 +95,34 @@ async def search(
                     except:
                         saved_state = {}
                 
-                # Update initial_state with saved values
+                # Update initial_state with saved values: FULL STATE RESUMPTION
                 fields_to_resume = [
                     "ritual_name", "language", "style", "location", 
                     "event_date", "event_time", "guest_count", 
                     "needs_pandit", "needs_caterer", "needs_venue", 
-                    "cuisine_type", "agent_commands",
-                    "intent_harvested", "roles_needed", "status"
+                    "cuisine_type", "agent_commands", "event_title",
+                    "intent_harvested", "roles_needed", "status",
+                    "providers_found", "supplies_suggested", "today_date"
                 ]
                 for key in fields_to_resume:
                     if key in saved_state:
                          initial_state[key] = saved_state[key]
                 
-                # Merge messages history if exists
+                # [FIX] Merge messages history: Convert dicts back to Message objects
                 if "messages" in saved_state and isinstance(saved_state["messages"], list):
-                     # Construct history using HumanMessage/AIMessage if possible, but LangGraph add_messages handles this
-                     initial_state["messages"] = saved_state["messages"] + [HumanMessage(content=request.query)]
+                     from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+                     history = []
+                     for msg in saved_state["messages"]:
+                         if isinstance(msg, dict):
+                            m_type = msg.get("type", "human")
+                            m_content = msg.get("content", "")
+                            if m_type == "human": history.append(HumanMessage(content=m_content))
+                            elif m_type == "ai": history.append(AIMessage(content=m_content))
+                         else:
+                            history.append(msg)
+                     initial_state["messages"] = history + [HumanMessage(content=request.query)]
+                else:
+                     initial_state["messages"] = [HumanMessage(content=request.query)]
         
         # Use session-based thread_id for checkpointing
         # If event_id exists, we resume that thread
@@ -132,7 +144,9 @@ async def search(
             clarification_message=final_state.get("clarification_message")
         )
     except Exception as e:
-        print(f"Orchestration Error (Shielded): {e}")
+        import traceback
+        err_trace = traceback.format_exc()
+        print(f"Orchestration Error (Shielded): {e}\n{err_trace}")
         
         # Best effort: find recent event for this user if event_id was missing
         err_event_id = request.event_id

@@ -9,6 +9,7 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+import asyncio
 
 from config import settings
 from database import engine, get_db
@@ -20,10 +21,14 @@ from models import User, UserRole
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Lifecycle manager for the FastAPI application."""
-    logger.info("Starting up application lifecycle...")
+# Global readiness state
+GLOBAL_READY = False
+INIT_ERROR = None
+
+async def run_initialization():
+    """Heavy DB tasks running in background to prevent startup timeouts."""
+    global GLOBAL_READY, INIT_ERROR
+    logger.info("Background initialization started...")
     try:
         from database import engine, Base
         from sqlalchemy import text
@@ -36,10 +41,13 @@ async def lifespan(app: FastAPI):
         # 2. Run manual migrations (resiliently)
         with engine.begin() as conn:
             try:
+                # Add columns if missing (Check system tables first to be fast/silent)
                 conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_tier VARCHAR(50) DEFAULT 'FREE'"))
                 conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS token_balance INTEGER DEFAULT 100"))
                 conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS deletion_requested_at TIMESTAMP WITH TIME ZONE"))
                 conn.execute(text("ALTER TABLE events ADD COLUMN IF NOT EXISTS intent_json JSON"))
+                
+                # Profile fields
                 conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS address_street VARCHAR"))
                 conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS address_city VARCHAR"))
                 conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS address_state VARCHAR"))
@@ -48,23 +56,29 @@ async def lifespan(app: FastAPI):
                 conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS profile_picture_url VARCHAR"))
                 conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS bio TEXT"))
                 
-                # Subscription & Logs
+                # Custom tables
                 conn.execute(text("""CREATE TABLE IF NOT EXISTS subscription_requests (id VARCHAR PRIMARY KEY, user_id VARCHAR, target_tier VARCHAR, status VARCHAR, created_at TIMESTAMP)"""))
                 conn.execute(text("""CREATE TABLE IF NOT EXISTS agent_logs (id VARCHAR PRIMARY KEY, event_id VARCHAR, agent_type VARCHAR, tool_used VARCHAR, summary_outcome TEXT, created_at TIMESTAMP)"""))
-            except Exception as e:
-                logger.warning(f"Migration notice (Non-fatal): {e}")
+            except Exception as mig_err:
+                logger.warning(f"Background Migration notice (Non-fatal): {mig_err}")
                 
         # 3. Synchronize initial data (Admin Credentials)
         init_db()
-        logger.info("Initialization sequence completed.")
+        GLOBAL_READY = True
+        logger.info("Background initialization sequence completed successfully.")
         
     except Exception as e:
-        logger.error(f"CRITICAL: Application failed to initialize: {e}")
-        # We don't raise here to allow the process to at least start and serve basic health checks
-        # but the app will likely be in a degraded state.
-    
+        INIT_ERROR = str(e)
+        logger.error(f"CRITICAL: Background initialization failed: {e}")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifecycle manager for the FastAPI application."""
+    logger.info("Starting up application...")
+    # Trigger initialization in background task - DO NOT BLOCK
+    asyncio.create_task(run_initialization())
     yield
-    logger.info("Shutting down application lifecycle...")
+    logger.info("Shutting down application...")
 
 app = FastAPI(
     title="Puja Planner Pro API",
@@ -103,7 +117,12 @@ async def root():
 
 @app.get("/health")
 async def health():
-    return {"status": "ok", "timestamp": str(logging.datetime.now())}
+    return {
+        "status": "ok" if GLOBAL_READY else "initializing",
+        "ready": GLOBAL_READY,
+        "error": INIT_ERROR,
+        "timestamp": str(logging.datetime.now())
+    }
 
 if __name__ == "__main__":
     import uvicorn

@@ -149,7 +149,7 @@ services:
 
 networks:
   savaz-prod-net:
-    external: true
+    driver: bridge
   default:
     driver: bridge
 

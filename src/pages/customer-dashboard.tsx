@@ -29,7 +29,7 @@ interface UserEvent {
 }
 
 const CustomerDashboard = () => {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, token } = useAuth();
 
   // State for user-generated events (no mock data)
   const [events, setEvents] = useState<UserEvent[]>([]);
@@ -38,7 +38,9 @@ const CustomerDashboard = () => {
   React.useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await fetch(`${VITE_API_URL}/api/events`);
+        const response = await fetch(`${VITE_API_URL}/api/events`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         if (response.ok) {
           const data = await response.json();
           setEvents(data);

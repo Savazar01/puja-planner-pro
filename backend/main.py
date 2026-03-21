@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 import asyncio
+import anyio
 
 from config import settings
 from database import engine, get_db
@@ -25,7 +26,7 @@ logger = logging.getLogger(__name__)
 GLOBAL_READY = False
 INIT_ERROR = None
 
-async def run_initialization():
+def run_initialization():
     """Heavy DB tasks running in background to prevent startup timeouts."""
     global GLOBAL_READY, INIT_ERROR
     logger.info("Background initialization started...")
@@ -76,7 +77,10 @@ async def lifespan(app: FastAPI):
     """Lifecycle manager for the FastAPI application."""
     logger.info("Starting up application...")
     # Trigger initialization in background task - DO NOT BLOCK
-    asyncio.create_task(run_initialization())
+    # [FIX] Run blocking initialization in a separate thread to unblock the main loop
+    # This specifically addresses the 30-second login timeout during cold starts
+    print("Starting background initialization (Non-blocking)...")
+    asyncio.create_task(anyio.to_thread.run_sync(run_initialization))
     yield
     logger.info("Shutting down application...")
 

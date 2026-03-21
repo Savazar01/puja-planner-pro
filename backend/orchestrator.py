@@ -19,7 +19,10 @@ from discovery_agent import discovery_agent
 def get_agent_prompt(agent_name: str) -> str:
     """Load agent persona from audited .md files."""
     try:
-        path = os.path.join(os.getcwd(), "roles", "agents", f"{agent_name}_agent.md")
+        # Get the absolute path to the project root (one level up from 'backend')
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        path = os.path.join(base_dir, "roles", "agents", f"{agent_name}_agent.md")
+        
         if os.path.exists(path):
             with open(path, "r", encoding="utf-8") as f:
                 return f.read()

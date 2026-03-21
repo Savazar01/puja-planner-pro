@@ -142,6 +142,10 @@ async def scribe_node(state: VedicEventState):
                 event = Event(id=event_id, customer_id=customer_id, title=state.get("event_title") or user_query[:50], status="PLANNING")
                 db.add(event)
             
+            # [FIX] Force update customer_id to prevent "system" orphans on resume
+            if event.customer_id != customer_id:
+                event.customer_id = customer_id
+            
             event.intent_json = serializable_state
             if state.get("event_title"):
                 event.title = state.get("event_title")
@@ -164,7 +168,7 @@ async def scribe_node(state: VedicEventState):
                 except: pass
 
             db.commit()
-            log_agent_action(db, "SCRIBE", "Silent Save", "Hard committed event state to DB.", event_id)
+            log_agent_action(db, "SCRIBE", "Silent Save", f"Hard committed event state to DB [User: {customer_id}]", event_id)
 
         # Static Routing Pattern
         last = state.get("last_node")

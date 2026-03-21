@@ -30,11 +30,22 @@ def init_db():
             db.commit()
             print(f"Superuser created with email: {admin_email}")
         else:
-            print("Admin user already exists. Syncing credentials with environment...")
-            user.email = settings.admin_user
-            user.hashed_password = get_password_hash(settings.admin_password)
-            db.commit()
-            print("Admin credentials synchronized.")
+            # [OPTIMIZATION] Avoid redundant, slow hashing on every startup unless forced
+            force_sync = os.environ.get("FORCE_ADMIN_SYNC", "false").lower() == "true"
+            if force_sync:
+                print("Admin user found. FORCE_ADMIN_SYNC detected. Syncing credentials...")
+                user.email = settings.admin_user
+                user.hashed_password = get_password_hash(settings.admin_password)
+                db.commit()
+                print("Admin credentials synchronized.")
+            else:
+                # Still check if email changed, but don't re-hash password if not needed
+                if user.email != settings.admin_user:
+                    user.email = settings.admin_user
+                    db.commit()
+                    print("Admin email synchronized (Password skipped).")
+                else:
+                    print("Admin credentials already in sync. Skipping redundant hashing.")
     except Exception as e:
         print(f"Error initializing DB data: {e}")
         

@@ -105,7 +105,7 @@ async def search(
                     "providers_found", "supplies_suggested", "today_date"
                 ]
                 for key in fields_to_resume:
-                    if key in saved_state:
+                    if key in saved_state and key != "customer_id": # [FIX] ID is immutable per session
                          initial_state[key] = saved_state[key]
                 
                 # [FIX] Merge messages history: Convert dicts back to Message objects
@@ -206,7 +206,7 @@ async def discover_providers_endpoint(
             event_id=None,
             agent_type="FINDER",
             tool_used="Initiation",
-            summary_outcome=f"Request Received: Discover '{role.upper()}' in '{location}'."
+            summary_outcome=f"Request received from {current_user.email}: Discover '{role.upper()}' in '{location}'."
         )
         db.add(log_entry)
         db.commit()

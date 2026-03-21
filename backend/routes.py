@@ -138,10 +138,10 @@ async def search(
             results=[ProviderResponse(**p) for p in final_state.get("providers_found", [])],
             total_results=len(final_state.get("providers_found", [])),
             cached=False,
-            event_id=final_state.get("event_id"),
-            ritual_type=final_state.get("ritual_name"),
-            clarification_needed=final_state.get("clarification_needed", False),
-            clarification_message=final_state.get("clarification_message")
+                event_id=final_state.get("event_id") or request.event_id,
+                ritual_type=final_state.get("ritual_name") or "New Event",
+                clarification_needed=final_state.get("clarification_needed", False),
+                clarification_message=final_state.get("clarification_message")
         )
     except Exception as e:
         import traceback

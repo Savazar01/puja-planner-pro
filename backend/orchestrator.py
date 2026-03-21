@@ -133,7 +133,7 @@ async def scribe_node(state: VedicEventState):
             db.add(new_event)
             db.commit()
             db.refresh(new_event)
-            log_agent_action(db, "SCRIBE", "DB Persistence", f"Proactively created draft event: {event_id}", event_id)
+            log_agent_action(db, "SCRIBE", "DB Persistence", f"Proactively created draft event: {event_id} for customer: {customer_id}", event_id)
         # [Silent Save Protocol] Force commit to DB if intent is harvested or if it's a new draft or if we have a title
         if harvested or (not event_id and user_query) or state.get("event_title"):
             if not event_id: event_id = str(uuid.uuid4())
@@ -336,7 +336,6 @@ async def planner_node(state: VedicEventState):
             if data.get("needs_caterer"): services.append("Catering")
             if data.get("needs_venue"): services.append("Venue")
             summ_services = ", ".join(services) if services else "All setup needed"
-
             summary = (
                 f"**PLAN SUMMARY:**\n"
                 f"- **Ritual:** {summ_ritual}\n"
@@ -421,7 +420,7 @@ async def finder_node(state: VedicEventState):
             "clarification_needed": True
         }
     finally:
-        db.close()
+        pass # Handle closing logic if db is instantiated in node scope
 
 async def supplies_node(state: VedicEventState):
     """Supplies Agent: Suggesting samagri."""

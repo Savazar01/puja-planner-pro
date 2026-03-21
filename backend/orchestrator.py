@@ -183,6 +183,15 @@ async def planner_node(state: VedicEventState):
             user_msg = state.get("user_query", "")
 
         event_id = state.get("event_id")
+        
+        # 1. Fast-Path Approval Gate: Skip analysis if already harvested and approved
+        if state.get("intent_harvested") and state.get("customer_approval"):
+            log_agent_action(db, "PLANNER", "Gatekeeper", "Already approved. Proceeding to discovery.", event_id)
+            return {
+                "next_node": "finder",
+                "last_node": "planner"
+            }
+
         log_agent_action(db, "PLANNER", "Processing", f"Analyzing intent: {user_msg[:50]}...", event_id)
         
         # 1. Blank Canvas Greeting (Empty/Generic)
@@ -210,9 +219,30 @@ async def planner_node(state: VedicEventState):
         Rules:
         - summarize strictly what was provided.
         - intent_harvested = True ONLY if 1, 2, 3, 4, 5, and 6 are all resolved.
+        - Date Parsing: Convert conversational dates like "March 27th" to YYYY-MM-DD.
+        - Time Parsing: Convert conversational times like "6 PM" to 18:00 (HH:MM).
         - Generate a specific "agent_commands" for the Finder Agent describing exactly who to look for.
         
-        Return ONLY valid JSON.
+        Return ONLY valid JSON:
+        {{
+            "ritual_name": "string or null", 
+            "location": "string or null",
+            "event_date": "YYYY-MM-DD or null",
+            "event_time": "HH:MM or null",
+            "guest_count": integer or null,
+            "needs_pandit": boolean,
+            "needs_caterer": boolean,
+            "needs_venue": boolean,
+            "cuisine_type": "string or null",
+            "language": "string or null", 
+            "intent_harvested": boolean, 
+            "feedback": "Step-by-step confirmation of what you received...",
+            "missing_details_question": "Polite request for any missing fields (1-6)...",
+            "agent_commands": {{
+                "finder": "Detailed search query for the Finder Agent.",
+                "supplies": "Specific ritual name for Samagri suggestion."
+            }}
+        }}
         """
         
         # [UPGRADE] Using gemini-3-flash-preview with forced v1beta API version

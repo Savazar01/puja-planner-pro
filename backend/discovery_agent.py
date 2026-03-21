@@ -236,10 +236,22 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
                 pass
                 
             if target_role:
+                # [IMPROVED] Robust substring matching for location broadening
+                location_parts = [p.strip() for p in location.split(",")]
+                search_filters = []
+                for part in location_parts:
+                    if len(part) > 2:
+                        search_filters.append(Profile.location.ilike(f"%{part}%"))
+                        search_filters.append(Profile.address_city.ilike(f"%{part}%"))
+                
+                if not search_filters:
+                    search_filters = [Profile.location.ilike(f"%{location}%")]
+
+                from sqlalchemy import or_
                 users_in_role = _internal_db.query(User).join(Profile).filter(
                     User.role == target_role,
                     User.status == UserStatus.APPROVED,
-                    (Profile.location.ilike(f"%{location}%") | Profile.address_city.ilike(f"%{location}%"))
+                    or_(*search_filters)
                 ).all()
                 
                 for user in users_in_role:
@@ -342,10 +354,11 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
                 tool_used="SerpAPI/Firecrawl",
                 summary_outcome=f"External parallel search for role {role_upper} in location {location}. Generated {len(external_providers)} external result(s)."
             )
-            db.add(log_ext)
-            db.commit()
-        except:
-            pass
+            # [FIX] Use _internal_db to avoid AttributeError when db is None
+            _internal_db.add(log_ext)
+            _internal_db.commit()
+        except Exception as log_err:
+            print(f"External discovery logging failed: {log_err}")
             
         all_results = internal_providers + external_providers
             

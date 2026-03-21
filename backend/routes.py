@@ -57,15 +57,18 @@ async def search(
         
         # 1. Prepare base state
         initial_state = {
-            "messages": [HumanMessage(content=request.query)],
-            "user_query": request.query,
+            "messages": [],
             "event_id": request.event_id,
-            "customer_id": current_user.id,
-            "location": request.location or "India",
+            "customer_id": current_user.id, # Force identity injection
+            "user_query": request.query,
+            "ritual_name": None,
+            "language": None,
+            "style": None,
+            "location": None,
             "event_date": None,
             "event_time": None,
             "guest_count": 0,
-            "needs_pandit": True, # Default to True
+            "needs_pandit": False,
             "needs_caterer": False,
             "needs_venue": False,
             "cuisine_type": None,

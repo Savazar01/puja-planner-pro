@@ -148,6 +148,30 @@ async def search(
         err_trace = traceback.format_exc()
         print(f"Orchestration Error (Shielded): {e}\n{err_trace}")
         
+        # [Supervisor Rule] Log error to AgentLog for admin visibility
+        try:
+            from models import AgentLog
+            from database import SessionLocal
+            _log_db = SessionLocal()
+            err_event_id = request.event_id
+            if not err_event_id:
+                # Find latest event for this customer to link log
+                latest = _log_db.query(Event).filter(Event.customer_id == current_user.id).order_by(Event.created_at.desc()).first()
+                if latest: err_event_id = latest.id
+            
+            err_log = AgentLog(
+                id=str(uuid.uuid4()),
+                event_id=err_event_id,
+                agent_type="SUPERVISOR",
+                tool_used="Orchestration",
+                summary_outcome=f"ERROR: {str(e)[:500]}\nTraceback: {err_trace[-1000:]}"
+            )
+            _log_db.add(err_log)
+            _log_db.commit()
+            _log_db.close()
+        except Exception as log_err:
+            print(f"Failed to log orchestration error: {log_err}")
+        
         # Best effort: find recent event for this user if event_id was missing
         err_event_id = request.event_id
         if not err_event_id:

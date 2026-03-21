@@ -21,11 +21,11 @@ const VITE_API_URL = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL
 
 interface UserEvent {
   id: string;
-  name: string;
-  date: string;
+  title: string;
+  event_date: string;
   status: "active" | "archived" | "completed" | "DRAFT" | "PLANNING";
-  type: string;
   location: string;
+  type?: string; // Optional fallback
 }
 
 const CustomerDashboard = () => {
@@ -132,7 +132,7 @@ const CustomerDashboard = () => {
                   <Card key={event.id} className="group hover:border-primary/40 transition-all hover:shadow-xl hover:shadow-primary/5">
                     <CardHeader className="pb-4">
                       <div className="flex items-start justify-between">
-                        <Badge variant="outline" className="capitalize">{event.type}</Badge>
+                        <Badge variant="outline" className="capitalize">{event.type || event.status}</Badge>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-amber-500" onClick={() => handleArchive(event.id)}>
                             <Archive className="h-4 w-4" />
@@ -142,10 +142,10 @@ const CustomerDashboard = () => {
                           </Button>
                         </div>
                       </div>
-                      <CardTitle className="text-xl mt-2">{event.name}</CardTitle>
+                      <CardTitle className="text-xl mt-2">{event.title}</CardTitle>
                       <CardDescription className="flex items-center gap-2">
                         <Calendar className="h-3 w-3" />
-                        {new Date(event.date).toLocaleDateString()} • {event.location}
+                        {new Date(event.event_date).toLocaleDateString()} • {event.location}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -192,8 +192,8 @@ const CustomerDashboard = () => {
                 <Card key={event.id} className="bg-muted/10">
                   <CardContent className="p-4 flex items-center justify-between">
                     <div>
-                      <p className="font-semibold text-sm">{event.name}</p>
-                      <p className="text-xs text-muted-foreground">{event.type}</p>
+                      <p className="font-semibold text-sm">{event.title}</p>
+                      <p className="text-xs text-muted-foreground">{event.type || event.status}</p>
                     </div>
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(event.id)}>
                       <Trash2 className="h-3 w-3" />

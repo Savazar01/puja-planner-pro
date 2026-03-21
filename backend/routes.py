@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional, Dict
 import uuid
 import json
+from datetime import datetime
 from database import get_db
 from schemas import (
     SearchRequest, SearchResponse, ProviderResponse,
@@ -592,7 +593,41 @@ async def list_events(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    return db.query(Event).filter(Event.customer_id == current_user.id).all()
+    events = db.query(Event).filter(Event.customer_id == current_user.id).all()
+    
+    # [ISSUE 5] Auto-archive events older than 7 days
+    now = datetime.now()
+    updated = False
+    for event in events:
+        if event.status not in ["ARCHIVED", "COMPLETED"] and event.event_date:
+            # Handle both offset-naive and aware datetimes
+            target_date = event.event_date.replace(tzinfo=None) if event.event_date.tzinfo else event.event_date
+            if (now - target_date).days > 7:
+                event.status = "ARCHIVED"
+                updated = True
+    
+    if updated:
+        db.commit()
+        # Refresh results after archive
+        events = db.query(Event).filter(Event.customer_id == current_user.id).all()
+        
+    return events
+
+
+@router.delete("/api/events/{event_id}")
+async def delete_event(
+    event_id: str,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Permanently deletes an event and all associated bookings/guests/supplies."""
+    event = db.query(Event).filter(Event.id == event_id, Event.customer_id == current_user.id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+        
+    db.delete(event)
+    db.commit()
+    return {"status": "success", "message": "Event permanently deleted"}
 
 
 @router.patch("/api/events/{event_id}", response_model=EventResponse)

@@ -23,7 +23,7 @@ interface UserEvent {
   id: string;
   title: string;
   event_date: string;
-  status: "active" | "archived" | "completed" | "DRAFT" | "PLANNING";
+  status: "active" | "archived" | "completed" | "DRAFT" | "PLANNING" | "CONFIRMED" | "COMPLETED" | "ARCHIVED";
   location: string;
   type?: string; // Optional fallback
 }
@@ -60,15 +60,40 @@ const CustomerDashboard = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const activeEvents = events.filter(e => ["active", "DRAFT", "PLANNING"].includes(e.status));
-  const archivedEvents = events.filter(e => e.status === "archived");
+  const activeEvents = events.filter(e => ["active", "DRAFT", "PLANNING", "CONFIRMED"].includes(e.status));
+  const archivedEvents = events.filter(e => e.status === "ARCHIVED" || e.status === "archived");
+  const completedEvents = events.filter(e => e.status === "COMPLETED");
 
-  const handleDelete = (id: string) => {
-    setEvents(prev => prev.filter(e => e.id !== id));
+  const handleDelete = async (id: string) => {
+    try {
+      const response = await fetch(`${VITE_API_URL}/api/events/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.ok) {
+        setEvents(prev => prev.filter(e => e.id !== id));
+      }
+    } catch (error) {
+      console.error("Failed to delete event:", error);
+    }
   };
 
-  const handleArchive = (id: string) => {
-    setEvents(prev => prev.map(e => e.id === id ? { ...e, status: "archived" } : e));
+  const updateEventStatus = async (id: string, status: string) => {
+    try {
+      const response = await fetch(`${VITE_API_URL}/api/events/${id}`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` 
+        },
+        body: JSON.stringify({ status })
+      });
+      if (response.ok) {
+        setEvents(prev => prev.map(e => e.id === id ? { ...e, status: status as any } : e));
+      }
+    } catch (error) {
+      console.error("Failed to update event status:", error);
+    }
   };
 
   return (
@@ -91,12 +116,11 @@ const CustomerDashboard = () => {
 
       <div className="container mx-auto max-w-7xl px-4 py-12 space-y-12">
         {/* Analytics Stats */}
-        <section className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { label: "My Events", value: events.length, icon: Calendar, color: "text-blue-500" },
-            { label: "Planned Rituals", value: activeEvents.length, icon: Clock, color: "text-amber-500" },
-            { label: "Things to Do", value: 3, icon: AlertCircle, color: "text-red-500" },
-            { label: "Completed", value: 1, icon: CheckCircle2, color: "text-green-500" },
+            { label: "Active Rituals", value: activeEvents.length, icon: Calendar, color: "text-blue-500" },
+            { label: "Things to Do", value: 0, icon: AlertCircle, color: "text-red-500" },
+            { label: "Completed Events", value: completedEvents.length, icon: CheckCircle2, color: "text-green-500" },
           ].map((stat, i) => (
             <Card key={i} className="bg-card/40 border-primary/10">
               <CardContent className="p-6 flex items-center gap-4">
@@ -136,10 +160,13 @@ const CustomerDashboard = () => {
                       <div className="flex items-start justify-between">
                         <Badge variant="outline" className="capitalize">{event.type || event.status}</Badge>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-amber-500" onClick={() => handleArchive(event.id)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-green-500" title="Mark as Complete" onClick={() => updateEventStatus(event.id, 'COMPLETED')}>
+                             <CheckCircle2 className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-amber-500" title="Archive" onClick={() => updateEventStatus(event.id, 'ARCHIVED')}>
                             <Archive className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => handleDelete(event.id)}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" title="Permanently Delete" onClick={() => handleDelete(event.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>

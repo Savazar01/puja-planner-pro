@@ -347,7 +347,18 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
         except:
             pass
             
-        return internal_providers + external_providers
+        all_results = internal_providers + external_providers
+            
+        # 3. Handle Zero-Result Broadening (Locality -> City -> Region)
+        if not all_results and include_web and "," in location:
+            parent_location = location.split(",", 1)[1].strip()
+            print(f"Broadening search from {location} to {parent_location}...")
+            # Recursive call with broader location
+            return await self.discover_providers(
+                role, parent_location, db, include_web, ritual_name, language, style, agent_command
+            )
+            
+        return all_results
     
     def get_cache_key(self, query: str, location: str, category: str) -> str:
         """Generate cache key for search query."""

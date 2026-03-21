@@ -16,6 +16,17 @@ from database import SessionLocal
 from models import Event, AgentLog
 from discovery_agent import discovery_agent
 
+def get_agent_prompt(agent_name: str) -> str:
+    """Load agent persona from audited .md files."""
+    try:
+        path = os.path.join(os.getcwd(), "roles", "agents", f"{agent_name}_agent.md")
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                return f.read()
+    except Exception as e:
+        print(f"Warning: Could not load {agent_name} prompt: {e}")
+    return "You are a helpful AI assistant."
+
 class VedicEventState(TypedDict):
     """The state of the Vedic Event orchestration."""
     messages: Annotated[list, add_messages]
@@ -108,41 +119,33 @@ async def scribe_node(state: VedicEventState):
             db.commit()
             db.refresh(new_event)
             log_agent_action(db, "SCRIBE", "DB Persistence", f"Proactively created draft event: {event_id}", event_id)
-        elif event_id:
+        # [Silent Save Protocol] Force commit to DB if intent is harvested or if it's a new draft
+        if harvested or (not event_id and user_query):
+            if not event_id: event_id = str(uuid.uuid4())
             event = db.query(Event).filter(Event.id == event_id).first()
-            if event:
-                # [FIX] Hard commit of captured details to top-level columns
-                event.intent_json = serializable_state
-                if ritual: event.title = f"Ritual: {ritual}"
-                
-                # Sync Location
-                loc = state.get("location")
-                if loc: event.location = loc
-                
-                # Sync Event Date/Time with robust parsing
-                raw_date = state.get("event_date")
-                raw_time = state.get("event_time")
-                if raw_date and raw_date != "null":
-                    try:
-                        # Combine date and time for full timestamp
-                        dt_str = raw_date
-                        if raw_time and raw_time != "null":
-                            if " " not in dt_str: dt_str += f" {raw_time}"
-                        
-                        # Handle common formats
-                        if "T" in dt_str:
-                            event.event_date = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
-                        else:
-                            # Try simple combined format or just date
-                            try:
-                                event.event_date = datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
-                            except:
-                                event.event_date = datetime.strptime(raw_date, "%Y-%m-%d")
-                    except Exception as date_err:
-                        print(f"Date Parsing Warning: {date_err}")
+            if not event:
+                event = Event(id=event_id, customer_id=customer_id, title=user_query[:50], status="PLANNING")
+                db.add(event)
+            
+            event.intent_json = serializable_state
+            if ritual: event.title = f"Ritual: {ritual}"
+            if state.get("location"): event.location = state.get("location")
+            
+            # Sync Event Date/Time with robust parsing
+            raw_date = state.get("event_date")
+            raw_time = state.get("event_time")
+            if raw_date and raw_date != "null":
+                try:
+                    dt_str = raw_date
+                    if raw_time and raw_time != "null" and " " not in dt_str: dt_str += f" {raw_time}"
+                    if "T" in dt_str: event.event_date = datetime.fromisoformat(dt_str.replace("Z", "+00:00"))
+                    else:
+                        try: event.event_date = datetime.strptime(dt_str, "%Y-%m-%d %H:%M")
+                        except: event.event_date = datetime.strptime(raw_date, "%Y-%m-%d")
+                except: pass
 
-                db.commit()
-                log_agent_action(db, "SCRIBE", "DB Persistence", f"Hard committed event state for: {event_id}", event_id)
+            db.commit()
+            log_agent_action(db, "SCRIBE", "Silent Save", "Hard committed event state to DB.", event_id)
 
         # Static Routing Pattern
         last = state.get("last_node")
@@ -161,13 +164,15 @@ async def scribe_node(state: VedicEventState):
         db.close()
 
 def get_planner_greeting():
-    """Mandatory Turn 1 Greeting."""
-    return "Hello! I am your AI Event Manager. I’m here to help you coordinate and bring your vision to life. To get started, what is the name or occasion of the ritual you are planning?"
+    """Mandatory Turn 1 Greeting from planner_agent.md."""
+    return "Hello! I am your AI Event Manager. I’m here to help you coordinate and bring your vision to life. To help me get started, could you share a bit about what you are planning? I’m ready to help you organize every detail, and I will take my lead entirely from you."
 
 async def planner_node(state: VedicEventState):
     """Supervisor Agent: Intent Harvesting & Gatekeeper."""
     db = SessionLocal()
     try:
+        system_prompt = get_agent_prompt("planner")
+        
         # Robust Message Retrieval
         messages = state.get("messages", [])
         if messages:
@@ -190,45 +195,24 @@ async def planner_node(state: VedicEventState):
                 "last_node": "planner"
             }        # 2. Intent Analysis & Feedback Generation
         prompt = f"""
-        Analyze current intent: "{user_msg}"
-        Current State: {json.dumps({k: v for k, v in state.items() if k not in ["messages", "providers_found", "supplies_suggested"]})}
-
-        You are the SUPERVISOR of this event. Your goal is to capture:
-        1. Ritual Name (Required)
-        2. Location (Required)
-        3. Event Date (Required)
-        4. Event Time (Required)
-        5. Guest Count (Integer, Required)
-        6. Services Needed: Pandit? Caterer? Venue? (Boolean)
-        7. Cuisine Type (If Caterer needed)
+        {system_prompt}
+        
+        Current State for Analysis:
+        - Ritual: {state.get('ritual_name') or 'Unknown'}
+        - Location: {state.get('location') or 'Unknown'}
+        - Date: {state.get('event_date') or 'Unknown'}
+        - Time: {state.get('event_time') or 'Unknown'}
+        - Guests: {state.get('guest_count') or 0}
+        - Services: Pandit:{state.get('needs_pandit')}, Caterer:{state.get('needs_caterer')}, Venue:{state.get('needs_venue')}
+        
+        User input: "{user_msg}"
         
         Rules:
         - summarize strictly what was provided.
         - intent_harvested = True ONLY if 1, 2, 3, 4, 5, and 6 are all resolved.
-        - Generate a specific "agent_command" for the Finder Agent describing exactly who to look for.
-        - Generate a specific "agent_command" for the Supplies Agent describing the ritual type.
-
-        Return ONLY valid JSON: 
-        {{
-            "ritual_name": "...", 
-            "location": "...",
-            "event_date": "...",
-            "event_time": "...",
-            "guest_count": 0,
-            "needs_pandit": bool,
-            "needs_caterer": bool,
-            "needs_venue": bool,
-            "cuisine_type": "...",
-            "language": "...", 
-            "style": "...", 
-            "intent_harvested": bool, 
-            "feedback": "Step-by-step confirmation of what you received...",
-            "missing_details_question": "Polite request for any missing fields from the list above...",
-            "agent_commands": {{
-                "finder": "A LONG-FORM, HIGH-INTENT search query for finding specific providers. Example: 'Search for Telugu-speaking Satyanarayana Puja Pandits in West Maredpally, Secunderabad'",
-                "supplies": "Specific ritual name for samagri Suggestion"
-            }}
-        }}
+        - Generate a specific "agent_commands" for the Finder Agent describing exactly who to look for.
+        
+        Return ONLY valid JSON.
         """
         
         # [UPGRADE] Using gemini-3-flash-preview with forced v1beta API version

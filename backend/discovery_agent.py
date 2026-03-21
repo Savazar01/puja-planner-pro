@@ -53,7 +53,8 @@ class DiscoveryAgent:
                 "q": search_query,
                 "num": 10,
                 "gl": "in",
-                "hl": "en"
+                "hl": "en",
+                "google_domain": "google.co.in"
             }
         }
         
@@ -249,6 +250,7 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
                         "name": profile.full_name or "Unnamed Member",
                         "role": role_upper,
                         "location": profile.location or profile.address_city or location,
+                    "website": url if 'url' in locals() else None, 
                         "rating": 5.0,
                         "reviews": 1,
                         "is_platform_member": True,

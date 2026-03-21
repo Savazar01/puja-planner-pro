@@ -173,14 +173,17 @@ async def planner_node(state: VedicEventState):
     try:
         system_prompt = get_agent_prompt("planner")
         
-        # Robust Message Retrieval
-        messages = state.get("messages", [])
+        # 0. Safety: Ensure messages is a list and get the strictly latest user text
+        messages = state.get("messages") or []
+        user_msg = ""
         if messages:
-            last_msg = messages[-1]
-            # Handle both BaseMessage objects and tuples
-            user_msg = last_msg.content if hasattr(last_msg, "content") else (last_msg[1] if isinstance(last_msg, tuple) else str(last_msg))
+            last = messages[-1]
+            if hasattr(last, "content"): user_msg = str(last.content)
+            elif isinstance(last, tuple) and len(last) > 1: user_msg = str(last[1])
+            elif isinstance(last, dict) and "content" in last: user_msg = str(last["content"])
+            else: user_msg = str(last)
         else:
-            user_msg = state.get("user_query", "")
+            user_msg = str(state.get("user_query") or "")
 
         event_id = state.get("event_id")
         
@@ -286,19 +289,46 @@ async def planner_node(state: VedicEventState):
 
         # 3. SUPERVISOR LOGIC: The Human-Approval Gate
         if not harvested:
+            # SAFETY: Ensure no TypeErrors during concatenation
+            fb = str(data.get("feedback") or "I need a few more details to help you plan perfectly.")
+            mq = str(data.get("missing_details_question") or "Could you clarify the ritual type, date, and location?")
+            
             return {
                 **data,
                 "clarification_needed": True,
-                "clarification_message": data.get("feedback") + "\n\n" + data.get("missing_details_question"),
+                "clarification_message": f"{fb}\n\n{mq}",
                 "next_node": "scribe",
                 "last_node": "planner"
             }
         
         if harvested and (not customer_approved or is_first_interaction):
+            # SAFETY: Build summary with fallbacks
+            summ_ritual = str(ritual or "Unknown Ritual")
+            summ_date = str(data.get("event_date") or "TBD")
+            summ_time = str(data.get("event_time") or "TBD")
+            summ_loc = str(data.get("location") or "Unknown Location")
+            summ_guests = str(data.get("guest_count") or "TBD")
+            
+            services = []
+            if data.get("needs_pandit"): services.append("Pandit")
+            if data.get("needs_caterer"): services.append("Catering")
+            if data.get("needs_venue"): services.append("Venue")
+            summ_services = ", ".join(services) if services else "All setup needed"
+
+            summary = (
+                f"**PLAN SUMMARY:**\n"
+                f"- **Ritual:** {summ_ritual}\n"
+                f"- **Date/Time:** {summ_date} at {summ_time}\n"
+                f"- **Location:** {summ_loc}\n"
+                f"- **Guests:** {summ_guests}\n"
+                f"- **Services:** {summ_services}\n\n"
+                f"Shall I proceed to source these providers for you?"
+            )
+            
             return {
                 **data,
                 "clarification_needed": True,
-                "clarification_message": f"**PLAN SUMMARY:**\n- **Ritual:** {ritual}\n- **Date/Time:** {data.get('event_date')} at {data.get('event_time')}\n- **Location:** {data.get('location')}\n- **Guests:** {data.get('guest_count')}\n- **Services:** {'Pandit, ' if data.get('needs_pandit') else ''}{'Catering, ' if data.get('needs_caterer') else ''}{'Venue' if data.get('needs_venue') else ''}\n\nShall I proceed to source these providers for you?",
+                "clarification_message": summary,
                 "next_node": "scribe",
                 "last_node": "planner"
             }

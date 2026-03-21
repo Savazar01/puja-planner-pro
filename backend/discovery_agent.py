@@ -418,7 +418,8 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
         """
         
         try:
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            # [UPGRADE] Using agent_supplies_llm from environment
+            model = genai.GenerativeModel(settings.agent_supplies_llm)
             response = model.generate_content(prompt)
             text = response.text.strip()
             

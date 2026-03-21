@@ -11,6 +11,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
 import asyncio
 import anyio
+from datetime import datetime
 
 from config import settings
 from database import engine, get_db
@@ -125,7 +126,7 @@ async def health():
         "status": "ok" if GLOBAL_READY else "initializing",
         "ready": GLOBAL_READY,
         "error": INIT_ERROR,
-        "timestamp": str(logging.datetime.now())
+        "timestamp": str(datetime.now())
     }
 
 if __name__ == "__main__":

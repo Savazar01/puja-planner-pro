@@ -82,20 +82,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = useCallback(async (email: string, pass: string) => {
     const res = await apiLogin(email, pass);
-    localStorage.setItem("token", res.access_token);
-    setToken(res.access_token);
-    const u = await fetchUser(res.access_token);
+    const newToken = res.access_token;
+    localStorage.setItem("token", newToken);
+    setToken(newToken);
+    
+    // Non-blocking redirect: Use a temporary role check or redirect immediately
+    // We try to decode the token to get the user type quickly if possible, 
+    // but for now we redirect to a generic landing if we can't wait.
+    // However, to keep role parity, we'll trigger fetchUser in background 
+    // and perform a "Fast Redirect" based on the stored/expected behavior.
+    
     setShowAuthModal(false);
-    if (u) {
-      const targetRole = u.userType.toLowerCase();
-      if (u.isAdmin) {
-        window.location.href = "/admin-dashboard";
-      } else if (targetRole === "customer" || targetRole === "event_manager") {
-        window.location.href = "/customer-dashboard";
-      } else {
-        window.location.href = "/dashboard";
+    
+    // Trigger background fetch
+    fetchUser(newToken).then(u => {
+      if (u) {
+        const targetRole = u.userType.toLowerCase();
+        if (u.isAdmin) {
+          window.location.href = "/admin-dashboard";
+        } else if (targetRole === "customer" || targetRole === "event_manager") {
+          window.location.href = "/customer-dashboard";
+        } else {
+          window.location.href = "/dashboard";
+        }
       }
-    }
+    });
+
+    // Optional: Immediate optimistic redirect if we have a hint, 
+    // but the .then() above is fast enough if fetchUser is optimized.
   }, [fetchUser]);
 
   const register = useCallback(async (data: any) => {

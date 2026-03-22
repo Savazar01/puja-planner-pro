@@ -165,8 +165,8 @@ export default function ProfileSettings() {
         setRoleMetadata((prev: any) => ({ ...prev, [key]: value }));
     };
 
-    const generateDisplayLocation = (c: string, s: string, st: string, co: string) => {
-        const parts = [c, s, st, co].filter(Boolean);
+    const generateDisplayLocation = (l: string, c: string, s: string, co: string, z: string) => {
+        const parts = [l, c, s, co, z].map(p => p?.trim()).filter(Boolean);
         setLocation(parts.join(", "));
     };
 
@@ -392,7 +392,7 @@ export default function ProfileSettings() {
                                         value={country} 
                                         onChange={e => {
                                             setCountry(e.target.value);
-                                            generateDisplayLocation(city, stateRegion, street, e.target.value);
+                                            generateDisplayLocation(street, city, stateRegion, e.target.value, addressZip);
                                         }}
                                         className="w-full h-10 px-3 py-2 bg-background border rounded-md text-sm"
                                     >
@@ -404,14 +404,14 @@ export default function ProfileSettings() {
                                     </select>
                                 </div>
                                 <div className="space-y-2 md:col-span-2">
-                                    <Label>Street Address</Label>
+                                    <Label>Street/Locality</Label>
                                     <Input 
                                         value={street} 
                                         onChange={e => {
                                             setStreet(e.target.value);
-                                            generateDisplayLocation(city, stateRegion, e.target.value, country);
+                                            generateDisplayLocation(e.target.value, city, stateRegion, country, addressZip);
                                         }} 
-                                        placeholder="123 Main St" 
+                                        placeholder="e.g. Srinagar Colony" 
                                     />
                                 </div>
                                 <div className="space-y-2">
@@ -420,7 +420,7 @@ export default function ProfileSettings() {
                                         value={city} 
                                         onChange={e => {
                                             setCity(e.target.value);
-                                            generateDisplayLocation(e.target.value, stateRegion, street, country);
+                                            generateDisplayLocation(street, e.target.value, stateRegion, country, addressZip);
                                         }} 
                                         placeholder="City" 
                                     />
@@ -431,14 +431,21 @@ export default function ProfileSettings() {
                                         value={stateRegion} 
                                         onChange={e => {
                                             setStateRegion(e.target.value);
-                                            generateDisplayLocation(city, e.target.value, street, country);
+                                            generateDisplayLocation(street, city, e.target.value, country, addressZip);
                                         }} 
                                         placeholder="State" 
                                     />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>{country === "USA" || country === "Canada" ? "Zip Code" : "Pincode"}</Label>
-                                    <Input value={addressZip} onChange={e => setAddressZip(e.target.value)} placeholder={country === "USA" || country === "Canada" ? "e.g. 90210" : "e.g. 500001"} />
+                                    <Input 
+                                        value={addressZip} 
+                                        onChange={e => {
+                                            setAddressZip(e.target.value);
+                                            generateDisplayLocation(street, city, stateRegion, country, e.target.value);
+                                        }} 
+                                        placeholder={country === "USA" || country === "Canada" ? "e.g. 90210" : "e.g. 500001"} 
+                                    />
                                 </div>
                             </div>
 

@@ -18,14 +18,14 @@ const Navbar = () => {
 
   const navLinks = [
     { to: "/", label: "Home" },
-    ...(isAuthenticated ? [
-      ...(user?.userType === "customer" 
+    ...(isAuthenticated 
+      ? (user?.userType === "customer" || user?.userType === "event_manager")
         ? [
             { to: "/customer-dashboard", label: "My Dashboard" },
             { to: "/event-orchestration", label: "Event Planning" }
           ]
-        : [{ to: "/dashboard", label: "Dashboard" }])
-    ] : []),
+        : [{ to: "/dashboard", label: "Dashboard" }]
+      : []),
     ...(user?.isAdmin ? [{ to: "/admin-dashboard", label: "Admin" }] : []),
   ];
 

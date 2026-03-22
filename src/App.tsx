@@ -51,7 +51,7 @@ const App = () => (
 
 const SearchRedirect = () => {
   const { user } = useAuth();
-  if (user?.userType === "customer") {
+  if (user?.userType === "customer" || user?.userType === "event_manager") {
     return <Navigate to="/customer-dashboard" replace />;
   }
   return <Navigate to="/dashboard" replace />;

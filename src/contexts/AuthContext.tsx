@@ -90,7 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const targetRole = u.userType.toLowerCase();
       if (u.isAdmin) {
         window.location.href = "/admin-dashboard";
-      } else if (targetRole === "customer") {
+      } else if (targetRole === "customer" || targetRole === "event_manager") {
         window.location.href = "/customer-dashboard";
       } else {
         window.location.href = "/dashboard";

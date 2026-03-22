@@ -56,7 +56,7 @@ const CustomerDashboard = () => {
 
   if (isLoading) return null;
   if (!isAuthenticated) return <Navigate to="/" replace />;
-  if (user?.userType !== "customer" && !user?.isAdmin) {
+  if (user?.userType !== "customer" && user?.userType !== "event_manager" && !user?.isAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 

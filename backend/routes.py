@@ -271,12 +271,18 @@ async def register(user_in: UserCreate, db: Session = Depends(get_db)):
             to_email=settings.admin_user, # Alert the admin
             event_type=EmailEventType.VENDOR_WAITING,
             context={
-                "vendor_name": new_profile.full_name,
+            "vendor_name": new_profile.full_name,
                 "vendor_role": new_user.role.name,
                 "vendor_email": new_user.email
             }
         )
     return new_user
+
+
+@router.get("/health")
+async def health_check():
+    """Lightweight health check for Docker/Cloudflare."""
+    return {"status": "ok"}
 
 
 @router.post("/api/auth/token", response_model=Token)

@@ -51,6 +51,12 @@ services:
     networks:
       - default
       - savaz-prod-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${BACKEND_PORT:-8000}/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     restart: unless-stopped
 
   # Vite/React Frontend

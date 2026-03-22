@@ -25,7 +25,14 @@ The application MUST use **LangGraph** as the sole orchestration engine. The wor
 - **Privacy Gate Routing**: Outbound LLM traffic must pass through `:8740` for PII redaction.
 - **Parallel Sourcing**: Finder must check internal DB first, then trigger external web search.
 - **Location Governance**: "Location" parameters for external search (e.g., Google Serper `gl` parameter) MUST be derived from the user's structured `address_country` field. 
-- **Structured Address**: The location string for agents is now a composite object: `[Locality], [City], [State], [Country]`, ensuring precise geographical indexing.
+- **Structured Address**: The location string for agents is now a composite object: `[Locality], [City], [State], [Country], [Zip/Pincode]`, ensuring precise geographical indexing.
+
+## V. Performance & Stability (25-Second Ceiling)
+- **The 25-Second Ceiling**: No single request (Login, Save, Search) can exceed 25 seconds of processing time to stay under the 30s Cloudflare threshold.
+- **Async-Only I/O**: Forbid synchronous I/O or heavy data processing (e.g., Base64 image manipulation) on the main thread. All such operations MUST be handled asynchronously.
+- **Fail-Safe Login**: The login flow must prioritize the JWT/Session handshake. Trigger background telemetry or agent syncing ONLY after the user session is established.
+- **Specialist Registry Consistency**: Maintain the 11-role Specialist Registry in all future UI/Backend updates (Caterer, Media, Mehendi Artist, etc.).
+- **Client-Side Heavy Lifting**: Move all possible logic (string formatting, image resizing, data validation) to the React frontend to minimize backend CPU cycles.
 
 ## IV. UI/UX & Frontend Philosophy
 - **Scribe Persistence**: Intent harvesting must be persisted to the DB as it happens. Do not wait for a final "Submit".

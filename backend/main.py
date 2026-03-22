@@ -104,12 +104,14 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Puja Planner Pro API",
-    description="Backend API with Discovery Agent",
-    version="1.0.0",
-    docs_url=None,
-    openapi_url="/openapi.json",
-    lifespan=lifespan,
+    version="1.1.0",
+    lifespan=lifespan
 )
+
+@app.get("/health")
+async def health_check():
+    """Direct health check to bypass router initialization delays."""
+    return {"status": "ok"}
 
 security = HTTPBasic()
 

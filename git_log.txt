@@ -1,0 +1,5 @@
+e491df7 Critical Fix: Converted blocking async endpoints to synchronous threadpool routes to resolve 504 and 30s timeouts
+7b48bf1 Critical Fix: Resolved 30s Login Timeout (Non-blocking async auth and Fast Startup with SYNC_DB gating)
+8147c4b Emergency Fix: Resolved 504 Scaling Regression (Optimized list_events with joinedload and reverted anyio requirement)
+03cbc16 Dashboard Polish: Implemented lifecycle management (Delete/Complete/Auto-Archive) and refactored metrics to real API data
+db5601c Critical Fix: Resolved 504 Gateway Timeout (Fixed crashing health endpoint and missing anyio requirement)

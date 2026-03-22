@@ -40,6 +40,17 @@ def run_initialization():
         Base.metadata.create_all(bind=engine)
         logger.info("Database tables verified.")
         
+        # 1.5 Update Postgres ENUMs (Must be outside transaction block)
+        try:
+            with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
+                for role in ['CATERER', 'DECORATOR', 'DJ_COMPERE', 'LOCATION_MANAGER', 'MEDIA', 'MEHENDI_ARTIST']:
+                    try:
+                        conn.execute(text(f"ALTER TYPE userrole ADD VALUE '{role}'"))
+                    except Exception:
+                        pass
+        except Exception as enum_err:
+            logger.warning(f"Enum sync skipped (Non-fatal, may use SQLite): {enum_err}")
+        
         # 2. Run manual migrations (resiliently)
         with engine.begin() as conn:
             try:

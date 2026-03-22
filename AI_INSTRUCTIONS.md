@@ -14,11 +14,12 @@ The application MUST use **LangGraph** as the sole orchestration engine. The wor
 - **Cloudflare Proxy**: Mandatory for production API endpoints to mask origin and enforce HTTPS.
 
 ## II. Backend & API Architecture
+- **Architecture Registry**: Explicitly forbidding the creation or hallucination of any new user types. All future logic, roles, and UI flows MUST strictly map to the exact entities defined in the existing `/agents` and `/humans` directories. No ad-hoc roles or user types are permitted under any circumstances.
 - **Pristine State Rule**: New events MUST initialize with empty `guests` and `supplies` arrays. Seed/Mock data is prohibited in production flows.
 - **Model Fallback Logic**: 
   - Primary: `gemini-1.5-pro` (Detailed parsing/complex logic).
   - Fallback: `gemini-1.5-flash` (High speed/quota resilient).
-  - Automation: Fallback must be handle gracefully within the implementation to ensure service continuity.
+  - Automation: Fallback must be handled gracefully within the implementation to ensure service continuity.
 
 ## III. AI Agent & Search Logic
 - **Privacy Gate Routing**: Outbound LLM traffic must pass through `:8740` for PII redaction.

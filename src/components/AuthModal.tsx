@@ -27,6 +27,12 @@ const userTypes = [
   { value: "TEMPLE_ADMIN", label: "Temple Admin" },
   { value: "SUPPLIER", label: "Supplier" },
   { value: "EVENT_MANAGER", label: "Event Manager" },
+  { value: "CATERER", label: "Caterer" },
+  { value: "DECORATOR", label: "Decorator" },
+  { value: "DJ_COMPERE", label: "DJ & Compere" },
+  { value: "LOCATION_MANAGER", label: "Location Manager" },
+  { value: "MEDIA", label: "Media & Photography" },
+  { value: "MEHENDI_ARTIST", label: "Mehendi Artist" },
   { value: "OTHER", label: "Other" },
 ] as const;
 

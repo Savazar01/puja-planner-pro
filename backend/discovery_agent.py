@@ -115,8 +115,8 @@ class DiscoveryAgent:
             print(f"Privacy Gate Outbound Error (Firecrawl): {e}")
             return ""
     
-    def parse_with_gemini(self, content: str, entity_type: str) -> Optional[Dict[str, Any]]:
-        """Parse scraped content into structured JSON using Gemini."""
+    async def parse_with_gemini(self, content: str, entity_type: str) -> Optional[Dict[str, Any]]:
+        """Parse scraped content into structured JSON using Gemini asynchronously."""
         
         prompts = {
             "pandit": """
@@ -193,7 +193,7 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
             
             # [UPGRADE] Using gemini-3-flash-preview for structured parsing
             gemini_model = genai.GenerativeModel(settings.agent_finder_llm)
-            response = gemini_model.generate_content(full_prompt)
+            response = await gemini_model.generate_content_async(full_prompt)
             
             # Extract JSON from response
             text = response.text.strip()
@@ -316,7 +316,7 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
             if not content:
                 provider_data = {"name": result.get("title", "Unknown"), "location": location, "website": url}
             else:
-                provider_data = self.parse_with_gemini(content, prompt_key)
+                provider_data = await self.parse_with_gemini(content, prompt_key)
                 if not provider_data or not isinstance(provider_data, dict): 
                     continue
                 provider_data["website"] = url
@@ -413,8 +413,8 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
         db.add(cache_entry)
         db.commit()
 
-    def suggest_ritual_supplies(self, intent: str) -> List[Dict[str, Any]]:
-        """Sourcing for Supplies: Uses Gemini to suggest a ritual-specific checklist."""
+    async def suggest_ritual_supplies(self, intent: str) -> List[Dict[str, Any]]:
+        """Sourcing for Supplies: Uses Gemini asynchronously to suggest a ritual-specific checklist."""
         prompt = f"""
         You are the 'Supplies Agent' for MyPandits. 
         Based on the customer's intent: "{intent}", identify the specific Hindu ritual if any.
@@ -437,7 +437,7 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
         try:
             # [UPGRADE] Using agent_supplies_llm from environment
             model = genai.GenerativeModel(settings.agent_supplies_llm)
-            response = model.generate_content(prompt)
+            response = await model.generate_content_async(prompt)
             text = response.text.strip()
             
             # [FIX] Robust JSON extraction for supplies

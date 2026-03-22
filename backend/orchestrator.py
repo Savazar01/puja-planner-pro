@@ -431,7 +431,7 @@ async def supplies_node(state: VedicEventState):
     try:
         commands = state.get("agent_commands", {})
         ritual_hint = commands.get("supplies") or state.get("ritual_name") or state.get("user_query")
-        suggested = discovery_agent.suggest_ritual_supplies(ritual_hint)
+        suggested = await discovery_agent.suggest_ritual_supplies(ritual_hint)
         return {"supplies_suggested": suggested, "next_node": "scribe", "last_node": "supplies"}
     except Exception as e:
         print(f"Supplies Agent Error: {e}")

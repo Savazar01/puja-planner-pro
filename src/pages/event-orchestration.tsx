@@ -11,11 +11,14 @@ const EventOrchestration = () => {
   if (!isAuthenticated) return <Navigate to="/" replace />;
 
   const isCustomer = user?.userType === "customer";
+  const isPlanner = user?.userType === "event_manager";
   const isAdmin = user?.isAdmin;
 
-  if (!isCustomer && !isAdmin) {
+  if (!isCustomer && !isPlanner && !isAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
+
+  const roleLabel = isPlanner ? "Event Manager" : (user?.userType || "Guest");
 
   return (
     <main className="min-h-screen bg-background">
@@ -31,7 +34,7 @@ const EventOrchestration = () => {
             </div>
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 px-3 py-1">
-                Role: {user?.userType}
+                Role: {roleLabel}
               </Badge>
               <Badge variant="outline" className="bg-accent/5 text-accent-foreground border-accent/20 px-3 py-1 uppercase font-bold tracking-tighter">
                 {user?.tier} Member

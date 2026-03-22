@@ -78,8 +78,14 @@ class Profile(Base):
     address_state = Column(String, nullable=True)
     address_country = Column(String, nullable=True)
     social_media = Column(JSON, default={})
-    profile_picture_url = Column(String, nullable=True)
+    profile_picture_url = Column(String, nullable=True) # Now stores Base64 or URL
     bio = Column(Text, nullable=True)
+    
+    # EPIC-4 Global Registry & Enhanced Info
+    title = Column(String, nullable=True) # Mr, Mrs, Ms, Dr
+    languages = Column(String, nullable=True) # Comma-separated
+    address_type = Column(String, nullable=True) # Home, Business
+    address_zip = Column(String, nullable=True) # Zip/Pincode
     
     user = relationship("User", back_populates="profile")
 

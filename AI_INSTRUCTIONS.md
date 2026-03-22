@@ -24,6 +24,8 @@ The application MUST use **LangGraph** as the sole orchestration engine. The wor
 ## III. AI Agent & Search Logic
 - **Privacy Gate Routing**: Outbound LLM traffic must pass through `:8740` for PII redaction.
 - **Parallel Sourcing**: Finder must check internal DB first, then trigger external web search.
+- **Location Governance**: "Location" parameters for external search (e.g., Google Serper `gl` parameter) MUST be derived from the user's structured `address_country` field. 
+- **Structured Address**: The location string for agents is now a composite object: `[Locality], [City], [State], [Country]`, ensuring precise geographical indexing.
 
 ## IV. UI/UX & Frontend Philosophy
 - **Scribe Persistence**: Intent harvesting must be persisted to the DB as it happens. Do not wait for a final "Submit".

@@ -39,6 +39,12 @@ class ProfileBase(BaseModel):
     social_media: Optional[Dict[str, Any]] = {}
     profile_picture_url: Optional[str] = None
     bio: Optional[str] = None
+    
+    # EPIC-4 Extended
+    title: Optional[str] = None
+    languages: Optional[str] = None
+    address_type: Optional[str] = None
+    address_zip: Optional[str] = None
 
 class ProfileCreate(ProfileBase):
     pass
@@ -83,6 +89,10 @@ class ProfileUpdate(BaseModel):
     social_media: Optional[Dict[str, Any]] = None
     profile_picture_url: Optional[str] = None
     bio: Optional[str] = None
+    title: Optional[str] = None
+    languages: Optional[str] = None
+    address_type: Optional[str] = None
+    address_zip: Optional[str] = None
 
 class UserUpdateStatus(BaseModel):
     status: UserStatus

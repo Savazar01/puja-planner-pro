@@ -28,7 +28,12 @@ export default function ProfileSettings() {
     const [street, setStreet] = useState("");
     const [city, setCity] = useState("");
     const [stateRegion, setStateRegion] = useState("");
-    const [country, setCountry] = useState("");
+    const [country, setCountry] = useState("India");
+    const [addressZip, setAddressZip] = useState("");
+    const [addressType, setAddressType] = useState("");
+
+    const [title, setTitle] = useState("");
+    const [languages, setLanguages] = useState("");
 
     const [socials, setSocials] = useState<any>({ instagram: "", facebook: "", website: "" });
     const [roleMetadata, setRoleMetadata] = useState<any>({});
@@ -53,7 +58,11 @@ export default function ProfileSettings() {
                 setStreet(p.address_street || "");
                 setCity(p.address_city || "");
                 setStateRegion(p.address_state || "");
-                setCountry(p.address_country || "");
+                setCountry(p.address_country || "India");
+                setAddressZip(p.address_zip || "");
+                setAddressType(p.address_type || (user.userType === 'customer' ? 'Home' : 'Business'));
+                setTitle(p.title || "");
+                setLanguages(p.languages || "");
                 setSocials(p.social_media || { instagram: "", facebook: "", website: "" });
                 setRoleMetadata(p.role_metadata || {});
             } catch (e) {
@@ -79,6 +88,10 @@ export default function ProfileSettings() {
                 address_city: city,
                 address_state: stateRegion,
                 address_country: country,
+                address_zip: addressZip,
+                address_type: addressType,
+                title,
+                languages,
                 social_media: socials,
                 role_metadata: roleMetadata
             }, token!);
@@ -152,6 +165,26 @@ export default function ProfileSettings() {
         setRoleMetadata((prev: any) => ({ ...prev, [key]: value }));
     };
 
+    const generateDisplayLocation = (c: string, s: string, st: string, co: string) => {
+        const parts = [c, s, st, co].filter(Boolean);
+        setLocation(parts.join(", "));
+    };
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (file.size > 500 * 1024) {
+            toast({ variant: "destructive", title: "File too large", description: "Image must be less than 500KB" });
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setProfilePicture(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+    };
+
     if (!user) return null;
     if (fetching) return <div className="text-center py-20 text-muted-foreground">Loading profile...</div>;
 
@@ -193,24 +226,43 @@ export default function ProfileSettings() {
                                         <User size={40} className="text-muted-foreground opacity-50" />
                                     )}
                                 </div>
-                                <div className="flex-1 space-y-2">
-                                    <Label>Avatar URL (Link to your profile picture)</Label>
-                                    <Input value={profilePicture} onChange={e => setProfilePicture(e.target.value)} placeholder="https://example.com/photo.jpg" />
+                                <div className="flex-1 space-y-4">
+                                    <div className="space-y-2">
+                                        <Label>Profile Picture (Max 500KB)</Label>
+                                        <Input type="file" accept="image/*" onChange={handleFileUpload} className="cursor-pointer" />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label>Title</Label>
+                                            <select 
+                                                value={title} 
+                                                onChange={e => setTitle(e.target.value)}
+                                                className="w-full h-10 px-3 py-2 bg-background border rounded-md text-sm ring-offset-background"
+                                            >
+                                                <option value="">Select Title</option>
+                                                {["Mr.", "Mrs.", "Ms.", "Dr.", "Prof."].map(t => <option key={t} value={t}>{t}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label>Full Name</Label>
+                                            <Input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Your Name" />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
                             <div className="grid md:grid-cols-2 gap-5">
                                 <div className="space-y-2">
-                                    <Label>Full Name</Label>
-                                    <Input value={fullName} onChange={e => setFullName(e.target.value)} placeholder="Your Name" />
-                                </div>
-                                <div className="space-y-2">
                                     <Label>Standard Phone</Label>
                                     <Input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91 0000000000" />
                                 </div>
-                                <div className="space-y-2 md:col-span-2">
+                                <div className="space-y-2">
                                     <Label>WhatsApp Number <span className="text-red-500">*</span></Label>
                                     <Input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} placeholder="Required for notifications" />
+                                </div>
+                                <div className="space-y-2 md:col-span-2">
+                                    <Label>Languages Managed (e.g. Telugu, English, Hindi)</Label>
+                                    <Input value={languages} onChange={e => setLanguages(e.target.value)} placeholder="Enter languages separated by commas" />
                                 </div>
                             </div>
 
@@ -322,30 +374,79 @@ export default function ProfileSettings() {
                                 <p className="text-sm text-muted-foreground mb-6">Manage your operational base and display areas.</p>
                             </div>
 
-                            <div className="space-y-2 pb-4 border-b">
-                                <Label>Display Location (Shown strictly on search results)</Label>
-                                <Input value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g. Mumbai, India" />
-                            </div>
-
-                            <div className="grid md:grid-cols-2 gap-5 pt-2">
+                            <div className="grid md:grid-cols-2 gap-5">
+                                <div className="space-y-2">
+                                    <Label>Address Type</Label>
+                                    <select 
+                                        value={addressType} 
+                                        onChange={e => setAddressType(e.target.value)}
+                                        className="w-full h-10 px-3 py-2 bg-background border rounded-md text-sm"
+                                    >
+                                        <option value="Home">Home</option>
+                                        <option value="Business">Business</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Country</Label>
+                                    <select 
+                                        value={country} 
+                                        onChange={e => {
+                                            setCountry(e.target.value);
+                                            generateDisplayLocation(city, stateRegion, street, e.target.value);
+                                        }}
+                                        className="w-full h-10 px-3 py-2 bg-background border rounded-md text-sm"
+                                    >
+                                        <option value="India">India</option>
+                                        <option value="USA">USA</option>
+                                        <option value="Canada">Canada</option>
+                                        <option value="UK">UK</option>
+                                        <option value="Australia">Australia</option>
+                                    </select>
+                                </div>
                                 <div className="space-y-2 md:col-span-2">
                                     <Label>Street Address</Label>
-                                    <Input value={street} onChange={e => setStreet(e.target.value)} placeholder="123 Main St" />
+                                    <Input 
+                                        value={street} 
+                                        onChange={e => {
+                                            setStreet(e.target.value);
+                                            generateDisplayLocation(city, stateRegion, e.target.value, country);
+                                        }} 
+                                        placeholder="123 Main St" 
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>City</Label>
-                                    <Input value={city} onChange={e => setCity(e.target.value)} placeholder="City" />
+                                    <Input 
+                                        value={city} 
+                                        onChange={e => {
+                                            setCity(e.target.value);
+                                            generateDisplayLocation(e.target.value, stateRegion, street, country);
+                                        }} 
+                                        placeholder="City" 
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <Label>State / Province</Label>
-                                    <Input value={stateRegion} onChange={e => setStateRegion(e.target.value)} placeholder="State" />
+                                    <Input 
+                                        value={stateRegion} 
+                                        onChange={e => {
+                                            setStateRegion(e.target.value);
+                                            generateDisplayLocation(city, e.target.value, street, country);
+                                        }} 
+                                        placeholder="State" 
+                                    />
                                 </div>
-                                <div className="space-y-2 md:col-span-2">
-                                    <Label>Country</Label>
-                                    <Input value={country} onChange={e => setCountry(e.target.value)} placeholder="Country" />
+                                <div className="space-y-2">
+                                    <Label>{country === "USA" || country === "Canada" ? "Zip Code" : "Pincode"}</Label>
+                                    <Input value={addressZip} onChange={e => setAddressZip(e.target.value)} placeholder={country === "USA" || country === "Canada" ? "e.g. 90210" : "e.g. 500001"} />
                                 </div>
                             </div>
-                            <Button onClick={handleSaveProfile} disabled={loading} className="mt-6 w-full sm:w-auto">Save Location</Button>
+
+                            <div className="space-y-2 pt-4 border-t">
+                                <Label>Display Location (Automatically Generated)</Label>
+                                <Input value={location} readOnly className="bg-muted" />
+                            </div>
+                            <Button onClick={handleSaveProfile} disabled={loading} className="mt-6 w-full sm:w-auto">Save Address</Button>
                         </TabsContent>
 
                         <TabsContent value="socials" className="space-y-6 m-0">

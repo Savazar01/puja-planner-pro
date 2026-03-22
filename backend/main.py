@@ -69,6 +69,12 @@ def run_initialization():
                 conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS profile_picture_url VARCHAR"))
                 conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS bio TEXT"))
                 
+                # EPIC-4 Global Registry & Enhanced Info
+                conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS title VARCHAR"))
+                conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS languages VARCHAR"))
+                conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS address_type VARCHAR"))
+                conn.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS address_zip VARCHAR"))
+                
                 # Custom tables
                 conn.execute(text("""CREATE TABLE IF NOT EXISTS subscription_requests (id VARCHAR PRIMARY KEY, user_id VARCHAR, target_tier VARCHAR, status VARCHAR, created_at TIMESTAMP)"""))
                 conn.execute(text("""CREATE TABLE IF NOT EXISTS agent_logs (id VARCHAR PRIMARY KEY, event_id VARCHAR, agent_type VARCHAR, tool_used VARCHAR, summary_outcome TEXT, created_at TIMESTAMP)"""))

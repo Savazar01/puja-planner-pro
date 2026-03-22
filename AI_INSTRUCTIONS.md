@@ -16,10 +16,10 @@ The application MUST use **LangGraph** as the sole orchestration engine. The wor
 ## II. Backend & API Architecture
 - **Architecture Registry**: Explicitly forbidding the creation or hallucination of any new user types. All future logic, roles, and UI flows MUST strictly map to the exact 11 specialist roles defined here and in the `/humans` directory: `customer`, `PANDIT`, `TEMPLE_ADMIN`, `SUPPLIER`, `EVENT_MANAGER`, `CATERER`, `DECORATOR`, `DJ_COMPERE`, `LOCATION_MANAGER`, `MEDIA`, `MEHENDI_ARTIST`, and `OTHER`. No ad-hoc roles are permitted.
 - **Pristine State Rule**: New events MUST initialize with empty `guests` and `supplies` arrays. Seed/Mock data is prohibited in production flows.
-- **Model Fallback Logic**: 
-  - Primary: `gemini-1.5-pro` (Detailed parsing/complex logic).
-  - Fallback: `gemini-1.5-flash` (High speed/quota resilient).
-  - Automation: Fallback must be handled gracefully within the implementation to ensure service continuity.
+- **Model Selection (The "500 RPD" Lock)**: 
+  - Primary Model: `gemini-3.1-flash-lite-preview` (Mandatory for all 5 agents).
+  - API Version: `v1beta` (Must be explicitly set in `http_options` during SDK initialization).
+- **Automation**: Model fallback logic is deprecated; the system must optimize for the Flash-Lite 3.1 context at all times.
 
 ## III. AI Agent & Search Logic
 - **Privacy Gate Routing**: Outbound LLM traffic must pass through `:8740` for PII redaction.

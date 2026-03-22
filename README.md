@@ -128,8 +128,8 @@ puja-planner-pro/
 ### User-Facing Roles (Architecture Registry)
 **CRITICAL**: The application strictly forbids the creation or hallucination of new user types. All roles MUST map to the registered `/agents` and `/humans` directories.
 
-- **Customer**: The primary host and decision-maker. Accesses the **Event Canvas** (`/event-orchestration`) and the **Customer Dashboard** (`/dashboard`).
-- **Human Specialists**: Verified professionals (e.g., **Pandit**, **Caterer**, **Decorator**, **Location Manager**, **Media**, **Mehendi Artist**, **DJ/Compere**). Managed via their respective Dashboards.
+- **Customer**: The primary host and decision-maker. Accesses the **Event Canvas** (`/event-orchestration`) and the **Customer Dashboard** (`/customer-dashboard`).
+- **Human Specialists**: Verified professionals across 11 distinct roles: **Pandit**, **Caterer**, **Decorator**, **DJ/Compere**, **Location Manager**, **Media**, **Mehendi Artist**, **Transport**, **Security**, **Florist**, and **Gifts**. Managed via their respective Dashboards.
 - **Admin**: System administrator overseeing the ecosystem. Accesses the **Admin Center**.
 
 ## 🚀 Key Features

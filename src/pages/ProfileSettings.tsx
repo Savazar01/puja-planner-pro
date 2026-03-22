@@ -198,7 +198,7 @@ export default function ProfileSettings() {
                 <TabsList className="flex md:flex-col justify-start items-start h-auto bg-transparent space-y-2 md:w-64">
                     <TabsTrigger value="basic" className="w-full justify-start gap-3"><User size={18} /> Basic Info</TabsTrigger>
 
-                    {user.userType === "customer" ? (
+                    {(user.userType === "customer" || user.userType === "event_manager") ? (
                         <TabsTrigger value="subscription" className="w-full justify-start gap-3 text-amber-600 data-[state=active]:text-amber-700 data-[state=active]:bg-amber-50">
                             <Star size={18} /> Subscription
                         </TabsTrigger>
@@ -278,7 +278,7 @@ export default function ProfileSettings() {
                             <Button onClick={handleSaveProfile} disabled={loading} className="mt-6 w-full sm:w-auto">{loading ? "Saving..." : "Save basic info"}</Button>
                         </TabsContent>
 
-                        {user.userType === "customer" && (
+                        {(user.userType === "customer" || user.userType === "event_manager") && (
                             <TabsContent value="subscription" className="space-y-6 m-0">
                                 <div>
                                     <h2 className="text-2xl font-medium mb-1 flex items-center gap-2">
@@ -487,6 +487,16 @@ export default function ProfileSettings() {
                                 </div>
 
                                 <div className="grid md:grid-cols-2 gap-5">
+                                    {user.userType === "event_manager" && (
+                                        <div className="space-y-2 md:col-span-2">
+                                            <Label>Firm / Company Name</Label>
+                                            <Input
+                                                value={roleMetadata?.firm_name || ""}
+                                                onChange={e => updateRoleMeta('firm_name', e.target.value)}
+                                                placeholder="Professional Planning Agency Name"
+                                            />
+                                        </div>
+                                    )}
                                     <div className="space-y-2">
                                         <Label>Years of Experience</Label>
                                         <Input
@@ -497,13 +507,35 @@ export default function ProfileSettings() {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label>Primary Specialty</Label>
-                                        <Input
-                                            value={roleMetadata?.specialty || ""}
-                                            onChange={e => updateRoleMeta('specialty', e.target.value)}
-                                            placeholder="e.g. Vedic Astrology, Catering, etc."
-                                        />
+                                        <Label>{user.userType === "event_manager" ? "Team Size" : "Primary Specialty"}</Label>
+                                        {user.userType === "event_manager" ? (
+                                            <Input
+                                                type="number"
+                                                value={roleMetadata?.team_size || ""}
+                                                onChange={e => updateRoleMeta('team_size', e.target.value)}
+                                                placeholder="Number of staff"
+                                            />
+                                        ) : (
+                                            <Input
+                                                value={roleMetadata?.specialty || ""}
+                                                onChange={e => updateRoleMeta('specialty', e.target.value)}
+                                                placeholder="e.g. Vedic Astrology, Catering, etc."
+                                            />
+                                        )}
                                     </div>
+                                    {user.userType === "event_manager" && (
+                                        <div className="space-y-2 md:col-span-2">
+                                            <Label>Primary Specialty</Label>
+                                            <select 
+                                                value={roleMetadata?.specialty || ""} 
+                                                onChange={e => updateRoleMeta('specialty', e.target.value)}
+                                                className="w-full h-10 px-3 py-2 bg-background border rounded-md text-sm"
+                                            >
+                                                <option value="">Select Specialty</option>
+                                                {["Wedding", "Corporate", "Religious", "Social"].map(s => <option key={s} value={s}>{s}</option>)}
+                                            </select>
+                                        </div>
+                                    )}
                                     {user.userType === "temple_admin" && (
                                         <div className="space-y-2 md:col-span-2">
                                             <Label>Temple Name</Label>

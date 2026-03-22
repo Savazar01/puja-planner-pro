@@ -26,7 +26,8 @@ interface AuthContextType {
   logout: () => void;
   incrementSearch: () => void;
   showAuthModal: boolean;
-  setShowAuthModal: (show: boolean) => void;
+  setShowAuthModal: (show: boolean, mode?: "signin" | "register") => void;
+  authMode: "signin" | "register";
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -36,7 +37,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
   const [isLoading, setIsLoading] = useState(!!localStorage.getItem("token"));
   const [searchCount, setSearchCount] = useState(0);
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showAuthModal, setShowAuthModalState] = useState(false);
+  const [authMode, setAuthMode] = useState<"signin" | "register">("signin");
+
+  const setShowAuthModal = useCallback((show: boolean, mode: "signin" | "register" = "signin") => {
+    setAuthMode(mode);
+    setShowAuthModalState(show);
+  }, []);
 
   const fetchUser = useCallback(async (authToken: string) => {
     try {
@@ -123,6 +130,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null);
     localStorage.removeItem("token");
     setSearchCount(0);
+    window.location.href = "/";
   }, []);
 
   const incrementSearch = useCallback(() => {
@@ -131,7 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider
-      value={{ user, token, isAuthenticated: !!token && !!user, isLoading, searchCount, login, logout, register, incrementSearch, showAuthModal, setShowAuthModal }}
+      value={{ user, token, isAuthenticated: !!token && !!user, isLoading, searchCount, login, logout, register, incrementSearch, showAuthModal, setShowAuthModal, authMode }}
     >
       {children}
     </AuthContext.Provider>

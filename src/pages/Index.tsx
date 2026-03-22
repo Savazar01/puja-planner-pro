@@ -14,13 +14,7 @@ const fadeUp = {
 };
 
 const HeroSection = () => {
-  const [query, setQuery] = useState("");
-  const navigate = useNavigate();
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) navigate(`/search?q=${encodeURIComponent(query)}`);
-  };
+  const { setShowAuthModal } = useAuth();
 
   return (
     <section className="relative overflow-hidden bg-gradient-hero px-4 py-24 text-primary-foreground md:py-32">
@@ -46,26 +40,20 @@ const HeroSection = () => {
         >
           Find verified Pandits, Temples, Events, Plan Pujas, Weddings, Collaborate and coordinate every detail — all from one AI platform.
         </motion.p>
-        <motion.form
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.5 }}
-          onSubmit={handleSearch}
-          className="mx-auto mt-10 flex max-w-xl gap-2"
+          className="mx-auto mt-10 flex max-w-xl justify-center"
         >
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search Pandits, ceremonies, temples..."
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="h-12 rounded-lg border-none bg-card pl-10 text-foreground shadow-elevated"
-            />
-          </div>
-          <Button type="submit" size="lg" className="h-12 rounded-lg px-8">
-            Search
+          <Button 
+            onClick={() => setShowAuthModal(true, "register")} 
+            size="lg" 
+            className="h-14 rounded-full px-12 text-lg font-bold shadow-elevated hover:scale-105 transition-transform"
+          >
+            Get Started
           </Button>
-        </motion.form>
+        </motion.div>
       </div>
     </section>
   );

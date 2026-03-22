@@ -37,10 +37,9 @@ const userTypes = [
 ] as const;
 
 const AuthModal = () => {
-  const { login, register, showAuthModal, setShowAuthModal } = useAuth();
+  const { login, register, showAuthModal, setShowAuthModal, authMode } = useAuth();
   const { toast } = useToast();
 
-  const [activeTab, setActiveTab] = useState("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -99,112 +98,116 @@ const AuthModal = () => {
   };
 
   return (
-    <Dialog open={showAuthModal} onOpenChange={setShowAuthModal}>
+    <Dialog open={showAuthModal} onOpenChange={(open) => setShowAuthModal(open, authMode)}>
       <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-display">Welcome to MyPandits</DialogTitle>
-          <DialogDescription>Sign in or create an account to get started.</DialogDescription>
+          <DialogTitle className="font-display">
+            {authMode === "signin" ? "Sign In to MyPandits" : "Create your Account"}
+          </DialogTitle>
+          <DialogDescription>
+            {authMode === "signin" 
+              ? "Access your dashboard and rituals." 
+              : "Register to start planning your ceremony."}
+          </DialogDescription>
         </DialogHeader>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2">
-          <TabsList className="w-full">
-            <TabsTrigger value="signin" className="flex-1">Sign In</TabsTrigger>
-            <TabsTrigger value="register" className="flex-1">Register</TabsTrigger>
-          </TabsList>
 
-          <TabsContent value="signin" className="space-y-4 pt-4">
-            <div className="space-y-2">
-              <Label>Email</Label>
-              <Input type="email" value={email} onChange={e => setEmail(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Password</Label>
-                <Link to="/forgot-password" onClick={() => setShowAuthModal(false)} className="text-xs text-primary hover:underline">Forgot password?</Link>
-              </div>
-              <Input type="password" value={password} onChange={e => setPassword(e.target.value)} />
-            </div>
-            <Button onClick={handleLogin} disabled={loading} className="w-full">
-              {loading ? "Signing in..." : "Sign In"}
-            </Button>
-          </TabsContent>
-
-          <TabsContent value="register" className="space-y-4 pt-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2 col-span-2">
+        <div className="mt-4">
+          {authMode === "signin" ? (
+            <div className="space-y-4">
+              <div className="space-y-2">
                 <Label>Email</Label>
-                <Input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+                <Input type="email" value={email} onChange={e => setEmail(e.target.value)} />
               </div>
-              <div className="space-y-2 col-span-2">
-                <Label>Password</Label>
-                <Input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
-              </div>
-              <div className="space-y-2 col-span-2">
-                <Label>Full Name</Label>
-                <Input value={fullName} onChange={e => setFullName(e.target.value)} required />
-              </div>
-              <div className="space-y-2 col-span-2">
-                <Label>WhatsApp Number</Label>
-                <Input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} required />
-              </div>
-              <div className="space-y-2 col-span-2">
-                <Label>I am a</Label>
-                <Select value={role} onValueChange={setRole}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {userTypes.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {role === "PANDIT" && (
-                <>
-                  <div className="space-y-2 col-span-2">
-                    <Label>Years of Experience</Label>
-                    <Input value={meta1} onChange={e => setMeta1(e.target.value)} />
-                  </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label>Primary Specialty (e.g. Wedding, Havan)</Label>
-                    <Input value={meta2} onChange={e => setMeta2(e.target.value)} />
-                  </div>
-                </>
-              )}
-
-              {role === "TEMPLE_ADMIN" && (
-                <>
-                  <div className="space-y-2 col-span-2">
-                    <Label>Temple Name</Label>
-                    <Input value={meta1} onChange={e => setMeta1(e.target.value)} />
-                  </div>
-                  <div className="space-y-2 col-span-2">
-                    <Label>Temple Location</Label>
-                    <Input value={meta2} onChange={e => setMeta2(e.target.value)} />
-                  </div>
-                </>
-              )}
-
-              {role === "OTHER" && (
-                <div className="space-y-2 col-span-2">
-                  <Label>Specify your role</Label>
-                  <Input
-                    placeholder="e.g., Decorator, Musician..."
-                    value={meta1}
-                    onChange={(e) => setMeta1(e.target.value)}
-                  />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Password</Label>
+                  <Link to="/forgot-password" onClick={() => setShowAuthModal(false)} className="text-xs text-primary hover:underline">Forgot password?</Link>
                 </div>
-              )}
+                <Input type="password" value={password} onChange={e => setPassword(e.target.value)} />
+              </div>
+              <Button onClick={handleLogin} disabled={loading} className="w-full">
+                {loading ? "Signing in..." : "Sign In"}
+              </Button>
             </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2 col-span-2">
+                  <Label>Email</Label>
+                  <Input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label>Password</Label>
+                  <Input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label>Full Name</Label>
+                  <Input value={fullName} onChange={e => setFullName(e.target.value)} required />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label>WhatsApp Number</Label>
+                  <Input value={whatsapp} onChange={e => setWhatsapp(e.target.value)} required />
+                </div>
+                <div className="space-y-2 col-span-2">
+                  <Label>I am a</Label>
+                  <Select value={role} onValueChange={setRole}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select your role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {userTypes.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <Button onClick={handleRegister} disabled={loading} className="w-full mt-4">
-              {loading ? "Registering..." : "Create Account"}
-            </Button>
-          </TabsContent>
-        </Tabs>
+                {role === "PANDIT" && (
+                  <>
+                    <div className="space-y-2 col-span-2">
+                      <Label>Years of Experience</Label>
+                      <Input value={meta1} onChange={e => setMeta1(e.target.value)} />
+                    </div>
+                    <div className="space-y-2 col-span-2">
+                      <Label>Primary Specialty (e.g. Wedding, Havan)</Label>
+                      <Input value={meta2} onChange={e => setMeta2(e.target.value)} />
+                    </div>
+                  </>
+                )}
+
+                {role === "TEMPLE_ADMIN" && (
+                  <>
+                    <div className="space-y-2 col-span-2">
+                      <Label>Temple Name</Label>
+                      <Input value={meta1} onChange={e => setMeta1(e.target.value)} />
+                    </div>
+                    <div className="space-y-2 col-span-2">
+                      <Label>Temple Location</Label>
+                      <Input value={meta2} onChange={e => setMeta2(e.target.value)} />
+                    </div>
+                  </>
+                )}
+
+                {role === "OTHER" && (
+                  <div className="space-y-2 col-span-2">
+                    <Label>Specify your role</Label>
+                    <Input
+                      placeholder="e.g., Decorator, Musician..."
+                      value={meta1}
+                      onChange={(e) => setMeta1(e.target.value)}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <Button onClick={handleRegister} disabled={loading} className="w-full mt-4">
+                {loading ? "Registering..." : "Create Account"}
+              </Button>
+            </div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

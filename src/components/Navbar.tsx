@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 const Navbar = () => {
-  const { user, isAuthenticated, login, logout, setShowAuthModal } = useAuth();
+  const { user, isAuthenticated, logout, setShowAuthModal } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
 
@@ -22,9 +22,13 @@ const Navbar = () => {
       ? (user?.userType === "customer" || user?.userType === "event_manager")
         ? [
             { to: "/customer-dashboard", label: "My Dashboard" },
-            { to: "/event-orchestration", label: "Event Planning" }
+            { to: "/event-orchestration", label: "Event Planning" },
+            { to: "/settings", label: "Account Settings", icon: User }
           ]
-        : [{ to: "/dashboard", label: "Dashboard" }]
+        : [
+            { to: "/dashboard", label: "Dashboard" },
+            { to: "/settings", label: "Account Settings", icon: User }
+          ]
       : []),
     ...(user?.isAdmin ? [{ to: "/admin-dashboard", label: "Admin" }] : []),
   ];
@@ -42,9 +46,10 @@ const Navbar = () => {
             <Link
               key={link.to}
               to={link.to}
-              className={`text-sm font-medium transition-colors hover:text-primary ${location.pathname === link.to ? "text-primary" : "text-muted-foreground"
+              className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-1.5 ${location.pathname === link.to ? "text-primary" : "text-muted-foreground"
                 }`}
             >
+              {link.icon && <link.icon className="h-4 w-4" />}
               {link.label}
             </Link>
           ))}
@@ -67,12 +72,6 @@ const Navbar = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <Link to="/settings" className="w-full cursor-pointer flex items-center">
-                      <User className="mr-2 h-4 w-4" />
-                      Account Settings
-                    </Link>
-                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={logout} className="text-destructive cursor-pointer">
                     <LogOut className="mr-2 h-4 w-4" />
                     Logout
@@ -82,10 +81,10 @@ const Navbar = () => {
             </div>
           ) : (
             <>
-              <Button onClick={() => setShowAuthModal(true)} variant="outline" size="sm">
+              <Button onClick={() => setShowAuthModal(true, "signin")} variant="outline" size="sm">
                 Sign In
               </Button>
-              <Button onClick={() => setShowAuthModal(true)} size="sm">
+              <Button onClick={() => setShowAuthModal(true, "register")} size="sm">
                 Sign Up
               </Button>
             </>

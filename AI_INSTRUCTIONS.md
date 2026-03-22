@@ -14,7 +14,9 @@ The application MUST use **LangGraph** as the sole orchestration engine. The wor
 - **Cloudflare Proxy**: Mandatory for production API endpoints to mask origin and enforce HTTPS.
 
 ## II. Backend & API Architecture
-- **Architecture Registry**: Explicitly forbidding the creation or hallucination of any new user types. All future logic, roles, and UI flows MUST strictly map to the exact 11 specialist roles defined here and in the `/humans` directory: `customer`, `PANDIT`, `TEMPLE_ADMIN`, `SUPPLIER`, `EVENT_MANAGER`, `CATERER`, `DECORATOR`, `DJ_COMPERE`, `LOCATION_MANAGER`, `MEDIA`, `MEHENDI_ARTIST`, and `OTHER`. No ad-hoc roles are permitted.
+- **Architecture Registry**: Explicitly forbidding the creation or hallucination of any new user types.
+- **Primary Orchestrator Registry**: Only `customer` and `EVENT_MANAGER` roles are authorized as Primary Orchestrators. They share identical access to Subscriptions, Token flows, and the LangGraph agentic suite. The `EVENT_MANAGER` is a commercial user managing client portfolios.
+- **Specialist Role Registry**: All 11 human specialist roles (PANDIT, TEMPLE_ADMIN, SUPPLIER, CATERER, DECORATOR, DJ_COMPERE, LOCATION_MANAGER, MEDIA, MEHENDI_ARTIST, and OTHER) are operational providers.
 - **Pristine State Rule**: New events MUST initialize with empty `guests` and `supplies` arrays. Seed/Mock data is prohibited in production flows.
 - **Model Selection (The "500 RPD" Lock)**: 
   - Primary Model: `gemini-3.1-flash-lite-preview` (Mandatory for all 5 agents).

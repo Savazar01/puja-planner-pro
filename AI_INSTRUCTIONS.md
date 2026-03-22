@@ -14,7 +14,7 @@ The application MUST use **LangGraph** as the sole orchestration engine. The wor
 - **Cloudflare Proxy**: Mandatory for production API endpoints to mask origin and enforce HTTPS.
 
 ## II. Backend & API Architecture
-- **Architecture Registry**: Explicitly forbidding the creation or hallucination of any new user types. All future logic, roles, and UI flows MUST strictly map to the exact entities defined in the existing `/agents` and `/humans` directories. No ad-hoc roles or user types are permitted under any circumstances.
+- **Architecture Registry**: Explicitly forbidding the creation or hallucination of any new user types. All future logic, roles, and UI flows MUST strictly map to the exact 11 specialist roles defined here and in the `/humans` directory: `customer`, `PANDIT`, `TEMPLE_ADMIN`, `SUPPLIER`, `EVENT_MANAGER`, `CATERER`, `DECORATOR`, `DJ_COMPERE`, `LOCATION_MANAGER`, `MEDIA`, `MEHENDI_ARTIST`, and `OTHER`. No ad-hoc roles are permitted.
 - **Pristine State Rule**: New events MUST initialize with empty `guests` and `supplies` arrays. Seed/Mock data is prohibited in production flows.
 - **Model Fallback Logic**: 
   - Primary: `gemini-1.5-pro` (Detailed parsing/complex logic).

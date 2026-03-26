@@ -127,21 +127,18 @@ app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
 async def timeout_middleware(request: Request, call_next):
     """Global 25s timeout to prevent proxy 504 errors on long auth/search tasks."""
     import anyio
-    # Depending on anyio version, TimeoutException might be in different places
-    # or fail_after might be a sync/async context manager.
-    # Standard approach for version resilience:
-    try:
-        # anyio.fail_after is usually a sync CM that raises a specific exception
-        with anyio.fail_after(25):
-            return await call_next(request)
-    except Exception as e:
-        # Check if it's a timeout-related exception from anyio
-        if "Timeout" in type(e).__name__:
-            raise HTTPException(
-                status_code=status.HTTP_408_REQUEST_TIMEOUT,
-                detail="Request processing exceeded 25s safety limit."
-            )
-        raise e
+    
+    # We use move_on_after instead of fail_after for more graceful middleware handling
+    with anyio.move_on_after(25) as scope:
+        response = await call_next(request)
+        return response
+    
+    # If we reached here, it means the scope timed out
+    logger.error(f"Request timeout: {request.method} {request.url}")
+    raise HTTPException(
+        status_code=status.HTTP_408_REQUEST_TIMEOUT,
+        detail="Request processing exceeded 25s safety limit."
+    )
 
 from routes import router
 app.include_router(router)

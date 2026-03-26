@@ -9,9 +9,13 @@ from config import settings
 engine = create_engine(
     settings.database_url,
     pool_pre_ping=True,
-    pool_size=20,
-    max_overflow=50,
-    pool_timeout=15
+    pool_size=50,         # Increased from 20 to handle more concurrent local queries
+    max_overflow=100,      # Increased from 50
+    pool_timeout=10,      # Slightly more aggressive timeout
+    pool_recycle=1800,    # Recycle connections every 30 mins to prevent stale DB handles
+    connect_args={
+        "connect_timeout": 10  # 10s TCP timeout for initial connection
+    }
 )
 
 # Create session factory

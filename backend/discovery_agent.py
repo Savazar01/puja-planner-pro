@@ -222,43 +222,47 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
         from database import SessionLocal
         from sqlalchemy import or_
         
-        # [DEFINITIVE ROLE MAPPING] Absolute Source of Truth
+        # [DEFINITIVE ROLE MAPPING] Absolute Source of Truth (11 Roles)
         ROLE_MAP = {
-            "TEMPLE_ADMIN": UserRole.TEMPLE_ADMIN,
-            "LOCATION_MANAGER": UserRole.LOCATION_MANAGER,
             "PANDIT": UserRole.PANDIT,
             "SUPPLIER": UserRole.SUPPLIER,
             "CATERER": UserRole.CATERER,
             "DECORATOR": UserRole.DECORATOR,
             "DJ_COMPERE": UserRole.DJ_COMPERE,
             "MEDIA": UserRole.MEDIA,
+            "TEMPLE_ADMIN": UserRole.TEMPLE_ADMIN,
+            "LOCATION_MANAGER": UserRole.LOCATION_MANAGER,
             "COORDINATOR": UserRole.COORDINATOR,
             "MEHENDI_ARTIST": UserRole.MEHENDI_ARTIST,
             "CUSTOMER": UserRole.CUSTOMER
         }
         
-        # [ALIAS RESOLUTION]
+        # [ALIAS & ROLE RESOLUTION]
         input_role = role.upper().replace(" ", "_")
+        
+        # Mapping variations to our 11 keys
         if input_role in ["HOST", "EVENT_HOST", "CUSTOMER"]: 
-            role_upper = "CUSTOMER"
-            query_roles = [UserRole.CUSTOMER, UserRole.HOST]
+            role_key = "CUSTOMER"
         elif input_role in ["CATERING", "CATERER"]:
-            role_upper = "CATERER"
-            query_roles = [UserRole.CATERER]
+            role_key = "CATERER"
+        elif input_role in ["VENUES", "VENUE", "TEMPLE", "TEMPLE_ADMIN"]:
+            role_key = "TEMPLE_ADMIN"
+        elif input_role in ["SALL_HALL", "BANQUET", "LOCATION_MANAGER"]:
+            role_key = "LOCATION_MANAGER"
         else:
-            role_upper = input_role
-            target_role = ROLE_MAP.get(input_role)
-            if not target_role:
-                try:
-                    target_role = UserRole[input_role]
-                except KeyError:
-                    target_role = UserRole.PANDIT # Fallback
-            query_roles = [target_role]
+            role_key = input_role
+
+        target_role = ROLE_MAP.get(role_key, UserRole.PANDIT) # Default to Pandit
+        query_roles = [target_role]
+        
+        # Special case for Customer/Host alias in DB
+        if role_key == "CUSTOMER":
+            query_roles = [UserRole.CUSTOMER, UserRole.HOST]
 
         internal_providers = []
         _internal_db = db or SessionLocal()
         
-        # 1. Internal Search (Primary Action)
+        # 1. Internal Search (Primary Action - Database First)
         try:
             location_parts = [p.strip() for p in location.split(",")]
             search_filters = []
@@ -282,7 +286,7 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
                 internal_providers.append({
                     "id": user.id,
                     "full_name": profile.full_name or "Unnamed Member",
-                    "user_type": role_upper,
+                    "user_type": role_key,
                     "location": profile.location or profile.address_city or location,
                     "phone_number": profile.phone or user.phone or "",
                     "whatsapp_enabled": profile.whatsapp_enabled if hasattr(profile, 'whatsapp_enabled') else True,
@@ -297,7 +301,7 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
                 id=str(uuid.uuid4()),
                 agent_type="FINDER",
                 tool_used="Internal DB (Primary)",
-                summary_outcome=f"Prioritized internal search for {role_upper}. Found {len(internal_providers)} member(s)."
+                summary_outcome=f"Database-First search for {role_key}. Found {len(internal_providers)} member(s)."
             )
             _internal_db.add(log_entry)
             _internal_db.commit()

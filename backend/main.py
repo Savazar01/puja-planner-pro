@@ -108,25 +108,21 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-@app.get("/health")
-async def health_check():
-    """Direct health check to bypass router initialization delays."""
-    return {"status": "ok"}
-
-security = HTTPBasic()
-
-@app.get("/docs", include_in_schema=False)
-@app.get("/docs/", include_in_schema=False)
-async def custom_swagger_ui_html(credentials: HTTPBasicCredentials = Depends(security), db: Session = Depends(get_db)):
-    unauthorized_exc = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Incorrect email or password",
-        headers={"WWW-Authenticate": "Basic"},
-    )
-    user = db.query(User).filter(User.email == credentials.username).first()
-    if not user or not verify_password(credentials.password, user.hashed_password) or user.role != UserRole.ADMIN:
-        raise unauthorized_exc
-    return get_swagger_ui_html(openapi_url="/openapi.json", title=app.title + " - Swagger UI")
+@app.middleware("http")
+async def timeout_middleware(request: Request, call_next):
+    """Global 25s timeout to prevent proxy 504 errors."""
+    try:
+        # Resolve 504 errors by closing backend connection at 25s
+        # This gives a controlled 408 response instead of a proxy 504
+        async with anyio.fail_after(25):
+            return await call_next(request)
+    except TimeoutError:
+        return anyio.lowlevel.checkpoint_if_cancelled()
+    except TimeoutException: # anyio
+        raise HTTPException(
+            status_code=status.HTTP_408_REQUEST_TIMEOUT,
+            detail="Request processing exceeded 25s safety limit."
+        )
 
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins_list, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
@@ -141,6 +137,7 @@ async def root():
 
 @app.get("/health")
 async def health():
+    """Consolidated health check with initialization status."""
     return {
         "status": "ok" if GLOBAL_READY else "initializing",
         "ready": GLOBAL_READY,

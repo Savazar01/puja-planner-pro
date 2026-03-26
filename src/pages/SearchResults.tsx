@@ -187,13 +187,23 @@ const SearchResults = () => {
                       <h4 className="font-display font-semibold text-foreground">{provider.full_name}</h4>
                       {provider.is_platform_member && <CheckCircle className="h-4 w-4 text-primary" />}
                     </div>
-                    <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-                      <MapPin className="h-3.5 w-3.5" />{provider.location}
-                    </p>
                     <Badge variant="outline" className="mt-2 text-[10px] uppercase">{provider.user_type}</Badge>
-                    <div className="mt-3 flex flex-wrap gap-1.5">
+                    <div className="mt-3 flex flex-wrap gap-2">
                       {provider.phone_number && (
-                        <Badge variant="secondary" className="text-xs">{provider.phone_number}</Badge>
+                        <a href={`tel:${provider.phone_number}`} className="inline-flex items-center justify-center rounded-md text-xs font-medium border border-input bg-background hover:bg-accent h-8 px-2.5 gap-1.5" style={{ borderColor: 'hsl(var(--phone-blue))', color: 'hsl(var(--phone-blue))' }}>
+                          <Phone className="h-3 w-3" /> Call
+                        </a>
+                      )}
+                      {provider.phone_number && provider.whatsapp_enabled !== false && (
+                        <a
+                          href={`https://wa.me/${provider.phone_number.replace(/\D/g, '')}?text=${encodeURIComponent(`Namaste! I am coordinating a Puja via SavazAI and would like to connect.`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center justify-center rounded-md text-xs font-medium text-white h-8 px-2.5 gap-1.5"
+                          style={{ backgroundColor: 'hsl(var(--whatsapp))' }}
+                        >
+                          <MessageCircle className="h-3 w-3" /> WhatsApp
+                        </a>
                       )}
                     </div>
                   </motion.div>

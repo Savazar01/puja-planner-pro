@@ -8,66 +8,70 @@ This system is dedicated exclusively to **Hindu Vedic Rites**.
 ## 2. Agent Roster & Toolsets
 
 ### PLANNER (Lead Orchestrator)
-- **Role**: The primary interface for the Customer/Event Planner.
+- **Role**: Primary interface for the Customer.
 - **Responsibilities**: 
-    - Orchestrate the end-to-end event lifecycle.
-    - Command specialized agents (Finder, Supplier, Scribe).
-    - Maintain the "Event State" (Date, Venue, Selections).
-    - **MANDATORY**: Must ask the Customer which of the 11 Human Roles to engage before triggering any searches.
+    - Orchestrate the event lifecycle via the **Adaptive Intent Harvest Protocol**.
+    - Decompose intents into sub-tasks for specialized agents.
+    - Present the 11-role human ecosystem for customer confirmation before discovery.
 
-### FINDER (The Scout)
-- **Role**: Resource discovery specialist.
-- **Responsibilities**: 
-    - Query internal registries for the 11 Human Roles.
-    - Provide profile summaries and availability to the Planner.
-    - (Future) Execute external searches via Maps/Search APIs.
+### FINDER (Role Discovery)
+- **Role**: Sourcing specialist for the 11-Role Human Ecosystem.
+- **Tools**: Internal PostgreSQL (pgvector) and External (SerpAPI/Firecrawl).
+- **Hard Rule**: Must prioritize platform members and extract `phone` + `whatsapp`.
 
-### SUPPLIER (Logistics & Inventory)
-- **Role**: Ritual Samagri manager.
-- **Responsibilities**: 
-    - Map the selected Puja to the 'Standard Supplies' list.
-    - Automatically populate the Supplies Checklist upon event selection.
-    - Track procurement status of ritual items.
+### SUPPLIER (Samagri/Inventory)
+- **Role**: Automated inventory manager.
+- **Responsibility**: Auto-populate the Event Checklist with mandatory items from the **Vedic Registry**.
 
-### SCRIBE (The Creator & Registrar)
-- **Role**: Administrative and Creative lead.
-- **Responsibilities**: 
-    - **Event Logging**: Record every decision and update the audit trail.
-    - **Invitations**: Generate digital/Vedic-themed invitations.
-    - **Landing Pages**: Create and update the dedicated Event Landing Page.
-    - **Documentation**: Generate PDF summaries, invoices, and ritual guides.
+### SCRIBE (Documentation)
+- **Role**: Context persistent and creator.
+- **Responsibility**: Generate Event Websites, PDF Invitations, and Ritual Transcripts.
+
+---
 
 ## 3. The 11-Role Human Ecosystem
-The Planner must facilitate collaboration with these specific roles:
-1.  **PANDIT**: Vedic lead/Officiant.
-2.  **SUPPLIER**: Samagri, flowers, ritual kits.
-3.  **CATERER**: Sattvic/Traditional food services.
-4.  **DECORATOR**: Mandap and floral design.
-5.  **DJ_COMPERE**: Audio, Vedic chanting support, announcements.
-6.  **MEDIA**: Photography and videography.
-7.  **LOCATION_MANAGER**: Venue/Temple hall management.
-8.  **COORDINATOR**: Day-of logistics.
-9.  **MEHENDI_ARTIST**: Traditional henna.
-10. **EVENT_PLANNER**: High-level oversight.
-11. **CUSTOMER**: The host and decision-maker.
+1. **PANDIT**: Vedic lead/Officiant.
+2. **SUPPLIER**: Samagri, flowers, ritual kits.
+3. **CATERER**: Sattvic/Traditional food services.
+4. **DECORATOR**: Mandap and floral design.
+5. **DJ_COMPERE**: Audio, chanting, and announcements.
+6. **MEDIA**: Photography and videography.
+7. **TEMPLE_ADMIN**: Temple-specific logistics and venue.
+8. **LOCATION_MANAGER**: Commercial hall/Venue management.
+9. **COORDINATOR**: Day-of logistical support.
+10. **MEHENDI_ARTIST**: Traditional henna art.
+11. **CUSTOMER**: The host and primary stakeholder.
 
-## 4. Vedic Events & Samagri Registry
+---
 
-| Event Name | Common Vedic Samagri (Auto-Populated by SUPPLIER) |
-| :--- | :--- |
-| **Satyanarayana Puja** | Turmeric, Kumkum, Sandalwood, Betel leaves/nuts, Kalash, Fruits, Flowers, Ghee, Incense, Camphor. |
-| **Ganesh Puja** | Turmeric Ganapathi, Durva grass, Modak, Hibiscus, Red thread, Coconut, Banana. |
-| **Vahan Puja** | Lemons, Coconuts, Red thread, Kumkum, Incense, Camphor. |
-| **Grihapravesh** | Milk, Vessel, Kalash, Mango leaves, Flowers, Grains, Turmeric, Kumkum, Homa Samagri. |
-| **Vivah (Wedding)** | Mangalsutra, Jeerakalla-Bellam, Akshat, Antarpata, Talambralu, Garlands, Homa Samagri. |
-| **Namakaran** | Grains (Rice), New clothes, Honey, Ghee, Gold ring/spoon, Betel leaves, Fruits. |
-| **Upanayanam** | Sacred thread (Yagnopaveetham), Staff, New clothes, Ghee, Homa Samagri. |
-| **Kalyanotsavam** | Deity wedding attire, Garlands, Sweets, Turmeric, Kumkum, Rice, Coconuts. |
-| **Abhishekam** | Milk, Yogurt, Honey, Sugar, Ghee, Coconut water, Sandalwood paste, Turmeric water. |
-| **Homam (General)** | Homa Kundam, Dry Coconuts, Ghee, Wood (Samidha), Purnahuti Samagri, Grains. |
+## 4. Vedic Registry (Mandatory Samagri)
 
-## 5. Collaboration Guardrails
-1. **Intake**: Planner identifies Puja and triggers Supplier to fill the checklist.
-2. **Consent**: Planner presents the 11 roles to the Customer. 
-3. **Execution**: Finder/Scribe/Supplier only act on confirmed roles.
-4. **Output**: Scribe ensures invitations and landing pages reflect the latest Event State.
+### [1] Satyanarayana Puja
+- **Items**: Satyanarayana Photo, Kalash, Mango Leaves, Panchamrit, Purnima Prasad (Sheera), Betel Leaves, Betel Nuts, Sandalwood Paste, Flowers, Incense.
+
+### [2] Ganesh Puja
+- **Items**: Ganesha Idol/Photo, Durva Grass, Modak, Hibiscus Flowers, Sandalwood, Incense, Coconut, Betel Nut, Red Thread (Mauli).
+
+### [3] Griha Pravesh
+- **Items**: Kalash, Coconut, Mangal Deep, Mango Leaves, Milk, Honey, Ghee, Flowers, Rice (Akshat), Shanku (Conch).
+
+### [4] Maha Lakshmi Puja
+- **Items**: Lakshmi Photo/Idol, Lotus Flowers, Ghee Lamp, Coins, Sweets, Red Cloth, Sandalwood Paste, Turmeric, Kumkum.
+
+### [5] Mundan
+- **Items**: New Clothes, Sandalwood Paste, Curd, Ghee, Milk, Scissor/Razor (Ritual), Coconut, Flowers.
+
+### [6] Rudrabhishek
+- **Items**: Shiva Lingam, Milk, Curd, Honey, Ghee, Sugar, Bael Leaves, Datura, Vibhuti, Sandalwood, Ganga Jal.
+
+### [7] Vivah (Wedding)
+- **Items**: Mangalsutra, Sindoor, Antarpat, Kanyadaan Hand-loom, Rice (Akshat), Honey, Curd, Firewood (Havan), Ghee, Coconuts.
+
+### [8] Shradh / Tarpan
+- **Items**: Black Til, Darbha Grass, Rice Balls (Pinda), White Flowers, Gangajal, Ghee, Barley, Kusha Grass.
+
+### [9] Namakaran
+- **Items**: Honey, Ghee, Gold Ring/Spoon, New Clothes, Rice Grains (for naming tray), Flowers.
+
+### [10] Annaprashan
+- **Items**: Silver Bowl/Spoon, Kheer, New Clothes, Honey, Ghee, Flowers, Sandalwood.

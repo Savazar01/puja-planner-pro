@@ -228,41 +228,37 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
         # 1. Internal Search (Short-lived session)
         _internal_db = db or SessionLocal()
         try:
-            # [ROLE MAPPING] Map internal/legacy strings to formal 11-role human ecosystem
+            # [DEFINITIVE ROLE MAPPING] Absolute Source of Truth (Matches CLAUDE.md)
             ROLE_MAP = {
                 "PANDIT": "PANDIT",
                 "SUPPLIER": "SUPPLIER",
                 "CATERER": "CATERER",
-                "CATERING": "CATERER",
                 "DECORATOR": "DECORATOR",
                 "DJ_COMPERE": "DJ_COMPERE",
                 "MEDIA": "MEDIA",
+                "TEMPLE_ADMIN": "TEMPLE_ADMIN",
                 "LOCATION_MANAGER": "LOCATION_MANAGER",
-                "TEMPLE_ADMIN": "LOCATION_MANAGER",
-                "EVENT_LOCATION_MANAGER": "LOCATION_MANAGER",
                 "COORDINATOR": "COORDINATOR",
                 "MEHENDI_ARTIST": "MEHENDI_ARTIST",
-                "EVENT_PLANNER": "EVENT_PLANNER",
-                "CUSTOMER": "CUSTOMER",
-                "HOST": "CUSTOMER"
+                "CUSTOMER": "CUSTOMER"
             }
             
-            raw_role = role.upper().replace(" ", "_")
-            role_upper = ROLE_MAP.get(raw_role, raw_role)
+            # [ALIAS RESOLUTION] Handle input variants
+            input_role = role.upper().replace(" ", "_")
+            if input_role in ["HOST", "EVENT_HOST"]: 
+                role_upper = "CUSTOMER"
+            elif input_role == "CATERING":
+                role_upper = "CATERER"
+            else:
+                role_upper = ROLE_MAP.get(input_role, input_role)
             
             target_role = None
             try:
                 # Resolve to UserRole enum if possible
                 target_role = UserRole[role_upper]
             except KeyError:
-                # Handle cases where the role might be a variant like 'TEMPLE_ADMIN'
-                for k, v in ROLE_MAP.items():
-                    if role_upper == v:
-                        try:
-                            target_role = UserRole[k]
-                            break
-                        except KeyError:
-                            continue
+                # Fallback: if not in enum, it might be a literal role string we need to find
+                pass
                 
             if target_role:
                 # [IMPROVED] Robust substring matching for location broadening
@@ -277,8 +273,15 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
                     search_filters = [Profile.location.ilike(f"%{location}%")]
 
                 from sqlalchemy import or_
+                
+                # Special query for CUSTOMER (includes host alias if DB uses it)
+                if role_upper == "CUSTOMER":
+                    query_roles = [UserRole.CUSTOMER, UserRole.HOST]
+                else:
+                    query_roles = [target_role]
+
                 users_in_role = _internal_db.query(User).join(Profile).filter(
-                    User.role == target_role,
+                    User.role.in_(query_roles),
                     User.status == UserStatus.APPROVED,
                     or_(*search_filters)
                 ).all()
@@ -296,7 +299,8 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
                         "reviews": 1,
                         "is_platform_member": True,
                         "phone": profile.phone,
-                        "whatsapp": profile.whatsapp,
+                        "whatsapp": profile.whatsapp or profile.phone, # Fallback to phone
+                        "whatsapp_enabled": True, # Mandatory per directive
                         "email": user.email,
                         "additional_info": profile.role_metadata or {}
                     })
@@ -306,7 +310,7 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
                 id=str(uuid.uuid4()),
                 agent_type="FINDER",
                 tool_used="Internal DB Lookups",
-                summary_outcome=f"Internal search performed for role {role_upper} (Input: {role}) in {location}. Found {len(internal_providers)} member(s)."
+                summary_outcome=f"Internal search performed for {role_upper} (Input: {role}). Found {len(internal_providers)} member(s)."
             )
             _internal_db.add(log_entry)
             _internal_db.commit()

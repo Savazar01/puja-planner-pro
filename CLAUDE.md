@@ -1,51 +1,52 @@
-# CLAUDE.md — Technical Guide & Standards
+# Puja Planner Pro Technical Constitution
 
-## Project DNA
-- **Backend**: FastAPI (Python 3.11)
-- **Frontend**: Next.js / Vite (React 18+)
-- **Database**: PostgreSQL with `pgvector` extension
-- **Caching/Memory**: Redis (Standard Alpine image)
-- **AI/LLM**: Gemini (Primary via Privacy Gate), Claude (Developer Interface)
+## 🛠 Tech Stack
+- **Frontend**: Next.js, Vite, TailwindCSS (for specific components), Lucide-React.
+- **Backend**: FastAPI, SQLAlchemy (PostgreSQL/pgvector), Redis.
+- **LLM Context**: Gemini-1.5-Pro/Flash.
+- **Standard Port**: 8740 (Privacy Gate).
 
-## Build & Development Commands
-### Backend
-- **Install**: `pip install -r backend/requirements.txt`
-- **Dev Server**: `python -m uvicorn main:app --reload --port 8735`
-- **Test**: `pytest`
-- **Lint**: `flake8 backend`
+## 🏗 Build & Test Commands
+- **Install Dependencies**: `npm install` (Frontend), `pip install -r backend/requirements.txt` (Backend).
+- **Build Infrastructure**: `docker compose build`.
+- **Run Locally**: `docker compose up`.
+- **Linting**: `npm run lint`.
+- **Testing**: `pytest backend/`.
 
-### Frontend
-- **Install**: `npm install`
-- **Dev Server**: `npm run dev`
-- **Build**: `npm run build`
-- **Lint**: `npm run lint`
+## 📜 Absolute Development Laws
 
-### Infrastructure
-- **Full Boot**: `docker compose up -d`
-- **Build All**: `docker compose build --no-cache`
-- **Stop**: `docker compose down`
+### 1. Immutable Infrastructure
+> [!IMPORTANT]
+> The following files are **READ-ONLY**. Propose changes in chat before editing:
+> - `docker-compose.yml`
+> - `Dockerfile` / `backend/Dockerfile`
+> - `backend/database.py`
+> - `nginx.conf`
 
-## Infrastructure Lockdown (Immutable Defaults)
-The following files are **READ-ONLY** and must not be modified without explicit chat proposal/approval:
-- `docker-compose.yml`
-- `Dockerfile` (Root & Backend)
-- `backend/database.py` (Engine Configuration)
-- `nginx/` (Proxy Configurations)
+### 2. Variable Safety
+- **Interpolation**: Use `$$` for all environment variables in config files (e.g., `docker-compose.yml`) to prevent shell interpolation errors.
+- **Escaping**: No unescaped `$` signatures allowed in `.env` or configuration templates.
 
-### Configuration Rules
-1. **Variable Safety**: Use `$$` for all literal `$` characters in configuration files to prevent interpolation errors.
-2. **Resource Caps**: No new service or image pull exceeding **500MB** is permitted without approval.
-3. **Internal Networking**: Services MUST communicate via the `savaz-prod-net` internal bridge using service names (e.g., `http://backend:8735`).
+### 3. Stability & Networking
+- **Database**: Mandate `pool_pre_ping=True`, `pool_recycle=300`, and `connect_timeout=10`.
+- **Middleware**: Every backend request must pass through the **25s Global Timeout Middleware** to prevent proxy hangs.
+- **Service Discovery**: Use internal service names (`savaz_db`, `backend`, `redis`) for container communication.
 
-## Backend Stability Standards
-1. **DB Pooling**: All SQLAlchemy engines must use:
-   - `pool_pre_ping=True`
-   - `pool_recycle=300`
-   - `connect_timeout=10`
-2. **Timeouts**: A global **25-second** request timeout middleware is mandatory.
-3. **Auth**: Use `SECRET_KEY` as the primary JWT signing variable.
+## 👥 Definitive 11-Role Mapping Truth
 
-## Development Workflow
-- **Commit Messages**: Use [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `chore:`, `docs:`).
-- **Sequential Boot**: Always verify `savaz_db` and `redis` health before launching application containers.
-- **Privacy Gate**: All LLM calls must pass through the Privacy Gate (Port 8740) for PII masking.
+| Agent/File Role | Database user_type | UI Display Name | Role Description |
+| :--- | :--- | :--- | :--- |
+| **PANDIT** | `pandit` | Pandit | Vedic Priest / Lead |
+| **SUPPLIER** | `supplier` | Supplier | Samagri & Ritual Items |
+| **CATERER** | `caterer` | Caterer | Food & Prasadam Services |
+| **DECORATOR** | `decorator` | Decorator | Mandap & Floral Arrangements |
+| **DJ_COMPERE** | `dj_compere` | DJ & Compere | Audio, Chanting & Announcements |
+| **MEDIA** | `media` | Media | Photography & Videography |
+| **TEMPLE_ADMIN** | `temple_admin` | Temple Admin | Temple Event/Venue Management |
+| **LOCATION_MANAGER** | `location_manager` | Location Manager | Commercial Hall/Venue Management |
+| **COORDINATOR** | `coordinator` | Coordinator | Day-of Logistical Support |
+| **MEHENDI_ARTIST** | `mehendi_artist` | Mehendi Artist | Traditional Henna Art |
+| **CUSTOMER** | `customer` | Customer | The Primary Stakeholder / Host |
+
+> [!NOTE]
+> All search logic in `Finder` and all UI labels in `Frontend` must strictly adhere to the **UI Display Name** and **Database user_type** defined above.

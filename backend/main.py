@@ -124,9 +124,34 @@ async def timeout_middleware(request: Request, call_next):
             detail="Request processing exceeded 25s safety limit."
         )
 
+# Resolve "Failed to fetch" by ensuring production domain is in origins
+origins = settings.cors_origins_list
+if "https://puja.fossone.app" not in origins:
+    origins.append("https://puja.fossone.app")
+
 app.add_middleware(ProxyHeadersMiddleware, trusted_hosts=["*"])
-app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins_list, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
+
+@app.middleware("http")
+async def timeout_middleware(request: Request, call_next):
+    """Global 25s timeout to prevent proxy 504 errors on long auth/search tasks."""
+    try:
+        async with anyio.fail_after(25):
+            return await call_next(request)
+    except TimeoutError:
+        return anyio.lowlevel.checkpoint_if_cancelled()
+    except TimeoutException: # anyio
+        raise HTTPException(
+            status_code=status.HTTP_408_REQUEST_TIMEOUT,
+            detail="Request processing exceeded 25s safety limit."
+        )
 
 from routes import router
 app.include_router(router)

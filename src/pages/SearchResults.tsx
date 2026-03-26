@@ -196,7 +196,7 @@ const SearchResults = () => {
                       )}
                       {provider.phone_number && provider.whatsapp_enabled !== false && (
                         <a
-                          href={`https://wa.me/${provider.phone_number.replace(/\D/g, '')}?text=${encodeURIComponent(`Namaste! I am coordinating a Puja via SavazAI and would like to connect.`)}`}
+                          href={`https://wa.me/${provider.phone_number.replace(/\D/g, '')}?text=${encodeURIComponent(`Namaste! I found your profile on MyPandits portal and would like to coordinate a Puja.`)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center justify-center rounded-md text-xs font-medium text-white h-8 px-2.5 gap-1.5"

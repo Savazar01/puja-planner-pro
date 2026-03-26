@@ -108,22 +108,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-@app.middleware("http")
-async def timeout_middleware(request: Request, call_next):
-    """Global 25s timeout to prevent proxy 504 errors."""
-    try:
-        # Resolve 504 errors by closing backend connection at 25s
-        # This gives a controlled 408 response instead of a proxy 504
-        async with anyio.fail_after(25):
-            return await call_next(request)
-    except TimeoutError:
-        return anyio.lowlevel.checkpoint_if_cancelled()
-    except TimeoutException: # anyio
-        raise HTTPException(
-            status_code=status.HTTP_408_REQUEST_TIMEOUT,
-            detail="Request processing exceeded 25s safety limit."
-        )
-
 # Resolve "Failed to fetch" by ensuring production domain is in origins
 origins = settings.cors_origins_list
 if "https://puja.fossone.app" not in origins:

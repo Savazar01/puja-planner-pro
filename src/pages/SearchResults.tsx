@@ -134,24 +134,24 @@ const SearchResults = () => {
                       </div>
                       <div className="flex flex-col items-end gap-2">
                         <span className="text-sm font-semibold text-foreground">{(pandit as any).price_range || pandit.priceRange}</span>
-                            <div className="flex gap-2">
-                                {(pandit as any).phone && (
-                                    <a href={`tel:${(pandit as any).phone}`} className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 gap-1.5" style={{ borderColor: 'hsl(var(--phone-blue))', color: 'hsl(var(--phone-blue))' }}>
-                                        <Phone className="h-3.5 w-3.5" /> Call
-                                    </a>
-                                )}
-                                {(pandit as any).whatsapp && (pandit as any).whatsapp_enabled !== false && (
-                                    <a 
-                                        href={`https://wa.me/${(pandit as any).whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Namaste! I am planning a ${initialQuery || 'Puja ceremony'} and found your profile on SavazAI. Are you available?`)}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-3 gap-1.5" 
-                                        style={{ backgroundColor: 'hsl(var(--whatsapp))' }}
-                                    >
-                                        <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
-                                    </a>
-                                )}
-                            </div>
+                        <div className="flex gap-2">
+                          {(pandit as any).phone && (
+                            <a href={`tel:${(pandit as any).phone}`} className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 gap-1.5" style={{ borderColor: 'hsl(var(--phone-blue))', color: 'hsl(var(--phone-blue))' }}>
+                              <Phone className="h-3.5 w-3.5" /> Call
+                            </a>
+                          )}
+                          {(pandit as any).whatsapp && (pandit as any).whatsapp_enabled !== false && (
+                            <a
+                              href={`https://wa.me/${(pandit as any).whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Namaste! I am planning a ${initialQuery || 'Puja ceremony'} and found your profile on SavazAI. Are you available?`)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-3 gap-1.5"
+                              style={{ backgroundColor: 'hsl(var(--whatsapp))' }}
+                            >
+                              <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                            </a>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </motion.div>

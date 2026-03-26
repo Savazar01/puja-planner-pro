@@ -45,7 +45,7 @@ The Planner must facilitate collaboration with these specific roles:
 4.  **DECORATOR**: Mandap and floral design.
 5.  **DJ_COMPERE**: Audio, Vedic chanting support, announcements.
 6.  **MEDIA**: Photography and videography.
-7.  **LOCATION_MGR**: Venue/Temple hall management.
+7.  **LOCATION_MANAGER**: Venue/Temple hall management.
 8.  **COORDINATOR**: Day-of logistics.
 9.  **MEHENDI_ARTIST**: Traditional henna.
 10. **EVENT_PLANNER**: High-level oversight.

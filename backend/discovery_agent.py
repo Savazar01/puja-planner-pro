@@ -228,12 +228,41 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
         # 1. Internal Search (Short-lived session)
         _internal_db = db or SessionLocal()
         try:
-            role_upper = role.upper()
+            # [ROLE MAPPING] Map internal/legacy strings to formal 11-role human ecosystem
+            ROLE_MAP = {
+                "PANDIT": "PANDIT",
+                "SUPPLIER": "SUPPLIER",
+                "CATERER": "CATERER",
+                "CATERING": "CATERER",
+                "DECORATOR": "DECORATOR",
+                "DJ_COMPERE": "DJ_COMPERE",
+                "MEDIA": "MEDIA",
+                "LOCATION_MANAGER": "LOCATION_MANAGER",
+                "TEMPLE_ADMIN": "LOCATION_MANAGER",
+                "EVENT_LOCATION_MANAGER": "LOCATION_MANAGER",
+                "COORDINATOR": "COORDINATOR",
+                "MEHENDI_ARTIST": "MEHENDI_ARTIST",
+                "EVENT_PLANNER": "EVENT_PLANNER",
+                "CUSTOMER": "CUSTOMER",
+                "HOST": "CUSTOMER"
+            }
+            
+            raw_role = role.upper().replace(" ", "_")
+            role_upper = ROLE_MAP.get(raw_role, raw_role)
+            
             target_role = None
             try:
+                # Resolve to UserRole enum if possible
                 target_role = UserRole[role_upper]
             except KeyError:
-                pass
+                # Handle cases where the role might be a variant like 'TEMPLE_ADMIN'
+                for k, v in ROLE_MAP.items():
+                    if role_upper == v:
+                        try:
+                            target_role = UserRole[k]
+                            break
+                        except KeyError:
+                            continue
                 
             if target_role:
                 # [IMPROVED] Robust substring matching for location broadening
@@ -266,7 +295,8 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
                         "rating": 5.0,
                         "reviews": 1,
                         "is_platform_member": True,
-                        "phone": profile.phone or profile.whatsapp,
+                        "phone": profile.phone,
+                        "whatsapp": profile.whatsapp,
                         "email": user.email,
                         "additional_info": profile.role_metadata or {}
                     })
@@ -276,7 +306,7 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
                 id=str(uuid.uuid4()),
                 agent_type="FINDER",
                 tool_used="Internal DB Lookups",
-                summary_outcome=f"Internal search performed for role {role.upper()} in {location}. Found {len(internal_providers)} member(s)."
+                summary_outcome=f"Internal search performed for role {role_upper} (Input: {role}) in {location}. Found {len(internal_providers)} member(s)."
             )
             _internal_db.add(log_entry)
             _internal_db.commit()

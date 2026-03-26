@@ -217,199 +217,135 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
             return None
     
     async def discover_providers(self, role: str, location: str, db: Optional[Session] = None, include_web: bool = True, ritual_name: str = "", language: str = "", style: str = "", agent_command: str = "") -> List[Dict[str, Any]]:
-        """Discovery for Providers: Merges internal DB and external web results dynamically."""
+        """Discovery for Providers: Prioritizes internal DB then falls back to external web results."""
         from models import User, Profile, UserRole, UserStatus, AgentLog
         from database import SessionLocal
+        from sqlalchemy import or_
         
-        # [FIX] Logic to ensure we don't hold a pool connection during long-running awaits
-        use_internal_db = True
+        # [DEFINITIVE ROLE MAPPING] Absolute Source of Truth
+        ROLE_MAP = {
+            "TEMPLE_ADMIN": UserRole.TEMPLE_ADMIN,
+            "LOCATION_MANAGER": UserRole.LOCATION_MANAGER,
+            "PANDIT": UserRole.PANDIT,
+            "SUPPLIER": UserRole.SUPPLIER,
+            "CATERER": UserRole.CATERER,
+            "DECORATOR": UserRole.DECORATOR,
+            "DJ_COMPERE": UserRole.DJ_COMPERE,
+            "MEDIA": UserRole.MEDIA,
+            "COORDINATOR": UserRole.COORDINATOR,
+            "MEHENDI_ARTIST": UserRole.MEHENDI_ARTIST,
+            "CUSTOMER": UserRole.CUSTOMER
+        }
+        
+        # [ALIAS RESOLUTION]
+        input_role = role.upper().replace(" ", "_")
+        if input_role in ["HOST", "EVENT_HOST", "CUSTOMER"]: 
+            role_upper = "CUSTOMER"
+            query_roles = [UserRole.CUSTOMER, UserRole.HOST]
+        elif input_role in ["CATERING", "CATERER"]:
+            role_upper = "CATERER"
+            query_roles = [UserRole.CATERER]
+        else:
+            role_upper = input_role
+            target_role = ROLE_MAP.get(input_role)
+            if not target_role:
+                try:
+                    target_role = UserRole[input_role]
+                except KeyError:
+                    target_role = UserRole.PANDIT # Fallback
+            query_roles = [target_role]
+
         internal_providers = []
-        
-        # 1. Internal Search (Short-lived session)
         _internal_db = db or SessionLocal()
+        
+        # 1. Internal Search (Primary Action)
         try:
-            # [DEFINITIVE ROLE MAPPING] Absolute Source of Truth (Matches CLAUDE.md)
-            ROLE_MAP = {
-                "PANDIT": "PANDIT",
-                "SUPPLIER": "SUPPLIER",
-                "CATERER": "CATERER",
-                "DECORATOR": "DECORATOR",
-                "DJ_COMPERE": "DJ_COMPERE",
-                "MEDIA": "MEDIA",
-                "TEMPLE_ADMIN": "TEMPLE_ADMIN",
-                "LOCATION_MANAGER": "LOCATION_MANAGER",
-                "COORDINATOR": "COORDINATOR",
-                "MEHENDI_ARTIST": "MEHENDI_ARTIST",
-                "CUSTOMER": "CUSTOMER"
-            }
+            location_parts = [p.strip() for p in location.split(",")]
+            search_filters = []
+            for part in location_parts:
+                if len(part) > 2:
+                    search_filters.append(Profile.location.ilike(f"%{part}%"))
+                    search_filters.append(Profile.address_city.ilike(f"%{part}%"))
             
-            # [ALIAS RESOLUTION] Handle input variants
-            input_role = role.upper().replace(" ", "_")
-            if input_role in ["HOST", "EVENT_HOST"]: 
-                role_upper = "CUSTOMER"
-            elif input_role == "CATERING":
-                role_upper = "CATERER"
-            else:
-                role_upper = ROLE_MAP.get(input_role, input_role)
-            
-            target_role = None
-            try:
-                # Resolve to UserRole enum if possible
-                target_role = UserRole[role_upper]
-            except KeyError:
-                # Fallback: if not in enum, it might be a literal role string we need to find
-                pass
-                
-            if target_role:
-                # [IMPROVED] Robust substring matching for location broadening
-                location_parts = [p.strip() for p in location.split(",")]
-                search_filters = []
-                for part in location_parts:
-                    if len(part) > 2:
-                        search_filters.append(Profile.location.ilike(f"%{part}%"))
-                        search_filters.append(Profile.address_city.ilike(f"%{part}%"))
-                
-                if not search_filters:
-                    search_filters = [Profile.location.ilike(f"%{location}%")]
+            if not search_filters:
+                search_filters = [Profile.location.ilike(f"%{location}%")]
 
-                from sqlalchemy import or_
-                
-                # Special query for CUSTOMER (includes host alias if DB uses it)
-                if role_upper == "CUSTOMER":
-                    query_roles = [UserRole.CUSTOMER, UserRole.HOST]
-                else:
-                    query_roles = [target_role]
-
-                users_in_role = _internal_db.query(User).join(Profile).filter(
-                    User.role.in_(query_roles),
-                    User.status == UserStatus.APPROVED,
-                    or_(*search_filters)
-                ).all()
-                
-                for user in users_in_role:
-                    profile = user.profile
-                    if not profile: continue
-                    internal_providers.append({
-                        "id": user.id,
-                        "name": profile.full_name or "Unnamed Member",
-                        "role": role_upper,
-                        "location": profile.location or profile.address_city or location,
-                        "website": None, 
-                        "rating": 5.0,
-                        "reviews": 1,
-                        "is_platform_member": True,
-                        "phone": profile.phone,
-                        "whatsapp": profile.whatsapp or profile.phone, # Fallback to phone
-                        "whatsapp_enabled": True, # Mandatory per directive
-                        "email": user.email,
-                        "additional_info": profile.role_metadata or {}
-                    })
+            users_in_role = _internal_db.query(User).join(Profile).filter(
+                User.role.in_(query_roles),
+                User.status == UserStatus.APPROVED,
+                or_(*search_filters)
+            ).all()
             
-            # Log internal discovery
+            for user in users_in_role:
+                profile = user.profile
+                if not profile: continue
+                internal_providers.append({
+                    "id": user.id,
+                    "full_name": profile.full_name or "Unnamed Member",
+                    "user_type": role_upper,
+                    "location": profile.location or profile.address_city or location,
+                    "phone_number": profile.phone or user.phone or "",
+                    "whatsapp_enabled": profile.whatsapp_enabled if hasattr(profile, 'whatsapp_enabled') else True,
+                    "is_platform_member": True,
+                    "rating": 5.0,
+                    "reviews": 1,
+                    "additional_info": profile.role_metadata or {}
+                })
+            
+            # Commit internal discovery log
             log_entry = AgentLog(
                 id=str(uuid.uuid4()),
                 agent_type="FINDER",
-                tool_used="Internal DB Lookups",
-                summary_outcome=f"Internal search performed for {role_upper} (Input: {role}). Found {len(internal_providers)} member(s)."
+                tool_used="Internal DB (Primary)",
+                summary_outcome=f"Prioritized internal search for {role_upper}. Found {len(internal_providers)} member(s)."
             )
             _internal_db.add(log_entry)
             _internal_db.commit()
         except Exception as e:
-            print(f"Internal Search Warning: {e}")
+            print(f"Internal Search Error: {e}")
         finally:
-            if not db: _internal_db.close() # ONLY close if we created it privately
+            if not db: _internal_db.close()
 
+        # [RESULT PERSISTENCE] Ensure internal results are returned even if external fails or quota hit
         if not include_web:
             return internal_providers
 
-        # 2. External Web Search
+        # 2. External Web Search (Secondary Fallback)
+        search_results = []
         try:
             search_results = await self.search_with_serper(
                 query=f"{role_upper} {location}", 
-                ritual_name=ritual_name,
-                language=language,
                 role=role_upper,
                 location=location
             )
         except Exception as e:
-            print(f"External search suppressed to ensure graceful degradation: {e}")
-            search_results = []
+            print(f"External search fallback suppressed: {e}")
         
         external_providers = []
-        for result in search_results[:3]:  # Top 3 for web results
-            url = result.get("link")
-            if not url or any(p.get("website") == url for p in internal_providers):
-                continue
+        for result in search_results[:3]:
+            url = result.get("link", "")
+            if not url: continue
             
             content = await self.scrape_with_firecrawl(url)
+            if not content: continue
             
-            prompt_key = "pandit" # default fallback
-            if role_upper == "VENUE": prompt_key = "venue"
-            elif role_upper == "CATERING": prompt_key = "catering"
+            provider_data = await self.parse_with_gemini(content, role_upper.lower())
+            if not provider_data or not isinstance(provider_data, dict):
+                continue
                 
-            if not content:
-                provider_data = {"name": result.get("title", "Unknown"), "location": location, "website": url}
-            else:
-                provider_data = await self.parse_with_gemini(content, prompt_key)
-                if not provider_data or not isinstance(provider_data, dict): 
-                    continue
-                provider_data["website"] = url
-            
-            # Simple deduplication by phone
-            ext_phone = provider_data.get("phone", "")
-            is_dup = False
-            if ext_phone and ext_phone != "null":
-                for p in internal_providers:
-                    if p.get("phone") and ext_phone in p.get("phone"):
-                        is_dup = True
-                        break
-            if is_dup: continue
-            
             external_providers.append({
                 "id": str(uuid.uuid4()),
-                "name": provider_data.get("name", "Unknown"),
-                "role": role_upper,
+                "full_name": provider_data.get("name", result.get("title", "Unknown")),
+                "user_type": role_upper,
                 "location": provider_data.get("location", location),
-                "rating": provider_data.get("rating", 0.0),
-                "reviews": provider_data.get("reviews", 0),
+                "phone_number": provider_data.get("phone", ""),
+                "whatsapp_enabled": True, # Assume enabled for external curated results
                 "is_platform_member": False,
-                "phone": provider_data.get("phone"),
-                "email": provider_data.get("email"),
-                "website": provider_data.get("website"),
-                "price_range": provider_data.get("price_range"),
+                "website": url,
                 "additional_info": provider_data
             })
             
-        # Log external discovery
-        try:
-            log_ext = AgentLog(
-                id=str(uuid.uuid4()),
-                agent_type="FINDER",
-                tool_used="SerpAPI/Firecrawl",
-                summary_outcome=f"External parallel search for role {role_upper} in location {location}. Generated {len(external_providers)} external result(s)."
-            )
-            # [FIX] Use _internal_db to avoid AttributeError when db is None
-            _internal_db.add(log_ext)
-            _internal_db.commit()
-        except Exception as log_err:
-            print(f"External discovery logging failed: {log_err}")
-            
-        all_results = internal_providers + external_providers
-            
-        # 3. Handle Zero-Result Broadening (Locality -> City -> Region)
-        if not all_results and include_web and "," in location:
-            # Broaden from "Locality, City, State" -> "City, State" -> "State"
-            parts = [p.strip() for p in location.split(",")]
-            if len(parts) > 1:
-                parent_location = ", ".join(parts[1:])
-                print(f"Broadening search from {location} to {parent_location}...")
-                
-                # Recursive call with broader location
-                return await self.discover_providers(
-                    role, parent_location, db, include_web, ritual_name, language, style, agent_command
-                )
-            
-        return all_results
+        return internal_providers + external_providers
     
     def get_cache_key(self, query: str, location: str, category: str) -> str:
         """Generate cache key for search query."""

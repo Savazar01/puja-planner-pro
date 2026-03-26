@@ -32,8 +32,10 @@ const SearchResults = () => {
     }
   };
 
-  const mockPandits = data?.pandits || [];
-  const mockTemples = data?.venues || [];
+  // Standardized result extraction
+  const results = data?.results || [];
+  const pandits = results.filter(r => r.user_type === "PANDIT");
+  const otherProviders = results.filter(r => r.user_type !== "PANDIT");
 
   return (
     <main className="min-h-screen bg-background">
@@ -103,7 +105,7 @@ const SearchResults = () => {
             <div className="mt-8">
               <h3 className="mb-4 font-display text-lg font-semibold text-foreground">Pandits</h3>
               <div className="relative space-y-4">
-                {mockPandits.map((pandit, i) => (
+                {pandits.map((pandit, i) => (
                   <motion.div
                     key={pandit.id}
                     initial={{ opacity: 0, y: 10 }}
@@ -114,35 +116,32 @@ const SearchResults = () => {
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <h4 className="font-display text-lg font-semibold text-foreground">{pandit.name}</h4>
-                          {pandit.verified && (
+                          <h4 className="font-display text-lg font-semibold text-foreground">{pandit.full_name}</h4>
+                          {pandit.is_platform_member && (
                             <Badge variant="secondary" className="gap-1 text-xs">
                               <CheckCircle className="h-3 w-3 text-primary" /> Verified
                             </Badge>
                           )}
                         </div>
-                        <p className="mt-1 text-sm text-muted-foreground">{pandit.specialization}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {pandit.additional_info?.specialization || "Professional Pandit"}
+                        </p>
                         <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5" />{pandit.location}</span>
-                          <span className="flex items-center gap-1"><Star className="h-3.5 w-3.5 text-accent" />{pandit.rating} ({pandit.reviews}+)</span>
-                        </div>
-                        <div className="mt-2 flex flex-wrap gap-1.5">
-                          {pandit.languages?.map((l) => (
-                            <Badge key={l} variant="outline" className="text-xs">{l}</Badge>
-                          ))}
+                          <span className="flex items-center gap-1"><Star className="h-3.5 w-3.5 text-accent" />{pandit.rating || 5.0}</span>
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-2">
-                        <span className="text-sm font-semibold text-foreground">{(pandit as any).price_range || pandit.priceRange}</span>
+                        <span className="text-sm font-semibold text-foreground">{pandit.additional_info?.price_range || "Contact for Quote"}</span>
                         <div className="flex gap-2">
-                          {(pandit as any).phone && (
-                            <a href={`tel:${(pandit as any).phone}`} className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 gap-1.5" style={{ borderColor: 'hsl(var(--phone-blue))', color: 'hsl(var(--phone-blue))' }}>
+                          {pandit.phone_number && (
+                            <a href={`tel:${pandit.phone_number}`} className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 gap-1.5" style={{ borderColor: 'hsl(var(--phone-blue))', color: 'hsl(var(--phone-blue))' }}>
                               <Phone className="h-3.5 w-3.5" /> Call
                             </a>
                           )}
-                          {(pandit as any).whatsapp && (pandit as any).whatsapp_enabled !== false && (
+                          {pandit.phone_number && pandit.whatsapp_enabled !== false && (
                             <a
-                              href={`https://wa.me/${(pandit as any).whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Namaste! I am planning a ${initialQuery || 'Puja ceremony'} and found your profile on SavazAI. Are you available?`)}`}
+                              href={`https://wa.me/${pandit.phone_number.replace(/\D/g, '')}?text=${encodeURIComponent(`Namaste! I am planning a ${initialQuery || 'Puja ceremony'} and found your profile on SavazAI. Are you available?`)}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-3 gap-1.5"
@@ -174,28 +173,28 @@ const SearchResults = () => {
 
             {/* Temples/Venues */}
             <div className="mt-12">
-              <h3 className="mb-4 font-display text-lg font-semibold text-foreground">Temples & Venues</h3>
+              <h3 className="mb-4 font-display text-lg font-semibold text-foreground">Location Managers & Other Providers</h3>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {mockTemples.map((temple, i) => (
+                {otherProviders.map((provider, i) => (
                   <motion.div
-                    key={temple.id}
+                    key={provider.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
                     className="rounded-xl border border-border bg-card p-5 shadow-card"
                   >
                     <div className="flex items-center gap-2">
-                      <h4 className="font-display font-semibold text-foreground">{temple.name}</h4>
-                      {temple.verified && <CheckCircle className="h-4 w-4 text-primary" />}
+                      <h4 className="font-display font-semibold text-foreground">{provider.full_name}</h4>
+                      {provider.is_platform_member && <CheckCircle className="h-4 w-4 text-primary" />}
                     </div>
                     <p className="mt-1 flex items-center gap-1 text-sm text-muted-foreground">
-                      <MapPin className="h-3.5 w-3.5" />{temple.location}
+                      <MapPin className="h-3.5 w-3.5" />{provider.location}
                     </p>
-                    <p className="mt-1 text-sm text-muted-foreground">{temple.deity || temple.venue_type}</p>
+                    <Badge variant="outline" className="mt-2 text-[10px] uppercase">{provider.user_type}</Badge>
                     <div className="mt-3 flex flex-wrap gap-1.5">
-                      {(temple.events || temple.amenities || []).map((e: string) => (
-                        <Badge key={e} variant="outline" className="text-xs">{e}</Badge>
-                      ))}
+                      {provider.phone_number && (
+                        <Badge variant="secondary" className="text-xs">{provider.phone_number}</Badge>
+                      )}
                     </div>
                   </motion.div>
                 ))}

@@ -139,24 +139,26 @@ async def search(
             results=[ProviderResponse(**p) for p in final_state.get("providers_found", [])],
             total_results=len(final_state.get("providers_found", [])),
             cached=False,
-                event_id=final_state.get("event_id") or request.event_id,
-                ritual_type=final_state.get("ritual_name") or "New Event",
-                clarification_needed=final_state.get("clarification_needed", False),
-                clarification_message=final_state.get("clarification_message")
+            event_id=final_state.get("event_id") or request.event_id,
+            ritual_type=final_state.get("ritual_name") or "New Event",
+            clarification_needed=final_state.get("clarification_needed", False),
+            clarification_message=final_state.get("clarification_message")
         )
     except Exception as e:
         import traceback
+        err_msg = str(e)
+        is_quota_error = "429" in err_msg or "quota" in err_msg.lower() or "limit" in err_msg.lower()
+        
         err_trace = traceback.format_exc()
         print(f"Orchestration Error (Shielded): {e}\n{err_trace}")
         
         # [Supervisor Rule] Log error to AgentLog for admin visibility
+        err_event_id = request.event_id
         try:
             from models import AgentLog
             from database import SessionLocal
             _log_db = SessionLocal()
-            err_event_id = request.event_id
             if not err_event_id:
-                # Find latest event for this customer to link log
                 latest = _log_db.query(Event).filter(Event.customer_id == current_user.id).order_by(Event.created_at.desc()).first()
                 if latest: err_event_id = latest.id
             
@@ -165,30 +167,34 @@ async def search(
                 event_id=err_event_id,
                 agent_type="SUPERVISOR",
                 tool_used="Orchestration",
-                summary_outcome=f"ERROR: {str(e)[:500]}\nTraceback: {err_trace[-1000:]}"
+                summary_outcome=f"ERROR: {err_msg[:500]}\nQuota Error: {is_quota_error}"
             )
             _log_db.add(err_log)
             _log_db.commit()
             _log_db.close()
-        except Exception as log_err:
-            print(f"Failed to log orchestration error: {log_err}")
+        except:
+            pass
         
-        # Best effort: find recent event for this user if event_id was missing
-        err_event_id = request.event_id
-        if not err_event_id:
+        # [QUOTA RESILIENCE] Fallback to internal results if LLM fails
+        results = []
+        fallback_msg = "I'm having a little trouble connecting to my summary tools right now. However, I've secured your local options!"
+        
+        if err_event_id:
             try:
-                latest_event = db.query(Event).filter(Event.customer_id == current_user.id).order_by(Event.created_at.desc()).first()
-                if latest_event:
-                    err_event_id = latest_event.id
+                event = db.query(Event).filter(Event.id == err_event_id).first()
+                if event and event.intent_json:
+                    saved_state = json.loads(event.intent_json) if isinstance(event.intent_json, str) else event.intent_json
+                    providers = saved_state.get("providers_found", [])
+                    results = [ProviderResponse(**p) for p in providers]
             except:
                 pass
 
         return SearchResponse(
-            results=[],
-            total_results=0,
+            results=results,
+            total_results=len(results),
             event_id=err_event_id,
             clarification_needed=True,
-            clarification_message="I'm having a little trouble connecting to my discovery tools right now. However, your event details are being saved. Feel free to try again in a moment!"
+            clarification_message=fallback_msg if is_quota_error else "I encountered a technical glitch, but your event is safe. Our team has been notified!"
         )
 
 

@@ -292,7 +292,7 @@ async def health_check():
 
 
 @router.post("/api/auth/token", response_model=Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     """
     Standard login endpoint. 
     Matches against savaz_db user table. 
@@ -312,7 +312,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
 
 
 @router.patch("/api/auth/change-password")
-async def change_password(
+def change_password(
     pwd_in: PasswordChange, 
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)

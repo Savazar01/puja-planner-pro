@@ -143,13 +143,13 @@ app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
 async def timeout_middleware(request: Request, call_next):
     """Global 25s timeout to prevent proxy 504 errors on long auth/search tasks."""
     try:
-        async with anyio.fail_after(25):
+        # anyio.fail_after is a synchronous context manager in most versions
+        with anyio.fail_after(25):
             return await call_next(request)
     except TimeoutError:
         return anyio.lowlevel.checkpoint_if_cancelled()
     except Exception as e:
-        # Resiliently catch Anyio TimeoutException by class name string
-        # This avoids "ImportError: cannot import name 'TimeoutException' from 'anyio'"
+        # Catch any Anyio timeout exception by name string for resilience
         if "TimeoutException" in type(e).__name__:
              raise HTTPException(
                 status_code=status.HTTP_408_REQUEST_TIMEOUT,

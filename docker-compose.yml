@@ -14,11 +14,11 @@ services:
       - default
       - savaz-prod-net
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: [ "CMD", "pg_isready", "-U", "${POSTGRES_USER}" ]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 30s
+      start_period: 10s
     restart: unless-stopped
 
   # FastAPI Backend
@@ -53,11 +53,11 @@ services:
       - default
       - savaz-prod-net
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${BACKEND_PORT:-8735}/health"]
-      interval: 15s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
+      test: [ "CMD", "curl", "-f", "http://localhost:${BACKEND_PORT:-8735}/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
     restart: unless-stopped
 
   # Vite/React Frontend
@@ -66,7 +66,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: ${VITE_API_URL:-https://pujaapi.fossone.app}
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8735}
     container_name: savaz_frontend_container
     ports:
       - "${FRONTEND_PORT}:${FRONTEND_PORT}"
@@ -79,9 +79,9 @@ services:
       - savaz-prod-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${FRONTEND_PORT:-8734}"]
-      interval: 15s
-      timeout: 10s
+      test: [ "CMD", "curl", "-f", "http://localhost:${FRONTEND_PORT:-8734}" ]
+      interval: 10s
+      timeout: 5s
       retries: 5
       start_period: 60s
 
@@ -96,10 +96,10 @@ services:
     networks:
       - savaz-prod-net
 
-  privacy:
+  privacy-gate:
     build:
       context: ./services/privacy-gate
-    container_name: savaz_privacy_gate
+    container_name: privacy-gate
     restart: unless-stopped
     ports:
       - "8740:8740"
@@ -108,6 +108,12 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
     networks:
       - savaz-prod-net
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8740/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
 networks:
   savaz-prod-net:

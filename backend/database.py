@@ -9,12 +9,12 @@ from config import settings
 engine = create_engine(
     settings.database_url,
     pool_pre_ping=True,
-    pool_size=50,         # Increased from 20 to handle more concurrent local queries
-    max_overflow=100,      # Increased from 50
-    pool_timeout=10,      # Slightly more aggressive timeout
-    pool_recycle=1800,    # Recycle connections every 30 mins to prevent stale DB handles
+    pool_size=10,         # Set to 10 as per lockdown requirement
+    max_overflow=50,      # Kept reasonable overflow
+    pool_timeout=10,
+    pool_recycle=300,     # Recycles every 5 minutes (300s) as requested
     connect_args={
-        "connect_timeout": 10  # 10s TCP timeout for initial connection
+        "connect_timeout": 10
     }
 )
 

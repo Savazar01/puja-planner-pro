@@ -14,11 +14,12 @@ services:
       - default
       - savaz-prod-net
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER}" ]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 60s
+      start_period: 30s
+    restart: unless-stopped
 
   # FastAPI Backend
   backend:
@@ -52,7 +53,7 @@ services:
       - default
       - savaz-prod-net
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:${BACKEND_PORT:-8000}/health" ]
+      test: ["CMD", "curl", "-f", "http://localhost:${BACKEND_PORT:-8735}/health"]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -65,19 +66,20 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:8735}
+        VITE_API_URL: ${VITE_API_URL:-https://pujaapi.fossone.app}
     container_name: savaz_frontend_container
     ports:
       - "${FRONTEND_PORT}:${FRONTEND_PORT}"
     environment:
       - FRONTEND_PORT=${FRONTEND_PORT:-8734}
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - savaz-prod-net
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:${FRONTEND_PORT:-8734}" ]
+      test: ["CMD", "curl", "-f", "http://localhost:${FRONTEND_PORT:-8734}"]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -94,21 +96,16 @@ services:
     networks:
       - savaz-prod-net
 
-  privacy-gate:
+  privacy:
     build:
       context: ./services/privacy-gate
-    container_name: privacy-gate
+    container_name: savaz_privacy_gate
     restart: unless-stopped
     ports:
       - "8740:8740"
     environment:
-      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
-      - OLLAMA_URL=${OLLAMA_URL:-http://ollama-api:11434}
-      - AGENT_PLANNER_LLM=${AGENT_PLANNER_LLM:-local}
-      - AGENT_FINDER_LLM=${AGENT_FINDER_LLM:-local}
-      - AGENT_CONCIERGE_LLM=${AGENT_CONCIERGE_LLM:-local}
-      - AGENT_SCRIBE_LLM=${AGENT_SCRIBE_LLM:-local}
-      - AGENT_SUPPLIES_LLM=${AGENT_SUPPLIES_LLM:-local}
+      - PORT=8740
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     networks:
       - savaz-prod-net
 

@@ -148,11 +148,20 @@ async def root():
     return RedirectResponse(url="/docs")
 
 @app.get("/health")
-async def health():
-    """Consolidated health check with initialization status."""
+def health(db: Session = Depends(get_db)):
+    """Consolidated health check with database ping and initialization status."""
+    db_alive = False
+    try:
+        from sqlalchemy import text
+        db.execute(text("SELECT 1"))
+        db_alive = True
+    except Exception as e:
+        logger.error(f"Database health check failed: {e}")
+
     return {
-        "status": "ok" if GLOBAL_READY else "initializing",
+        "status": "ok" if (GLOBAL_READY and db_alive) else "degraded",
         "ready": GLOBAL_READY,
+        "database": "connected" if db_alive else "disconnected",
         "error": INIT_ERROR,
         "timestamp": str(datetime.now())
     }

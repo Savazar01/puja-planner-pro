@@ -51,32 +51,29 @@ export async function login(email: string, password: string) {
     formData.append("username", email);
     formData.append("password", password);
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
     const loginUrl = `${VITE_API_URL}/api/auth/token`;
 
     try {
         const response = await fetch(loginUrl, {
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: formData,
-            signal: controller.signal
+            body: formData
         });
-        clearTimeout(timeoutId);
         
+        if (response.status === 503) {
+            throw new Error("System is initializing. Please wait a moment and try again.");
+        }
+
         if (!response.ok) {
-            throw new Error(`Invalid credentials: ${response.status} ${response.statusText}`);
+            if (response.status === 401) {
+                throw new Error("Invalid email or password.");
+            }
+            throw new Error(`Login failed: ${response.status} ${response.statusText}`);
         }
         return response.json();
     } catch (error: any) {
-        clearTimeout(timeoutId);
         // Explicitly log the URL being targeted for diagnostics
         console.error(`Login Failed to Fetch from URL: ${loginUrl}`, error);
-        
-        if (error.name === 'AbortError') {
-             throw new Error("Login request timed out after 30 seconds. Please check your network or proxy configuration.");
-        }
         
         // Return clear diagnostic of failed fetch
         throw new Error(error.message || "Failed to communicate with authentication server");

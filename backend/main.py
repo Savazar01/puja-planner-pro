@@ -40,19 +40,8 @@ def run_initialization():
         Base.metadata.create_all(bind=engine)
         logger.info("Database tables verified.")
         
-        # 1.5 Update Postgres ENUMs (Must be outside transaction block)
-        try:
-            with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
-                for role in ['CATERER', 'DECORATOR', 'DJ_COMPERE', 'LOCATION_MANAGER', 'MEDIA', 'MEHENDI_ARTIST']:
-                    try:
-                        conn.execute(text(f"ALTER TYPE userrole ADD VALUE '{role}'"))
-                    except Exception as e:
-                        # 42710 is the Postgres code for duplicate_object (already exists)
-                        if "42710" in str(e) or "already exists" in str(e).lower():
-                            continue
-                        logger.warning(f"Unexpected error adding enum {role}: {e}")
-        except Exception as enum_err:
-            logger.warning(f"Enum sync skipped (Non-fatal, may use SQLite): {enum_err}")
+        # 1.5 Update Postgres ENUMs (Handled by init_db or one-time migration)
+        # Removed redundant ALTER TYPE statements to prevent log noise and DB overhead on every restart.
         
         # 2. Run manual migrations (resiliently)
         with engine.begin() as conn:
@@ -151,6 +140,7 @@ async def root():
     return RedirectResponse(url="/docs")
 
 @app.get("/health", operation_id="get_health_status")
+@app.get("/health", operation_id="get_health_status")
 def health(db: Session = Depends(get_db)):
     """Consolidated health check with database ping and initialization status."""
     db_alive = False
@@ -161,13 +151,21 @@ def health(db: Session = Depends(get_db)):
     except Exception as e:
         logger.error(f"Database health check failed: {e}")
 
-    return {
-        "status": "ok" if (GLOBAL_READY and db_alive) else "degraded",
-        "ready": GLOBAL_READY,
-        "database": "connected" if db_alive else "disconnected",
-        "error": INIT_ERROR,
-        "timestamp": str(datetime.now())
-    }
+    # [RESILIENCE] Return 503 Service Unavailable if not ready to handle traffic
+    # This instructs Coolify/Cloudflare to wait rather than showing a 504
+    status_code = 200 if (GLOBAL_READY and db_alive) else 503
+    
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "status": "healthy" if (GLOBAL_READY and db_alive) else "initializing",
+            "ready": GLOBAL_READY,
+            "database": "connected" if db_alive else "disconnected",
+            "error": INIT_ERROR,
+            "timestamp": str(datetime.now())
+        }
+    )
 
 if __name__ == "__main__":
     import uvicorn

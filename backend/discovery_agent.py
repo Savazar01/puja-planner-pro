@@ -252,7 +252,7 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
         else:
             role_key = input_role
 
-        target_role = ROLE_MAP.get(role_key, UserRole.PANDIT) # Default to Pandit
+        target_role = ROLE_MAP.get(role_key, UserRole.PANDIT)
         query_roles = [target_role]
         
         # Special case for Customer/Host alias in DB
@@ -283,13 +283,14 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
             for user in users_in_role:
                 profile = user.profile
                 if not profile: continue
+                # FORCE REQUIRED FIELDS
                 internal_providers.append({
                     "id": user.id,
                     "full_name": profile.full_name or "Unnamed Member",
-                    "user_type": role_key,
+                    "user_type": role_key, # Use Normalized Key
                     "location": profile.location or profile.address_city or location,
                     "phone_number": profile.phone or user.phone or "",
-                    "whatsapp_enabled": profile.whatsapp_enabled if hasattr(profile, 'whatsapp_enabled') else True,
+                    "whatsapp_enabled": getattr(profile, 'whatsapp_enabled', True),
                     "is_platform_member": True,
                     "rating": 5.0,
                     "reviews": 1,
@@ -310,44 +311,52 @@ If a field is not found, use null or appropriate default. Return ONLY the JSON, 
         finally:
             if not db: _internal_db.close()
 
-        # [RESULT PERSISTENCE] Ensure internal results are returned even if external fails or quota hit
+        # 2. External Web Search (Secondary Fallback with 10s Timeout)
         if not include_web:
             return internal_providers
 
-        # 2. External Web Search (Secondary Fallback)
-        search_results = []
-        try:
+        external_providers = []
+        role_upper = role_key.upper()
+        
+        async def run_external_discovery():
             search_results = await self.search_with_serper(
                 query=f"{role_upper} {location}", 
                 role=role_upper,
                 location=location
             )
-        except Exception as e:
-            print(f"External search fallback suppressed: {e}")
-        
-        external_providers = []
-        for result in search_results[:3]:
-            url = result.get("link", "")
-            if not url: continue
             
-            content = await self.scrape_with_firecrawl(url)
-            if not content: continue
-            
-            provider_data = await self.parse_with_gemini(content, role_upper.lower())
-            if not provider_data or not isinstance(provider_data, dict):
-                continue
+            providers = []
+            for result in search_results[:3]:
+                url = result.get("link", "")
+                if not url: continue
                 
-            external_providers.append({
-                "id": str(uuid.uuid4()),
-                "full_name": provider_data.get("name", result.get("title", "Unknown")),
-                "user_type": role_upper,
-                "location": provider_data.get("location", location),
-                "phone_number": provider_data.get("phone", ""),
-                "whatsapp_enabled": True, # Assume enabled for external curated results
-                "is_platform_member": False,
-                "website": url,
-                "additional_info": provider_data
-            })
+                content = await self.scrape_with_firecrawl(url)
+                if not content: continue
+                
+                provider_data = await self.parse_with_gemini(content, role_upper.lower())
+                if not provider_data or not isinstance(provider_data, dict):
+                    continue
+                    
+                providers.append({
+                    "id": str(uuid.uuid4()),
+                    "full_name": provider_data.get("name", result.get("title", "Unknown")),
+                    "user_type": role_upper,
+                    "location": provider_data.get("location", location),
+                    "phone_number": provider_data.get("phone", ""),
+                    "whatsapp_enabled": True, 
+                    "is_platform_member": False,
+                    "website": url,
+                    "additional_info": provider_data
+                })
+            return providers
+
+        try:
+            # STRICT 10s TIMEOUT GUARD
+            external_providers = await asyncio.wait_for(run_external_discovery(), timeout=10.0)
+        except asyncio.TimeoutError:
+            print(f"External search timed out after 10s. Presenting internal results only.")
+        except Exception as e:
+            print(f"External search fallback failed: {e}")
             
         return internal_providers + external_providers
     

@@ -72,10 +72,18 @@ export async function login(email: string, password: string) {
         }
         return response.json();
     } catch (error: any) {
-        // Explicitly log the URL being targeted for diagnostics
-        console.error(`Login Failed to Fetch from URL: ${loginUrl}`, error);
+        // Detailed error logging for fetch failures on VPS
+        const diagnosticInfo = {
+            url: loginUrl,
+            message: error.message,
+            stack: error.stack,
+            type: error.name
+        };
+        console.error("Login Fetch Failure Diagnostic:", diagnosticInfo);
         
-        // Return clear diagnostic of failed fetch
+        if (error.message?.includes("Failed to fetch") || error.name === "TypeError") {
+            throw new Error("Unable to connect to the authentication server at " + loginUrl + ". Please check your internet connection or if the service is down.");
+        }
         throw new Error(error.message || "Failed to communicate with authentication server");
     }
 }

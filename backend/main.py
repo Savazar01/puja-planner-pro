@@ -140,7 +140,6 @@ async def root():
     return RedirectResponse(url="/docs")
 
 @app.get("/health", operation_id="get_health_status")
-@app.get("/health", operation_id="get_health_status")
 def health(db: Session = Depends(get_db)):
     """Consolidated health check with database ping and initialization status."""
     db_alive = False

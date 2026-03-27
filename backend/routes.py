@@ -32,10 +32,6 @@ from email_service import send_dynamic_email
 router = APIRouter()
 
 
-@router.get("/health")
-async def health_check():
-    """Health check endpoint."""
-    return {"status": "healthy", "service": "puja-planner-backend"}
 
 
 @router.post("/api/search", response_model=SearchResponse)
@@ -285,10 +281,6 @@ async def register(user_in: UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 
-@router.get("/health")
-async def health_check():
-    """Lightweight health check for Docker/Cloudflare."""
-    return {"status": "ok"}
 
 
 @router.post("/api/auth/token", response_model=Token)

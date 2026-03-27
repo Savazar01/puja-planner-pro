@@ -46,8 +46,11 @@ def run_initialization():
                 for role in ['CATERER', 'DECORATOR', 'DJ_COMPERE', 'LOCATION_MANAGER', 'MEDIA', 'MEHENDI_ARTIST']:
                     try:
                         conn.execute(text(f"ALTER TYPE userrole ADD VALUE '{role}'"))
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        # 42710 is the Postgres code for duplicate_object (already exists)
+                        if "42710" in str(e) or "already exists" in str(e).lower():
+                            continue
+                        logger.warning(f"Unexpected error adding enum {role}: {e}")
         except Exception as enum_err:
             logger.warning(f"Enum sync skipped (Non-fatal, may use SQLite): {enum_err}")
         
@@ -147,7 +150,7 @@ app.include_router(router)
 async def root():
     return RedirectResponse(url="/docs")
 
-@app.get("/health")
+@app.get("/health", operation_id="get_health_status")
 def health(db: Session = Depends(get_db)):
     """Consolidated health check with database ping and initialization status."""
     db_alive = False
